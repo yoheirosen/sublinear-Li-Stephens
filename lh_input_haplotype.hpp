@@ -28,8 +28,6 @@ public:
   void edit(size_t start_pos, size_t end_pos, string new_string, 
             string old_string, string ref);
   
-  bool validate_haplotype();
-  bool validate_augmentations();
   alleleValue get_allele(size_t j);
   size_t get_augmentations(int j);
 };

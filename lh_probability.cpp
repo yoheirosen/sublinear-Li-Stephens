@@ -193,9 +193,6 @@ penaltySet::penaltySet(double log_rho, double log_mu, int H) : H(H),
 }
 
 double haplotypeMatrix::calculate_probabilities() {
-  if(query->validate_haplotype() == false) {
-    return 1;
-  }
   initialize_probability();
   for(size_t i = 0; i < size(); i++) {
     extend_probability_at_site(i, query->get_allele(i));

@@ -105,25 +105,3 @@ size_t inputHaplotype::get_augmentations(int j) {
   return augmentations[j + 1];
 }
 
-bool inputHaplotype::validate_haplotype() {
-  if(alleles.size() != reference->number_of_sites()) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
-bool inputHaplotype::validate_augmentations() {
-  if(augmentations.size() != reference->number_of_sites()) {
-    return false;
-  }
-  if(augmentations[0] != 0 && reference->has_span_before(0) == false) {
-    return false;
-  }
-  for(size_t i = 0; i < augmentations.size(); i++) {
-    if(augmentations[i] != 0 && reference->has_span_after(i) == false) {
-      return false;
-    }
-  }
-  return true;
-}
