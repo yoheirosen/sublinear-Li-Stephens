@@ -16,7 +16,7 @@ linearReferenceStructure build_ref(string ref_seq, vector<size_t> positions) {
   return linearReferenceStructure(positions, ref_seq.length(), ref_values);
 }
 
-TEST_CASE( "linearReferenceStructure has desired structure", "reference]" ) {
+TEST_CASE( "linearReferenceStructure has desired structure", "[reference]" ) {
   // indices        0123456
   // sites           x  xx
   string ref_seq = "GATTACA";
@@ -30,14 +30,14 @@ TEST_CASE( "linearReferenceStructure has desired structure", "reference]" ) {
     REQUIRE(ref_struct.get_site_index(5) == 2);
     REQUIRE(ref_struct.get_position(0) == 1);
     REQUIRE(ref_struct.get_position(2) == 5);
-    REQUIRE(ref_struct.absolute_length() == 7);
+    REQUIRE(ref_struct.has_span_before(0) == true);
+    REQUIRE(ref_struct.has_span_after(0) == true);
+    REQUIRE(ref_struct.has_span_after(1) == false);
     REQUIRE(ref_struct.span_length_before(0) == 1);
     REQUIRE(ref_struct.span_length_after(0) == 2);
     REQUIRE(ref_struct.span_length_after(1) == 0);
     REQUIRE(ref_struct.span_length_after(2) == 1);
-    REQUIRE(ref_struct.has_span_before(0) == true);
-    REQUIRE(ref_struct.has_span_after(0) == true);
-    REQUIRE(ref_struct.has_span_after(1) == false);
+    REQUIRE(ref_struct.absolute_length() == 7);
   }
   SECTION( "build-from-strings gives same result as direct construction" ) {
     vector<string> haplotypes = {
@@ -114,7 +114,7 @@ TEST_CASE( "haplotypeCohort construction behaves as desired", "[haplotype][refer
     REQUIRE(direct_cohort.number_matching(0,C) == 1);
     REQUIRE(direct_cohort.number_matching(0,G) == 1);
     REQUIRE(direct_cohort.number_matching(0,gap) == 2);
-    REQUIRE(direct_cohort.number_matching(1,A) == 1);
+    REQUIRE(direct_cohort.number_matching(1,A) == 6);
     REQUIRE(direct_cohort.number_matching(1,T) == 0);
     REQUIRE(direct_cohort.number_not_matching(0,gap) == 4);
     REQUIRE(direct_cohort.number_not_matching(1,A) == 0);
@@ -162,7 +162,7 @@ TEST_CASE( "haplotypeCohort construction behaves as desired", "[haplotype][refer
     REQUIRE(string_cohort.number_matching(0,C) == 1);
     REQUIRE(string_cohort.number_matching(0,G) == 1);
     REQUIRE(string_cohort.number_matching(0,gap) == 2);
-    REQUIRE(string_cohort.number_matching(1,A) == 1);
+    REQUIRE(string_cohort.number_matching(1,A) == 6);
     REQUIRE(string_cohort.number_matching(1,T) == 0);
     REQUIRE(string_cohort.number_not_matching(0,gap) == 4);
     REQUIRE(string_cohort.number_not_matching(1,A) == 0);
