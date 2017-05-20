@@ -220,20 +220,20 @@ TEST_CASE( "inputHaplotype methods behave as desired", "[haplotype]" ) {
     string seq_2 = "AATCACA";
     vector<size_t> count_1 = {0,1,0,1};
     vector<size_t> count_2 = {1,1,0,0};
-    inputHaplotype query = inputHaplotype(alleles, count_1);
-    inputHaplotype query_after = inputHaplotype(alleles, count_2);
+    inputHaplotype query = inputHaplotype(alleles, count_1, &ref_struct);
+    inputHaplotype query_after = inputHaplotype(alleles, count_2, &ref_struct);
     size_t i = 0;
     query.edit(i, seq_2[i], seq_1[i], ref_seq[i]);
-    REQUIRE(query.get_augmentations(i) == query_after.get_augmentations(i));
+    REQUIRE(query.get_augmentations(0) == query_after.get_augmentations(0));
     i = 2;
     query.edit(i, seq_2[i], seq_1[i], ref_seq[i]);
-    REQUIRE(query.get_augmentations(i) == query_after.get_augmentations(i));
+    REQUIRE(query.get_augmentations(1) == query_after.get_augmentations(1));
     i = 3;
     query.edit(i, seq_2[i], seq_1[i], ref_seq[i]);
-    REQUIRE(query.get_augmentations(i) == query_after.get_augmentations(i));
+    REQUIRE(query.get_augmentations(1) == query_after.get_augmentations(1));
     i = 6;
     query.edit(i, seq_2[i], seq_1[i], ref_seq[i]);
-    REQUIRE(query.get_augmentations(i) == query_after.get_augmentations(i));
+    REQUIRE(query.get_augmentations(2) == query_after.get_augmentations(2));
   }
 }
 
@@ -241,49 +241,45 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
   // We need our penaltySet to work correctly for any likelihood calculations to
   double eps = 0.0000001;
   
-  penaltySet pen_test = penaltySet(-6, -9, 10);
-  // REQUIRE(fabs(pen_test.log1plusHminusRho - ) < eps);
-  // REQUIRE(fabs(pen_test.log1minusRho - ) < eps);
-  // REQUIRE(fabs(pen_test.log1minusMu - ) < eps);
-
   SECTION( "Partial likelihood is correctly calculated at an initial site" ) {
+    penaltySet penalties = penaltySet(-6, -9, 2);
+    
     string ref_seq = "A";
     vector<size_t> positions = {0};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
-    
+
     vector<string> allA = vector<string>(2, "A");
     vector<string> allT = vector<string>(2, "T");
     vector<string> AT = {"A","T"};    
     
     haplotypeCohort cohort_allA = haplotypeCohort(allA, &ref_struct);
-    haplotypeCohort cohort_allT = haplotypeCohort(allA, &ref_struct);
-    haplotypeCohort cohort_AT = haplotypeCohort(allA, &ref_struct);
+    haplotypeCohort cohort_allT = haplotypeCohort(allT, &ref_struct);
+    haplotypeCohort cohort_AT = haplotypeCohort(AT, &ref_struct);
     
     inputHaplotype query = inputHaplotype((string)"A", ref_seq, &ref_struct);
-    
-    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &pen_test, 
+
+    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_allA, &query);
     double probability_allA = matrix_allA.calculate_probabilities();
-    
-    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &pen_test, 
+
+    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_allT, &query);
     double probability_allT = matrix_allT.calculate_probabilities();
-    
-    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &pen_test, 
+
+    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_AT, &query);
     double probability_AT = matrix_AT.calculate_probabilities();
-    
+
     // TODO: correct values
-    double R0_allA_p = 0;
-    double R0_allT_p = 0;
-    double R0_AT_p = 0;
-    double R1_AT_p = 0;
-    double p_allA_p = 0;
-    double p_allT_p = 0;
-    double p_AT_p = 0;
+    double R0_allA_p = log(0.5) + penalties.log_mu_complement;
+    double R0_allT_p = log(0.5) + penalties.log_mu;
+    double R0_AT_p = R0_allA_p;
+    double R1_AT_p = R0_allT_p;
+    double p_allA_p = log(2) + R0_allA_p;
+    double p_allT_p = log(2) + R0_allT_p;
+    double p_AT_p = logsum(R0_AT_p,R1_AT_p);
         
     bool R0_allA_correct = (fabs(matrix_allA.R[0][0] - R0_allA_p) < eps);
-    
     bool R0_allT_correct = (fabs(matrix_allT.R[0][0] - R0_allT_p) < eps);
     
     bool R0_AT_correct = (fabs(matrix_AT.R[0][0] - R0_AT_p) < eps);
@@ -302,8 +298,10 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     REQUIRE(probability_AT_correct);
   }
   SECTION( "Partial likelihood is correctly calculated at a noninitial site" ) {
-    string ref_seq = "A";
-    vector<size_t> positions = {0};
+    penaltySet penalties = penaltySet(-6, -9, 4);
+    
+    string ref_seq = "AA";
+    vector<size_t> positions = {0,1};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
     
     vector<string> allA = {"AA","TA","AA","TA"};
@@ -311,47 +309,52 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     vector<string> AT = {"AA","TA","AT","TT"};    
     
     haplotypeCohort cohort_allA = haplotypeCohort(allA, &ref_struct);
-    haplotypeCohort cohort_allT = haplotypeCohort(allA, &ref_struct);
-    haplotypeCohort cohort_AT = haplotypeCohort(allA, &ref_struct);
+    haplotypeCohort cohort_allT = haplotypeCohort(allT, &ref_struct);
+    haplotypeCohort cohort_AT = haplotypeCohort(AT, &ref_struct);
     
     inputHaplotype query = inputHaplotype((string)"AA", ref_seq, &ref_struct);
     
-    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_allA, &query);
     double probability_allA = matrix_allA.calculate_probabilities();
     
-    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_allT, &query);
     double probability_allT = matrix_allT.calculate_probabilities();
     
-    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort_AT, &query);
     double probability_AT = matrix_AT.calculate_probabilities();
+        
+    double R0A = log(0.25) + penalties.log_mu_complement;
+    double R0T = log(0.25) + penalties.log_mu;
+    double S0 = log(0.5);
+    double ftR0A = penalties.log_ft_base + R0A;
+    double ftR0T = penalties.log_ft_base + R0T;
+    double pS = penalties.log_rho + S0;
     
-    // TODO: fill in
-    
-    double R0_allA_p = 0;
-    double R1_allA_p = 0;
-    double R0_allT_p = 0;
-    double R1_allT_p = 0;
-    double R0_AT_p = 0;
-    double R1_AT_p = 0;
-    double R2_AT_p = 0;
-    double R3_AT_p = 0;
-    double p_allA_p = 0;
-    double p_allT_p = 0;
-    double p_AT_p = 0;    
+    double R0_allA_p = penalties.log_mu_complement + logsum(ftR0A, pS);
+    double R1_allA_p = penalties.log_mu_complement + logsum(ftR0T, pS);
+    double R0_allT_p = penalties.log_mu + logsum(ftR0A, pS);
+    double R1_allT_p = penalties.log_mu + logsum(ftR0T, pS);
+    double R0_AT_p = R0_allA_p;
+    double R1_AT_p = R1_allA_p;
+    double R2_AT_p = R0_allT_p;
+    double R3_AT_p = R1_allT_p;
+    double p_allA_p = log(0.5) + penalties.log_mu_complement + log1p(2*exp(-6));
+    double p_allT_p = log(0.5) + penalties.log_mu + log1p(2*exp(-6));
+    double p_AT_p = logsum(log(0.25) + penalties.log_ft_base, penalties.log_rho);    
     
     bool R0_allA_correct = (fabs(matrix_allA.R[1][0] - R0_allA_p) < eps);
-    bool R1_allA_correct = (fabs(matrix_allA.R[1][1] - R0_allA_p) < eps);
+    bool R1_allA_correct = (fabs(matrix_allA.R[1][1] - R1_allA_p) < eps);
     
-    bool R0_allT_correct = (fabs(matrix_allT.R[1][0] - R0_allA_p) < eps);
-    bool R1_allT_correct = (fabs(matrix_allT.R[1][0] - R0_allA_p) < eps);
+    bool R0_allT_correct = (fabs(matrix_allT.R[1][0] - R0_allT_p) < eps);
+    bool R1_allT_correct = (fabs(matrix_allT.R[1][1] - R1_allT_p) < eps);
     
     bool R0_AT_correct = (fabs(matrix_AT.R[1][0] - R0_AT_p) < eps);
-    bool R1_AT_correct = (fabs(matrix_AT.R[1][1] - R0_AT_p) < eps);
-    bool R2_AT_correct = (fabs(matrix_AT.R[1][2] - R0_AT_p) < eps);
-    bool R3_AT_correct = (fabs(matrix_AT.R[1][3] - R0_AT_p) < eps);
+    bool R1_AT_correct = (fabs(matrix_AT.R[1][1] - R1_AT_p) < eps);
+    bool R2_AT_correct = (fabs(matrix_AT.R[1][2] - R2_AT_p) < eps);
+    bool R3_AT_correct = (fabs(matrix_AT.R[1][3] - R3_AT_p) < eps);
     
     bool probability_allA_correct = (fabs(probability_allA - p_allA_p) < eps);
     bool probability_allT_correct = (fabs(probability_allT - p_allT_p) < eps);
@@ -370,6 +373,8 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     REQUIRE(probability_AT_correct);
   }
   SECTION( "Partial likelihood is correctly calculated at a span following a site" ) {
+    penaltySet penalties = penaltySet(-6, -9, 3);
+    
     string ref_seq = "AAAAAA";
     vector<size_t> positions = {0};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -384,45 +389,42 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     inputHaplotype query_0_aug = inputHaplotype((string)"AAAAAA", ref_seq, &ref_struct);
     inputHaplotype query_1_aug = inputHaplotype((string)"AAAAAT", ref_seq, &ref_struct);
     
-    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query_0_aug);
     double probability_0_aug = matrix_0_aug.calculate_probabilities();
-    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query_1_aug);
     double probability_1_aug = matrix_1_aug.calculate_probabilities();
     
-    // TODO: fill in
+    double lmu = penalties.log_mu;
+    double lmu_c = penalties.log_mu_complement;
+    double lfsb = penalties.log_fs_base;
+    double lftb = penalties.log_ft_base;
+    double lS_i = logdiff(log(2), lmu) - log(3);
+    double lrho = penalties.log_rho;
     
-    double p_0a_p = 0;
-    double p_1a_p = 0;
-    double R0_0a_p = 0;
-    double R1_0a_p = 0;
-    double R2_0a_p = 0;
-    double R0_1a_p = 0;
-    double R1_1a_p = 0;
-    double R2_1a_p = 0;
+    double RHS = logsum(lrho + lS_i + 4*lfsb, 
+                        lftb + lS_i + logdiff(4*lfsb, 4*lftb) - log(3));
+    double lR_i = lmu_c - log(3);
+    double lR_im = lmu - log(3);
     
-    bool probability_0_aug_correct =
-              (fabs(probability_0_aug - p_0a_p) < eps);
-    bool probability_1_aug_correct =
-              (fabs(probability_1_aug - p_0a_p) < eps);
-    bool R0_0_aug_correct = (fabs(matrix_0_aug.R[0][0] - R0_0a_p) < eps);
-    bool R1_0_aug_correct = (fabs(matrix_0_aug.R[0][1] - R1_0a_p) < eps);
-    bool R2_0_aug_correct = (fabs(matrix_0_aug.R[0][2] - R2_0a_p) < eps);
-    bool R0_1_aug_correct = (fabs(matrix_1_aug.R[0][0] - R0_1a_p) < eps);
-    bool R1_1_aug_correct = (fabs(matrix_1_aug.R[0][1] - R1_1a_p) < eps);
-    bool R2_1_aug_correct = (fabs(matrix_1_aug.R[0][2] - R2_1a_p) < eps);
+    double R0_0a_p = lmu_c*5 + logsum(lftb*5 + lR_i, RHS);
+    double R2_0a_p = lmu_c*5 + logsum(lftb*5 + lR_im, RHS);
+    double R0_1a_p = lmu_c*4 + lmu + logsum(lftb*5 + lR_i, RHS);
+    double R2_1a_p = lmu_c*4 + lmu + logsum(lftb*5 + lR_im, RHS);
+    double p_0a_p = lmu_c*5 + logsum(lftb*5 + lS_i, RHS + log(3));
+    double p_1a_p = lmu_c*4 + lmu + logsum(lftb*5 + lS_i, RHS + log(3));
     
-    REQUIRE(R0_0_aug_correct);
-    REQUIRE(R1_0_aug_correct);
-    REQUIRE(R2_0_aug_correct);
-    REQUIRE(R0_1_aug_correct);
-    REQUIRE(R1_1_aug_correct);
-    REQUIRE(R2_1_aug_correct);  
-    REQUIRE(probability_1_aug_correct);
-    REQUIRE(probability_1_aug_correct);
+    REQUIRE(fabs(matrix_0_aug.R[0][0] - R0_0a_p) < eps);
+    REQUIRE(fabs(matrix_0_aug.R[0][2] - R2_0a_p) < eps);
+    REQUIRE(fabs(matrix_1_aug.R[0][0] - R0_1a_p) < eps);
+    REQUIRE(fabs(matrix_1_aug.R[0][2] - R2_1a_p) < eps);  
+    REQUIRE(fabs(probability_0_aug - p_0a_p) < eps);
+    REQUIRE(fabs(probability_1_aug - p_1a_p) < eps);
   }
   SECTION( "Partial likelihood is correctly calculated at an initial span" ) {
+    penaltySet penalties = penaltySet(-6, -9, 3);
+    
     string ref_seq = "AAAAAA";
     vector<size_t> positions = {5};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -434,48 +436,48 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     };
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
     
-    inputHaplotype query_0_aug = inputHaplotype((string)"AAAAAA", ref_seq, &ref_struct);
-    inputHaplotype query_1_aug = inputHaplotype((string)"TAAAAA", ref_seq, &ref_struct);
+    inputHaplotype query_0_aug = 
+              inputHaplotype((string)"AAAAAA", ref_seq, &ref_struct);
+    inputHaplotype query_1_aug = 
+              inputHaplotype((string)"TAAAAA", ref_seq, &ref_struct);
     
-    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query_0_aug);
     double probability_0_aug = matrix_0_aug.calculate_probabilities();
-    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query_1_aug);
     double probability_1_aug = matrix_1_aug.calculate_probabilities();
     
-    // TODO: fill in
+    double lmu = penalties.log_mu;
+    double lmu_c = penalties.log_mu_complement;
+    double lfsb = penalties.log_fs_base;
     
-    double p_0a_p = 0;
-    double p_1a_p = 0;
-    double R0_0a_p = 0;
-    double R1_0a_p = 0;
-    double R2_0a_p = 0;
-    double R0_1a_p = 0;
-    double R1_1a_p = 0;
-    double R2_1a_p = 0;
+    double R0_0a_p = 6*lmu_c + 5*lfsb - log(3);
+    double R2_0a_p = 5*lmu_c + 5*lfsb + lmu - log(3);
+    double R0_1a_p = 5*lmu_c + lmu + 5*lfsb - log(3);
+    double R2_1a_p = 4*lmu_c + 2*lmu + 5*lfsb - log(3);
+    double p_0a_p = 5*lmu_c + 5*lfsb + logdiff(log(2), lmu) - log(3);
+    double p_1a_p = 4*lmu_c + lmu + 5*lfsb + logdiff(log(2), lmu) - log(3);
     
     bool probability_0_aug_correct =
               (fabs(probability_0_aug - p_0a_p) < eps);
     bool probability_1_aug_correct =
-              (fabs(probability_1_aug - p_0a_p) < eps);
+              (fabs(probability_1_aug - p_1a_p) < eps);
     bool R0_0_aug_correct = (fabs(matrix_0_aug.R[0][0] - R0_0a_p) < eps);
-    bool R1_0_aug_correct = (fabs(matrix_0_aug.R[0][1] - R1_0a_p) < eps);
     bool R2_0_aug_correct = (fabs(matrix_0_aug.R[0][2] - R2_0a_p) < eps);
     bool R0_1_aug_correct = (fabs(matrix_1_aug.R[0][0] - R0_1a_p) < eps);
-    bool R1_1_aug_correct = (fabs(matrix_1_aug.R[0][1] - R1_1a_p) < eps);
     bool R2_1_aug_correct = (fabs(matrix_1_aug.R[0][2] - R2_1a_p) < eps);
     
     REQUIRE(R0_0_aug_correct);
-    REQUIRE(R1_0_aug_correct);
     REQUIRE(R2_0_aug_correct);
     REQUIRE(R0_1_aug_correct);
-    REQUIRE(R1_1_aug_correct);
     REQUIRE(R2_1_aug_correct);  
-    REQUIRE(probability_1_aug_correct);
+    REQUIRE(probability_0_aug_correct);
     REQUIRE(probability_1_aug_correct);
   }
   SECTION( "Partial likelihood is correctly calculated at a series of sites" ) {
+    penaltySet penalties = penaltySet(-6, -9, 3);
+    
     string ref_seq = "AAAAA";
     vector<size_t> positions = {0,1,2,3,4};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -493,71 +495,94 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     string query_string = "ATAAT";
     inputHaplotype query = inputHaplotype(query_string, ref_seq, &ref_struct);
     
-    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &pen_test, 
+    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query);
     double probability = matrix.calculate_probabilities();
     
-    //TODO: fill in
+    double lmu_c = penalties.log_mu_complement;
+    double lmu = penalties.log_mu;
+    double lrho = penalties.log_rho;
+    double lftb = penalties.log_ft_base;
+    double l2_mu = logdiff(log(2), lmu);
     
-    vector<vector<double> > correct_Rs = {
-      {0, 0, 0},
-      {0, 0, 0},
-      {0, 0, 0},
-      {0, 0, 0},
-      {0, 0, 0}
-    };
+    vector<double> correct_Ss;
+    vector<vector<double> > correct_Rs;
     
-    vector<double> correctSs = {0, 0, 0, 0, 0};
+    // R0
+    correct_Rs.push_back({
+        -log(3) + lmu_c,
+        -log(3) + lmu,
+        -log(3) + lmu_c
+    });
+    // S0
+    correct_Ss.push_back(-log(3) + l2_mu);
+    // R1
+    correct_Rs.push_back({
+        lmu + logsum(lftb + correct_Rs[0][0], lrho + correct_Ss[0]),
+        lmu + logsum(lftb + correct_Rs[0][1], lrho + correct_Ss[0]),
+        lmu_c + logsum(lftb + correct_Rs[0][2], lrho + correct_Ss[0])
+    });
+    // S1
+    correct_Ss.push_back(logsum(correct_Rs[1][0],
+                                logsum(correct_Rs[1][1],correct_Rs[1][2])));
+    // R2
+    correct_Rs.push_back({
+        lmu_c + logsum(lftb + correct_Rs[1][0], lrho + correct_Ss[1]),
+        lmu + logsum(lftb + correct_Rs[1][1], lrho + correct_Ss[1]),
+        lmu_c + logsum(lftb + correct_Rs[1][2], lrho + correct_Ss[1])
+    });
+    // S2
+    correct_Ss.push_back(logsum(correct_Rs[2][0],
+                                logsum(correct_Rs[2][1],correct_Rs[2][2])));
+    // R3
+    correct_Rs.push_back({
+        lmu_c + logsum(lftb + correct_Rs[2][0], lrho + correct_Ss[2]),
+        lmu_c + logsum(lftb + correct_Rs[2][1], lrho + correct_Ss[2]),
+        lmu + logsum(lftb + correct_Rs[2][2], lrho + correct_Ss[2])
+    });
+    // S3
+    correct_Ss.push_back(logsum(correct_Rs[3][0],
+                                logsum(correct_Rs[3][1],correct_Rs[3][2])));
+    // R4
+    correct_Rs.push_back({
+        lmu + logsum(lftb + correct_Rs[3][0], lrho + correct_Ss[3]),
+        lmu_c + logsum(lftb + correct_Rs[3][1], lrho + correct_Ss[3]),
+        lmu + logsum(lftb + correct_Rs[3][2], lrho + correct_Ss[3])
+    });
+    // S4
+    correct_Ss.push_back(logsum(correct_Rs[4][0],
+                                logsum(correct_Rs[4][1],correct_Rs[4][2])));
     
-    bool R00_same = (fabs(matrix.R[0][0] == correct_Rs[0][0]) < eps);
-    bool R01_same = (fabs(matrix.R[0][1] == correct_Rs[0][1]) < eps); 
-    bool R02_same = (fabs(matrix.R[0][2] == correct_Rs[0][2]) < eps); 
+    REQUIRE(fabs(matrix.R[0][0] - correct_Rs[0][0]) < eps);
+    REQUIRE(fabs(matrix.R[0][1] - correct_Rs[0][1]) < eps); 
+    REQUIRE(fabs(matrix.R[0][2] - correct_Rs[0][2]) < eps); 
+    REQUIRE(fabs(matrix.S[0] - correct_Ss[0]) < eps);
+
+    REQUIRE(fabs(matrix.R[1][0] - correct_Rs[1][0]) < eps);
+    REQUIRE(fabs(matrix.R[1][1] - correct_Rs[1][1]) < eps); 
+    REQUIRE(fabs(matrix.R[1][2] - correct_Rs[1][2]) < eps); 
+    REQUIRE(fabs(matrix.S[1] - correct_Ss[1]) < eps);
+
+    REQUIRE(fabs(matrix.R[2][0] - correct_Rs[2][0]) < eps);
+    REQUIRE(fabs(matrix.R[2][1] - correct_Rs[2][1]) < eps); 
+    REQUIRE(fabs(matrix.R[2][2] - correct_Rs[2][2]) < eps); 
+    REQUIRE(fabs(matrix.S[2] - correct_Ss[2]) < eps);
+
+    REQUIRE(fabs(matrix.R[3][0] - correct_Rs[3][0]) < eps);
+    REQUIRE(fabs(matrix.R[3][1] - correct_Rs[3][1]) < eps); 
+    REQUIRE(fabs(matrix.R[3][2] - correct_Rs[3][2]) < eps); 
+    REQUIRE(fabs(matrix.S[3] - correct_Ss[3]) < eps);
+
+    REQUIRE(fabs(matrix.R[4][0] - correct_Rs[4][0]) < eps);
+    REQUIRE(fabs(matrix.R[4][1] - correct_Rs[4][1]) < eps); 
+    REQUIRE(fabs(matrix.R[4][2] - correct_Rs[4][2]) < eps);
     
-    bool R10_same = (fabs(matrix.R[1][0] == correct_Rs[1][0]) < eps);
-    bool R11_same = (fabs(matrix.R[1][1] == correct_Rs[1][1]) < eps); 
-    bool R12_same = (fabs(matrix.R[1][2] == correct_Rs[1][2]) < eps); 
-    
-    bool R20_same = (fabs(matrix.R[2][0] == correct_Rs[2][0]) < eps);
-    bool R21_same = (fabs(matrix.R[2][1] == correct_Rs[2][1]) < eps); 
-    bool R22_same = (fabs(matrix.R[2][2] == correct_Rs[2][2]) < eps); 
-    
-    bool R30_same = (fabs(matrix.R[3][0] == correct_Rs[3][0]) < eps);
-    bool R31_same = (fabs(matrix.R[3][1] == correct_Rs[3][1]) < eps); 
-    bool R32_same = (fabs(matrix.R[3][2] == correct_Rs[3][2]) < eps); 
-    
-    bool R40_same = (fabs(matrix.R[4][0] == correct_Rs[4][0]) < eps);
-    bool R41_same = (fabs(matrix.R[4][1] == correct_Rs[4][1]) < eps); 
-    bool R42_same = (fabs(matrix.R[4][2] == correct_Rs[4][2]) < eps);
-    
-    bool S0_same = (fabs(matrix.S[0] == correctSs[0]) < eps);
-    bool S1_same = (fabs(matrix.S[1] == correctSs[1]) < eps);
-    bool S2_same = (fabs(matrix.S[2] == correctSs[2]) < eps);
-    bool S3_same = (fabs(matrix.S[3] == correctSs[3]) < eps);
-    bool probabilities_same = (fabs(probability == correctSs[4]) < eps);
-    
-    REQUIRE(R00_same);
-    REQUIRE(R01_same);
-    REQUIRE(R02_same);
-    REQUIRE(R10_same);
-    REQUIRE(R11_same);
-    REQUIRE(R12_same);
-    REQUIRE(R20_same);
-    REQUIRE(R21_same);
-    REQUIRE(R22_same);
-    REQUIRE(R30_same);
-    REQUIRE(R31_same);
-    REQUIRE(R32_same);
-    REQUIRE(R40_same);
-    REQUIRE(R41_same);
-    REQUIRE(R42_same);
-    REQUIRE(S0_same);
-    REQUIRE(S1_same);
-    REQUIRE(S2_same);
-    REQUIRE(S3_same);
-    REQUIRE(probabilities_same);
+    REQUIRE(fabs(probability - correct_Ss[4]) < eps);
   }
   
   SECTION( "Partial likelihood at a series of sites without variation equals the likelihood at a span of equivalent length" ) {
+    penaltySet penalties = penaltySet(-6, -9, 3);
+    
     string ref_seq = "AAAAA";
     vector<size_t> positions_span = {0};
     linearReferenceStructure ref_struct_span = build_ref(ref_seq, 
@@ -571,38 +596,25 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
       "AAAAA",
       "TAAAA"
     };
+
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
     haplotypeCohort cohort_span = haplotypeCohort(haplotypes, &ref_struct_span);    
     
     inputHaplotype query = inputHaplotype(ref_seq, ref_seq, &ref_struct);
     inputHaplotype query_span = inputHaplotype(ref_seq, ref_seq, 
                 &ref_struct_span);
-    
-    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &pen_test, 
+                
+    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
                 &cohort, &query);
-    haplotypeMatrix matrix_span = haplotypeMatrix(&ref_struct_span, &pen_test, 
+    haplotypeMatrix matrix_span = haplotypeMatrix(&ref_struct_span, &penalties, 
                 &cohort_span, &query_span);
+                
     double probability = matrix.calculate_probabilities();
     double probability_span = matrix_span.calculate_probabilities();
-    
-    bool S0_same = (fabs(matrix.S[0] - matrix_span.S[0]) < eps);
-    bool probabilities_same = (fabs(probability - probability_span) < eps);
-    
-    bool R00_same = (fabs(matrix.R[0][0] - matrix_span.R[0][0]) < eps);
-    bool R01_same = (fabs(matrix.R[0][1] - matrix_span.R[0][1]) < eps); 
-    bool R02_same = (fabs(matrix.R[0][2] - matrix_span.R[0][2]) < eps); 
-    
-    bool R10_same = (fabs(matrix.R[4][1] - matrix_span.R[1][1]) < eps);
-    bool R11_same = (fabs(matrix.R[4][1] - matrix_span.R[1][1]) < eps); 
-    bool R12_same = (fabs(matrix.R[4][1] - matrix_span.R[1][1]) < eps); 
-    
-    REQUIRE(R00_same);
-    REQUIRE(R01_same);
-    REQUIRE(R02_same);
-    REQUIRE(S0_same);
-    REQUIRE(R10_same);
-    REQUIRE(R11_same);
-    REQUIRE(R12_same);
-    REQUIRE(probabilities_same);
+      
+    REQUIRE(fabs(matrix.R[4][0] - matrix_span.R[0][0]) < eps);
+    REQUIRE(fabs(matrix.R[4][1] - matrix_span.R[0][1]) < eps); 
+    REQUIRE(fabs(matrix.R[4][2] - matrix_span.R[0][2]) < eps); 
+    REQUIRE(fabs(probability - probability_span) < eps);
   }  
 }

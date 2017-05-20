@@ -1,4 +1,3 @@
-#include <iostream>
 #include "lh_input_haplotype.hpp"
 
 using namespace std;
