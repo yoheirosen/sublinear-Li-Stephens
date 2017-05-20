@@ -26,6 +26,12 @@ struct penaltySet{
   ~penaltySet();
 };
 
+// A haplotypeMatrix is the matrix which iteratively calculates haplotype
+// likelihood. It takes in a haplotypeCohort and a linearReferenceStructure, an
+// inputHaplotype built against the linearReferenceStructure, and a penaltySet
+// of mutation and recombination penalties. It calculates and returns the
+// likelihood of the inputHaplotype relative to the haplotypeCohort when
+// calculate_probability is called
 struct haplotypeMatrix{
 private:
   linearReferenceStructure* reference;
@@ -50,6 +56,7 @@ private:
   
   size_t size();
   
+  // checks for a span before the first site
   void initialize_probability();
   void extend_probability_at_site(size_t j, alleleValue a);
   void extend_probability_at_site(size_t j);
@@ -62,7 +69,7 @@ public:
   haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
             haplotypeCohort* haplotypes, inputHaplotype* query);
   ~haplotypeMatrix();
-  double calculate_probabilities();
+  double calculate_probability();
 
   // TODO: implement these 
   // double estimate_probability_at_site(size_t j, alleleValue a);

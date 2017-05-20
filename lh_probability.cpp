@@ -67,15 +67,15 @@ void haplotypeMatrix::initialize_probability() {
     // left side of the span determined by history
     size_t length = reference->span_length_before(0);
     size_t num_augs = query->get_augmentations(-1);
-    double l_fsl = (length - 1) * penalties->log_fs_base;
+    double lfsl = (length - 1) * penalties->log_fs_base;
     double mutation_coefficient = 
               (length - num_augs) * (penalties->log_mu_complement) +
               num_augs * (penalties->log_mu);
     // Since we cannot distinguish haplotype prefixes over this initial span, we
     // know that all R-values at the right side of this span must be identical
-    double initial_value = mutation_coefficient + l_fsl - penalties->log_H;
+    double initial_value = mutation_coefficient + lfsl - penalties->log_H;
     initial_R = initial_value;
-    S[0] = mutation_coefficient + l_fsl;
+    S[0] = mutation_coefficient + lfsl;
     last_span_extended = -1;
   }
 }
@@ -195,16 +195,16 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
 void haplotypeMatrix::extend_probability_at_span_after(size_t j,
             int augmenation_count) {
   size_t length = reference->span_length_after(j);
-  double l_fsl = length * penalties->log_fs_base;
-  double l_ftl = length * penalties->log_ft_base;
+  double lfsl = length * penalties->log_fs_base;
+  double lftl = length * penalties->log_ft_base;
   double mut_pen = (length - augmenation_count) * penalties->log_mu_complement +
               augmenation_count * penalties->log_mu;
-  double l_sum_H = last_S() - penalties->log_H;
-  double R_invariant = l_sum_H + logdiff(l_fsl, l_ftl);
+  double lsum_H = last_S() - penalties->log_H;
+  double R_invariant = lsum_H + logdiff(lfsl, lftl);
   for(size_t i = 0; i < cohort->size(); i++) {
-    R[j][i] = mut_pen + logsum(l_ftl + R[j][i], R_invariant);
+    R[j][i] = mut_pen + logsum(lftl + R[j][i], R_invariant);
   }
-  S[j] = mut_pen + last_S() + l_fsl;
+  S[j] = mut_pen + last_S() + lfsl;
   last_span_extended = j;
 }
 
@@ -246,7 +246,7 @@ penaltySet::penaltySet(double log_rho, double log_mu, int H) : H(H),
   log_fs_base = logsum(log_ft_base, log_rho + log_H);
 }
 
-double haplotypeMatrix::calculate_probabilities() {
+double haplotypeMatrix::calculate_probability() {
   initialize_probability();
   for(size_t i = 0; i < size(); i++) {
     extend_probability_at_site(i, query->get_allele(i));
