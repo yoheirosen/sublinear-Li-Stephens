@@ -237,3 +237,11 @@ bool inputHaplotype::has_span_after(size_t i) {
     return reference->span_length_after(get_rel_index(i));
   }
 }
+
+size_t inputHaplotype::number_of_sites() {
+  if(has_no_sites) {
+    return 0;
+  } else {
+    return end_index + 1;
+  }
+}

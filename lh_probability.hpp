@@ -78,9 +78,9 @@ public:
   // double minMutating(int j);
   // double maxSwitching(int j);
   
-  // vector<size_t> get_matches(size_t index, alleleValue a);
-  // size_t number_matching(size_t index, alleleValue a);
-  // size_t number_not_matching(size_t index, alleleValue a);
+  vector<size_t> get_matches(size_t i);
+  size_t number_matching(size_t i);
+  size_t number_not_matching(size_t i);
 };
 
 // log-space math functions

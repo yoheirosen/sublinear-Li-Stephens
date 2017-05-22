@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 #include "lh_probability.hpp"
 
@@ -61,11 +60,12 @@ haplotypeMatrix::~haplotypeMatrix() {
 }
 
 void haplotypeMatrix::initialize_probability() {
-  if(reference->has_span_before(0)) {
+  if(query->has_left_tail()) {
     // This span is initial: walks on the haplotype space begin with probability
     // |H|^-1 on a given haplotype rather than having their probabilities at the
     // left side of the span determined by history
-    size_t length = reference->span_length_before(0);
+    
+    size_t length = query->get_left_tail();
     size_t num_augs = query->get_augmentations(-1);
     double lfsl = (length - 1) * penalties->log_fs_base;
     double mutation_coefficient = 
@@ -85,7 +85,7 @@ void haplotypeMatrix::extend_probability_at_site(size_t j) {
 }
 
 void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
-  vector<size_t> matches = cohort->get_matches(j, a);
+  vector<size_t> matches = get_matches(j);
   bool has_mismatches = (matches.size() != cohort->size());
   double lm = penalties->log_mu;
   double lm_c = penalties->log_mu_complement;
@@ -194,7 +194,7 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
 
 void haplotypeMatrix::extend_probability_at_span_after(size_t j,
             int augmenation_count) {
-  size_t length = reference->span_length_after(j);
+  size_t length = query->get_span_after(j);
   double lfsl = length * penalties->log_fs_base;
   double lftl = length * penalties->log_ft_base;
   double mut_pen = (length - augmenation_count) * penalties->log_mu_complement +
@@ -229,7 +229,7 @@ double haplotypeMatrix::last_R(size_t index_among_haplotypes) {
 }
 
 size_t haplotypeMatrix::size() {
-  return reference->number_of_sites();
+  return query->number_of_sites();
 }
 
 penaltySet::~penaltySet() {
@@ -248,10 +248,12 @@ penaltySet::penaltySet(double log_rho, double log_mu, int H) : H(H),
 
 double haplotypeMatrix::calculate_probability() {
   initialize_probability();
-  for(size_t i = 0; i < size(); i++) {
-    extend_probability_at_site(i, query->get_allele(i));
-    if(reference->has_span_after(i)) {
-      extend_probability_at_span_after(i, query->get_augmentations(i));
+  if(query->has_sites()) {
+    for(size_t i = 0; i < size(); i++) {
+      extend_probability_at_site(i, query->get_allele(i));
+      if(query->has_span_after(i)) {
+        extend_probability_at_span_after(i, query->get_augmentations(i));
+      }
     }
   }
   return S.back();
@@ -288,14 +290,15 @@ haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
 //   return 0;
 // }
 
-// vector<size_t> get_matches(size_t index, alleleValue a) {
-//   return cohort->get_matches(query->get_global_index(i), a);
-// }
+vector<size_t> haplotypeMatrix::get_matches(size_t i) {
+  return cohort->get_matches(query->get_rel_index(i), query->get_allele(i));
+}
 
-// size_t number_matching(size_t index, alleleValue a) {
-//   return cohort->number_matching(query->get_global_index(i), a);
-// }
+size_t haplotypeMatrix::number_matching(size_t i) {
+  return cohort->number_matching(query->get_rel_index(i), query->get_allele(i));
+}
 
-// size_t number_not_matching(size_t index, alleleValue a) {
-//   return cohort->number_not_matching(query->get_global_index(i), a);
-// }
+size_t haplotypeMatrix::number_not_matching(size_t i) {
+  return cohort->number_not_matching(query->get_rel_index(i),
+            query->get_allele(i));
+}

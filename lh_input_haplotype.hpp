@@ -59,6 +59,7 @@ public:
   
   size_t get_rel_index(size_t j);
   bool has_sites();
+  size_t number_of_sites();
 };
 
 #endif
