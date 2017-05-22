@@ -191,25 +191,21 @@ TEST_CASE( "inputHaplotype methods behave as desired", "[haplotype]" ) {
     string seq_2 = "AAAAACC";
     vector<size_t> count_1 = {0,0,0,0};
     vector<size_t> count_2 = {1,2,0,1};
-    inputHaplotype query_1_direct = inputHaplotype(alleles, count_1);
-    inputHaplotype query_2_direct = inputHaplotype(alleles, count_2);
-    inputHaplotype query_1_string = inputHaplotype(seq_1, ref_seq, &ref_struct);
-    inputHaplotype query_2_string = inputHaplotype(seq_2, ref_seq, &ref_struct);
+    inputHaplotype query_0_direct = inputHaplotype(alleles, count_1);
+    inputHaplotype query_1_direct = inputHaplotype(alleles, count_2);
+    inputHaplotype query_0_string = inputHaplotype(seq_1, ref_seq, &ref_struct);
+    inputHaplotype query_1_string = inputHaplotype(seq_2, ref_seq, &ref_struct);
     
-    bool initial_augs_match_zero = (query_1_direct.get_augmentations(-1) ==
+    REQUIRE(query_0_direct.get_augmentations(-1) ==
+              query_0_string.get_augmentations(-1));
+    REQUIRE(query_0_direct.get_augmentations(0) == 
+              query_0_string.get_augmentations(0));
+    REQUIRE(query_1_direct.get_augmentations(-1) == 
               query_1_string.get_augmentations(-1));
-    bool augs_match_zero = (query_1_direct.get_augmentations(0) == 
+    REQUIRE(query_1_direct.get_augmentations(0) == 
               query_1_string.get_augmentations(0));
-    bool initial_augs_match_nonzero = (query_2_direct.get_augmentations(-1) == 
-              query_2_string.get_augmentations(-1));
-    bool augs_match_nonzero = (query_2_direct.get_augmentations(0) == 
-                      query_2_string.get_augmentations(0));
-    REQUIRE(initial_augs_match_zero);
-    REQUIRE(augs_match_zero);
-    REQUIRE(initial_augs_match_nonzero);
-    REQUIRE(augs_match_nonzero);
+    REQUIRE(query_0_direct.get_allele(0) == query_0_string.get_allele(0));
     REQUIRE(query_1_direct.get_allele(0) == query_1_string.get_allele(0));
-    REQUIRE(query_2_direct.get_allele(0) == query_2_string.get_allele(0));
   }
   SECTION( "edit-by-char gives same result as direct edit" ) {
     vector<alleleValue> alleles = {A, A, C};
