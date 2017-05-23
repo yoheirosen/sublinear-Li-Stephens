@@ -150,10 +150,13 @@ void haplotypeCohort::populate_allele_counts() {
   int num_sites = reference->number_of_sites();
   allele_counts_by_site_index = vector<vector<size_t> >(num_sites,
               vector<size_t>(5, 0));
+  haplotype_indices_by_site_and_allele = vector<vector<vector<size_t> > >(
+              num_sites, vector<vector<size_t> >(5, vector<size_t>()));
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     for(int j = 0; j < num_sites; j++) {
       int allele_rank = (int)haplotype_alleles_by_site_index[i][j];
       allele_counts_by_site_index[j][allele_rank]++;
+      haplotype_indices_by_site_and_allele[j][allele_rank].push_back(i);
     }
   }
 }
@@ -164,10 +167,12 @@ size_t haplotypeCohort::size() {
 
 vector<size_t> haplotypeCohort::get_matches(size_t site_index, alleleValue a) {
   vector<size_t> matchlist;
-  for(size_t i = 0; i < number_of_haplotypes; i++) {
-    if(haplotype_alleles_by_site_index[i][site_index] == a) {
-      matchlist.push_back(i);
-    }
+  size_t allele_rank = (size_t)a;
+  for(size_t i = 0; i < 
+        (haplotype_indices_by_site_and_allele[site_index][allele_rank]).size();
+        i++) {
+    matchlist.push_back(
+          haplotype_indices_by_site_and_allele[site_index][allele_rank][i]);
   }
   return matchlist;
 }

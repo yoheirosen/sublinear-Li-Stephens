@@ -59,8 +59,11 @@ struct haplotypeCohort{
 private:
   linearReferenceStructure* reference;
   size_t number_of_haplotypes;
+  // dim 1: haplotype, dim 2: allele value at site
   vector<vector<alleleValue> > haplotype_alleles_by_site_index;
+  // dim 1: site, dim 2: allele value
   vector<vector<size_t> > allele_counts_by_site_index;
+  vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
   void populate_allele_counts();
 public:
   haplotypeCohort(vector<vector<alleleValue> >& haplotypes,

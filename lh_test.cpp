@@ -585,3 +585,47 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     REQUIRE(fabs(probability - probability_span) < eps);
   }  
 }
+
+TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
+  //                01234567890123456789
+  // sites              4    9    4
+  string ref_seq = "AAAAAAAAAAAAAAAAAAAA";
+  // left            AAA
+  // middle              AAA 
+  // right                         AAA    
+  // 9 14                   AAAAAAAA
+  //                01234567890123456789
+  
+  vector<size_t> positions = {4, 9, 14};
+  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  
+  SECTION( "relative indices are produced as desired " ) {
+    string eight = "TTTTTTTT";
+    string three = "AAA";
+    string six = "TTTTTT";
+    inputHaplotype nosites_left = inputHaplotype(three, ref_seq, 
+                                                 &ref_struct, 1, 3);
+    inputHaplotype nosites_middle = inputHaplotype(three, ref_seq,
+                                                  &ref_struct, 5, 3);
+    inputHaplotype nosites_right = inputHaplotype(three, ref_seq,
+                                                    &ref_struct, 15, 3);
+    inputHaplotype overlap_9_16 = inputHaplotype(eight, ref_seq,
+                                                 &ref_struct, 8, 8);
+    inputHaplotype overlap_4_9 = inputHaplotype(six, ref_seq,
+                                                 &ref_struct, 4, 6);
+    REQUIRE(nosites_left.has_sites() == false);
+    REQUIRE(nosites_right.has_sites() == false);
+    REQUIRE(nosites_middle.has_sites() == false);
+    REQUIRE(overlap_9_16.has_sites() == true);
+    REQUIRE(overlap_9_16.number_of_sites() == 2);
+    REQUIRE(overlap_9_16.get_left_tail() == 1);
+    REQUIRE(overlap_9_16.get_rel_index(0) == 1);
+    REQUIRE(overlap_9_16.get_augmentations(-1) == 1);
+    REQUIRE(overlap_9_16.get_augmentations(0) == 4);
+    REQUIRE(overlap_9_16.get_augmentations(1) == 1);
+    REQUIRE(overlap_4_9.has_left_tail() == false);
+    REQUIRE(overlap_4_9.number_of_sites() == 2);
+    REQUIRE(overlap_4_9.has_span_after(1) == false);
+    REQUIRE(overlap_9_16.get_augmentations(0) == 4);
+  }
+}

@@ -60,8 +60,7 @@ void inputHaplotype::build_relative_positions() {
       // site positions are not included in span lengths
       left_tail_length = reference->get_position(0) - start_position;
     } else {
-     // site_below + 1 is guaranteed to be within range since case 1 of the
-     // if statement above failed
+     // site_below + 1 is guaranteed to be within range
      start_index = find_site_below(start_position) + 1;
      left_tail_length = reference->get_position(start_index) -
                 start_position;
@@ -72,7 +71,7 @@ void inputHaplotype::build_relative_positions() {
     right_tail_length = 0;
   } else {
     end_index = find_site_below(end_position);
-    right_tail_length = reference->get_position(end_index) - end_position;
+    right_tail_length = end_position - reference->get_position(end_index);
   }
   return;
 }
@@ -93,7 +92,7 @@ inputHaplotype::inputHaplotype(string query, string reference_sequence,
   if(left_tail_length > 0) {
     size_t counter = 0;
     for(size_t i = 0; i < left_tail_length; i++) {
-      if(query[i] != reference_sequence[i]) {
+      if(query[i] != reference_sequence[i + start_position]) {
         counter++;
       }
     }
@@ -113,11 +112,11 @@ inputHaplotype::inputHaplotype(string query, string reference_sequence,
           upper_limit_of_span = end_position - start_position;
         } else {
           upper_limit_of_span = reference->get_position(get_rel_index(i + 1))
-                    - 1 - start_position;        
+                    - 1 - start_position;
         }
         size_t counter = 0;
-        for(size_t j = rel_pos_site_i + 1; j <= upper_limit_of_span; j++) {
-          if(query[j] != reference_sequence[j]) {
+        for(size_t j = start_position + rel_pos_site_i + 1; j <= start_position + upper_limit_of_span; j++) {
+          if(query[j - start_position] != reference_sequence[j]) {
             counter++;
           }
         }
@@ -211,7 +210,7 @@ size_t inputHaplotype::get_augmentations(int j) {
 }
 
 size_t inputHaplotype::get_rel_index(size_t j) {
-  return j - start_index;
+  return j + start_index;
 }
 
 size_t inputHaplotype::get_left_tail() {
@@ -242,6 +241,6 @@ size_t inputHaplotype::number_of_sites() {
   if(has_no_sites) {
     return 0;
   } else {
-    return end_index + 1;
+    return end_index - start_index + 1;
   }
 }
