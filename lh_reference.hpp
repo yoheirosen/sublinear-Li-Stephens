@@ -75,9 +75,11 @@ public:
   size_t size();
   
   vector<size_t> get_matches(size_t site_index, alleleValue a);
+  vector<size_t> get_non_matches(size_t site_index, alleleValue a);
   alleleValue allele_at(size_t site_index, size_t haplotype_index);
   size_t number_matching(size_t site_index, alleleValue a);
   size_t number_not_matching(size_t site_index, alleleValue a);
+  bool match_is_rare(size_t site_index, alleleValue a);
 };
 
 #endif

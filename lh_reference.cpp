@@ -198,3 +198,24 @@ haplotypeCohort::haplotypeCohort(vector<vector<alleleValue> >& haplotypes,
   number_of_haplotypes = haplotypes.size();
   populate_allele_counts();
 }
+
+bool haplotypeCohort::match_is_rare(size_t site_index, alleleValue a) {
+  return number_matching(site_index, a) < number_not_matching(site_index, a);
+}
+
+vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a) {
+  vector<size_t> nonmatchlist;
+  size_t allele_rank = (size_t)a;
+  for(size_t j = 0; j < 5; j++) {
+    if(j != allele_rank) {
+      for(size_t i = 0; i < 
+            (haplotype_indices_by_site_and_allele[site_index][j]).size();
+            i++) {
+        nonmatchlist.push_back(
+              haplotype_indices_by_site_and_allele[site_index][j][i]);
+      }
+    }
+  }
+  return nonmatchlist;
+}
+
