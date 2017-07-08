@@ -109,6 +109,10 @@ TEST_CASE( "haplotypeCohort construction behaves as desired", "[haplotype][refer
     REQUIRE(direct_cohort.get_matches(0,gap)[0] == 4);
     REQUIRE(direct_cohort.get_matches(0,gap)[1] == 5);
     REQUIRE(direct_cohort.get_matches(1,A).size() == 6);
+    REQUIRE(direct_cohort.get_non_matches(0,T)[0] == 0);
+    REQUIRE(direct_cohort.get_non_matches(0,T)[1] == 2);
+    REQUIRE(direct_cohort.get_non_matches(0,T)[3] == 4);
+    REQUIRE(direct_cohort.get_non_matches(1,T)[3] == 3);
     REQUIRE(direct_cohort.number_matching(0,A) == 1);
     REQUIRE(direct_cohort.number_matching(0,T) == 1);
     REQUIRE(direct_cohort.number_matching(0,C) == 1);

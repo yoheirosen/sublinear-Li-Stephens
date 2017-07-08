@@ -85,19 +85,11 @@ void haplotypeMatrix::extend_probability_at_site(size_t j) {
 }
 
 void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
-  vector<size_t> matches = get_matches(j);
-  bool has_mismatches = (matches.size() != cohort->size());
   double lm = penalties->log_mu;
   double lm_c = penalties->log_mu_complement;
-  
-  // Note that if there is an initial span, initialize_probability() sets the
-  // counter last_span_extended to -1
+
   if(j == 0 && last_span_extended == -2) {
-    // We are at an initial site; the probability of a (1-position-long) walk
-    // begining and ending on a given haplotype is |H|^-1; the probability of it
-    // emitting the query haplotype's allele at this site is simply governed by
-    // whether a mutation is necessary
-    
+    vector<size_t> matches = get_matches(j);
     // There are only two possible R-values at this site
     double initial_value = -penalties->log_H + lm_c;
     double m_initial_value = -penalties->log_H + lm;
@@ -114,82 +106,78 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
     }
     
     // Get the sum of the R-values
-    size_t num_mismatches = cohort->size() - matches.size();
+    size_t num_mismatches = cohort->number_not_matching(j, a);
     S[0] = -penalties->log_H + 
                 logsum(log(matches.size()) + lm_c, log(num_mismatches) + lm);
     last_extended = 0;
     return;
   } else {
-    // We are at a non-initial site, defined to include a site with index 0
-    // which follows an initial span. 
     
     // This is the coefficient of the variable R[j-1][i] term
     double lft1 = penalties->log_ft_base;
     // This is the non-variable rho*S[j-1] term
     double lpS = penalties->log_rho + last_S();
-    for(size_t i = 0; i < matches.size(); i++) {
-      R[j][matches[i]] = lm_c + logsum(lft1 + last_R(matches[i]), lpS);
-    }
-    if(!has_mismatches) {
-      // We updated all R-values already. Without any mismatches, S[j] takes a
-      // very simple form (site j is just a span which got flagged as a site)
-      S[j] = lm_c + last_S() + penalties->log_fs_base;
-    } else {
-      if(matches.size() == 0) {
-        // We have updated no R-values. S[j] takes on a simple form in this case
-        for(size_t i = 0; i < cohort->size(); i++) {
-          R[j][i] = lm + logsum(lft1 + last_R(i), lpS);
-        }
+        
+    if(cohort->match_is_rare(j, a)) {
+      vector<size_t> matches = cohort->get_matches(j, a);
+      for(size_t i = 0; i < matches.size(); i++) {
+        R[j][matches[i]] = lm_c + logsum(lft1 + last_R(matches[i]), lpS);
+      }
+      // TODO: remove when delayMultiplier is implemented
+      vector<size_t> non_matches = cohort->get_non_matches(j, a);
+      for(size_t i = 0; i < non_matches.size(); i++) {
+        R[j][non_matches[i]] = lm + logsum(lft1 + last_R(non_matches[i]), lpS);
+      }
+      
+      if(cohort->number_matching(j, a) == 0) {
         S[j] = lm + last_S() + penalties->log_fs_base;
       } else {
-        // This is a "real site." with variation in the populatino cohort. We 
-        // need to find all the mismatch sites and update their R-values
-        vector<size_t> mismatches;
-        for(size_t i = 0; i < cohort->size(); i++) {
-          if(R[j][i] == 0) {
-            R[j][i] = lm + logsum(lft1 + last_R(i), lpS);
-            mismatches.push_back(i);
-          }
+        double log_num_match = log(cohort->number_matching(j,a));
+        double mismatch_invariant = last_S() + penalties->log_fs_base +
+                    penalties->log_mu;
+        double match_invariant = log_num_match + penalties->log_rho +
+                    last_S();
+        vector<double> summands;
+        for(size_t i = 0; i < matches.size(); i++) {
+          summands.push_back(last_R(matches[i]));
         }
-        // We use an arithmetic trick to avoid ever summing more than 0.5*|H| 
-        // terms. If there is a dominant allele in the population cohort at this
-        // site we should be able to sum a very small number of terms!
-        if(2 * mismatches.size() < cohort->size()) {
-          // There are few mismatches; we want to sum them
-          double log_num_mismatch = log(mismatches.size());
-          double match_invariant = last_S() + penalties->log_fs_base +
-                      penalties->log_mu_complement;
-          double mismatch_invariant = log_num_mismatch + penalties->log_rho +
-                      last_S();
-          vector<double> summands;
-          for(size_t i = 0; i < mismatches.size(); i++) {
-            summands.push_back(last_R(mismatches[i]));
-          }
-          double mismatch_variant = lft1 + log_big_sum(summands);
-          double corr_factor = logsum(mismatch_invariant, mismatch_variant) +
-                      penalties->log_2mu_complement;
-          S[j] = logdiff(match_invariant, corr_factor);
-        } else {
-          // There are few matches; we want to sum them
-          double log_num_match = log(matches.size());
-          double mismatch_invariant = last_S() + penalties->log_fs_base +
-                      penalties->log_mu;
-          double match_invariant = log_num_match + penalties->log_rho +
-                      last_S();
-          vector<double> summands;
-          for(size_t i = 0; i < matches.size(); i++) {
-            summands.push_back(last_R(matches[i]));
-          }
-          double match_variant = lft1 + log_big_sum(summands);
-          double corr_factor = logsum(match_invariant, match_variant) +
-                      penalties->log_2mu_complement;
-          S[j] = logsum(mismatch_invariant, corr_factor);
-        }
+        double match_variant = lft1 + log_big_sum(summands);
+        double corr_factor = logsum(match_invariant, match_variant) +
+                    penalties->log_2mu_complement;
+        S[j] = logsum(mismatch_invariant, corr_factor);
       }
-    } 
-    last_extended = j;
-    return;
+    } else {
+      vector<size_t> non_matches = cohort->get_non_matches(j, a);
+      for(size_t i = 0; i < non_matches.size(); i++) {
+        R[j][non_matches[i]] = lm + logsum(lft1 + last_R(non_matches[i]), lpS);
+      }
+      // TODO: remove when delayMultiplier is implemented
+      vector<size_t> matches = cohort->get_matches(j, a);
+      for(size_t i = 0; i < matches.size(); i++) {
+        R[j][matches[i]] = lm_c + logsum(lft1 + last_R(matches[i]), lpS);
+      }
+      
+      if(cohort->number_not_matching(j, a) == 0) {
+        S[j] = lm_c + last_S() + penalties->log_fs_base;
+      } else {
+        double log_num_mismatch = log(cohort->number_not_matching(j,a));
+        double match_invariant = last_S() + penalties->log_fs_base +
+                    penalties->log_mu_complement;
+        double mismatch_invariant = log_num_mismatch + penalties->log_rho +
+                    last_S();
+        vector<double> summands;
+        for(size_t i = 0; i < non_matches.size(); i++) {
+          summands.push_back(last_R(non_matches[i]));
+        }
+        double mismatch_variant = lft1 + log_big_sum(summands);
+        double corr_factor = logsum(mismatch_invariant, mismatch_variant) +
+                    penalties->log_2mu_complement;
+        S[j] = logdiff(match_invariant, corr_factor);      
+      }
+    }
   }
+  last_extended = j;
+  return;
 }
 
 void haplotypeMatrix::extend_probability_at_span_after(size_t j,
