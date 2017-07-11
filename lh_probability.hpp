@@ -1,6 +1,7 @@
 #ifndef LINEAR_HAPLO_PROBABILITY_H
 #define LINEAR_HAPLO_PROBABILITY_H
 
+#include "lh_math.hpp"
 #include "lh_reference.hpp"
 #include "lh_input_haplotype.hpp"
 
@@ -82,11 +83,5 @@ public:
   size_t number_matching(size_t i);
   size_t number_not_matching(size_t i);
 };
-
-// log-space math functions
-double logdiff(double a, double b);
-double logsum(double a, double b);
-double log_big_sum(vector<double>& logRs);
-double log_weighted_big_sum(vector<double>& logRs, vector<int>& counts);
 
 #endif

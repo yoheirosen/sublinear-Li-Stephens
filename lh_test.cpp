@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cmath>
+#include "lh_math.hpp"
 #include "lh_reference.hpp"
 #include "lh_probability.hpp"
 #include "lh_input_haplotype.hpp"
