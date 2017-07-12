@@ -5,6 +5,7 @@
 #include "lh_reference.hpp"
 #include "lh_probability.hpp"
 #include "lh_input_haplotype.hpp"
+#include "lh_delay_multiplier.hpp"
 #include "catch.hpp"
 
 using namespace std;
@@ -632,5 +633,44 @@ TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
     REQUIRE(overlap_4_9.number_of_sites() == 2);
     REQUIRE(overlap_4_9.has_span_after(1) == false);
     REQUIRE(overlap_9_16.get_augmentations(0) == 4);
+  }
+}
+
+TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
+  double eps = 0.0000001;
+  SECTION( "Building and accessing delayMaps" ) {
+    delayMap map = delayMap(5, 0);
+    REQUIRE(map.get_map_indices().size() == 5);
+    // Can we add and then read a value?
+    // Add a map with value (1.0, 1.0)
+    map.add_map(1.0, 1.0);
+    // Assign row 0 to map 1.0 at slot-index 0
+    map.assign_row_to_newest_index(0);
+    REQUIRE((map.get_coefficient(0) - 1) < eps);
+    // Can we add and then read a second value?
+    // Add a map with value (2.0, 2.0)
+    map.add_map(2.0, 2.0);
+    // Assign row 1 to map 2.0 at slot-index 1
+    map.assign_row_to_newest_index(1);
+    REQUIRE((map.get_coefficient(1) - 2) < eps);
+    // Can we overload a slot with two rows?
+    // Assign row 2 to map 2.0 at slot-index 1
+    map.assign_row_to_newest_index(2);
+    REQUIRE((map.get_coefficient(2) - 2) < eps);
+    // Can we remove a row from a slot?
+    map.remove_row_from_slot(1);
+    REQUIRE(map.get_map_indices()[1] == 5);
+    // When we empty all contents of a slot, do we return it to the set of slots
+    // which can be filled?
+    // Remove row 1 from its slot 0. This should also delete slot 1 since it is
+    // now empty
+    map.remove_row_from_slot(0);
+    // This new map should go in slot-index 0, which was just emptied
+    map.add_map(3.0, 3.0);
+    // Add a new row to this map
+    map.assign_row_to_newest_index(3);
+    // This row should get slot-index 0
+    REQUIRE(map.get_map_indices()[3] == 0);
+    REQUIRE((map.get_coefficient(3) - 3.0) < eps);  
   }
 }
