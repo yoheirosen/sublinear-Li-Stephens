@@ -84,6 +84,11 @@ void delayMap::remove_row_from_slot(size_t row) {
   return;
 }
 
+void delayMap::add_identity_map() {
+  add_map(0, -1);
+  return;
+}
+
 void delayMap::add_map(DPUpdateMap map) {
   if(empty_map_slots.size() == 0) {
     newest_index = maps_by_slot.size();
@@ -113,6 +118,11 @@ double delayMap::get_constant(size_t row) {
 double delayMap::get_coefficient(size_t row) {
   return maps_by_slot[slots_by_row[row]].coefficient;
 }
+
+DPUpdateMap delayMap::get_map(size_t row) {
+  return maps_by_slot[slots_by_row[row]];
+}
+
 
 vector<DPUpdateMap> delayMap::get_maps() {
   return maps_by_slot;

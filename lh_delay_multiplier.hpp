@@ -62,6 +62,7 @@ public:
   void decrement_slot(size_t slot);
   // clears slot and returns it to the list of empty slots
   void delete_slot(size_t slot);
+  void add_identity_map();
   void add_map(double coefficient, double constant);
   void add_map(DPUpdateMap map);
   void assign_row_to_newest_index(size_t row);
@@ -69,7 +70,7 @@ public:
   
   double get_coefficient(size_t row);  
   double get_constant(size_t row);
-  double get_update_map(size_t row);
+  DPUpdateMap get_map(size_t row);
   
   vector<DPUpdateMap> get_maps();
   
