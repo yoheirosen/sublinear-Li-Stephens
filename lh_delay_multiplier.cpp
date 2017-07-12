@@ -6,10 +6,12 @@ using namespace std;
 delayMap::delayMap(size_t rows, size_t start) : 
             dM_start(start) {
   slots_by_row = vector<size_t>(rows, rows);
-  current_site = 0;
+  dM_start = start;
+  current_site = start;
 }
 
 void delayMap::assign_row_to_newest_index(size_t row) {
+  //TODO: complain if slots_by_row[row] != |H|
   slots_by_row[row] = newest_index;
   return;
 }
@@ -43,6 +45,7 @@ void delayMap::update_maps(const vector<size_t>& indices) {
       size_t suffix_index = current_site - updated_to[indices[i]] - 1;
       maps_by_slot[indices[i]] = 
                 suffixes[suffix_index].compose(maps_by_slot[indices[i]]);
+      updated_to[indices[i]] = current_site;
     }
   }
   updated_maps = true;
@@ -59,6 +62,7 @@ void delayMap::increment_site_marker() {
 void delayMap::delete_slot(size_t slot) {
   maps_by_slot[slot] = DPUpdateMap(0,0);
   counts[slot] = 0;
+  updated_to[slot] = current_site;
   empty_map_slots.push_back(slot);
   return;
 }
@@ -85,12 +89,14 @@ void delayMap::add_map(DPUpdateMap map) {
     newest_index = maps_by_slot.size();
     maps_by_slot.push_back(map);
     counts.push_back(1);
+    updated_to.push_back(current_site);
     return;
   } else {
     newest_index = empty_map_slots.back();
     empty_map_slots.pop_back();
     maps_by_slot[newest_index] = map;
     counts[newest_index] = 1;
+    updated_to[newest_index] = current_site;
     return;
   }
 }
@@ -138,7 +144,10 @@ void delayMap::add_map_for_site(double coefficient, double constant) {
   return;
 }
 
-
 size_t delayMap::last_update(size_t row) {
-  return updated_to[slots_by_row[row]];
+  if(slots_by_row[row] != slots_by_row.size()) {
+    return updated_to[slots_by_row[row]];
+  } else {
+    return current_site;
+  }
 }

@@ -673,4 +673,21 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(map.get_map_indices()[3] == 0);
     REQUIRE((map.get_coefficient(3) - 3.0) < eps);  
   }
+  SECTION( "We can track sites and times-of-update in delayMaps" ) {
+    // build a dM with a non-zero start position
+    delayMap map2 = delayMap(2, 2);
+    map2.add_map(1.0, 1.0);
+    map2.assign_row_to_newest_index(0);
+    REQUIRE(map2.last_update(0) == 2);
+    map2.increment_site_marker();
+    // current_site is now 3
+    map2.add_map(2.0, 2.0);
+    map2.assign_row_to_newest_index(1);
+    REQUIRE(map2.last_update(1) == 3);
+    map2.add_map_for_site(3.0, 3.0);
+    // current_site is now 4
+    map2.hard_update_all();
+    REQUIRE(map2.last_update(0) == 4);
+    REQUIRE(map2.last_update(1) == 4);
+  }
 }

@@ -55,9 +55,13 @@ public:
   // O(|population| + |sites|) space
   void hard_update_all();
   
+  // un-associates row from slot and assigns an out-of-bounds slot index
+  // and decrements slot
   void remove_row_from_slot(size_t row);
-  void delete_slot(size_t slot);
+  // decrements slot row-count, destroys slot if row-count hits 0
   void decrement_slot(size_t slot);
+  // clears slot and returns it to the list of empty slots
+  void delete_slot(size_t slot);
   void add_map(double coefficient, double constant);
   void add_map(DPUpdateMap map);
   void assign_row_to_newest_index(size_t row);
