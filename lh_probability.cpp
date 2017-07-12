@@ -30,6 +30,14 @@ void haplotypeMatrix::extend_probability_at_site(size_t j) {
   extend_probability_at_site(j, query->get_allele(j));
 }
 
+double calculate_R(double oldR, DPUpdateMap map) {
+  return map.evaluate_at(oldR);
+}
+
+double calculate_R(double oldR, double coefficient, double constant) {
+  return calculate_R(oldR, DPUpdateMap(coefficient, constant));
+}
+
 void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
   double lm = penalties->log_mu;
   double lm_c = penalties->log_mu_complement;
@@ -58,63 +66,76 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
     last_extended = 0;
     return;
   } else {
-    
     // This is the coefficient of the variable R[j-1][i] term
     double lft1 = penalties->log_ft_base;
     // This is the non-variable rho*S[j-1] term
-    double lpS = penalties->log_rho + last_S();
-        
+    double lpS = penalties->log_rho + last_S();    
     if(cohort->match_is_rare(j, a)) {
-      vector<size_t> matches = cohort->get_matches(j, a);
-      for(size_t i = 0; i < matches.size(); i++) {
-        R[j][matches[i]] = lm_c + logsum(lft1 + last_R(matches[i]), lpS);
-      }
-      // TODO: remove when delayMultiplier is implemented
-      vector<size_t> non_matches = cohort->get_non_matches(j, a);
-      for(size_t i = 0; i < non_matches.size(); i++) {
-        R[j][non_matches[i]] = lm + logsum(lft1 + last_R(non_matches[i]), lpS);
-      }
-      
+      map.add_map_for_site(lm + lft1, lpS - lft1);
       if(cohort->number_matching(j, a) == 0) {
         S[j] = lm + last_S() + penalties->log_fs_base;
       } else {
+        vector<size_t> matches = cohort->get_matches(j, a);
+        vector<double> summands;
+        for(size_t i = 0; i < matches.size(); i++) {
+          summands.push_back(last_R(matches[i]));
+        }
+        
+        vector<size_t> slots = map.rows_to_slots(matches);
+        map.update_maps(slots);
+        // it is important to note that at this point, the coefficient of the maps
+        // is off by a factor of lm_c - lm for all matching rows
+        double flip_m = lm_c - lm;
+        for(size_t i = 0; i < matches.size(); i++) {
+          R[j][matches[i]] = flip_m +
+                      calculate_R(last_R(matches[i]), map.get_map(matches[i]));        
+          map.remove_row_from_slot(matches[i]);
+        }
+        map.add_identity_map();
+        for(size_t i = 0; i < matches.size(); i++) {
+          map.assign_row_to_newest_index(matches[i]);
+        }
+        
         double log_num_match = log(cohort->number_matching(j,a));
         double mismatch_invariant = last_S() + penalties->log_fs_base +
                     penalties->log_mu;
         double match_invariant = log_num_match + penalties->log_rho +
                     last_S();
-        vector<double> summands;
-        for(size_t i = 0; i < matches.size(); i++) {
-          summands.push_back(last_R(matches[i]));
-        }
         double match_variant = lft1 + log_big_sum(summands);
         double corr_factor = logsum(match_invariant, match_variant) +
                     penalties->log_2mu_complement;
         S[j] = logsum(mismatch_invariant, corr_factor);
       }
     } else {
-      vector<size_t> non_matches = cohort->get_non_matches(j, a);
-      for(size_t i = 0; i < non_matches.size(); i++) {
-        R[j][non_matches[i]] = lm + logsum(lft1 + last_R(non_matches[i]), lpS);
-      }
-      // TODO: remove when delayMultiplier is implemented
-      vector<size_t> matches = cohort->get_matches(j, a);
-      for(size_t i = 0; i < matches.size(); i++) {
-        R[j][matches[i]] = lm_c + logsum(lft1 + last_R(matches[i]), lpS);
-      }
-      
+      map.add_map_for_site(lm_c + lft1, lpS - lft1);
       if(cohort->number_not_matching(j, a) == 0) {
         S[j] = lm_c + last_S() + penalties->log_fs_base;
       } else {
+        vector<size_t> non_matches = cohort->get_non_matches(j, a);
+        vector<double> summands;
+        for(size_t i = 0; i < non_matches.size(); i++) {
+          summands.push_back(last_R(non_matches[i]));
+        }
+        
+        vector<size_t> slots = map.rows_to_slots(non_matches);
+        map.update_maps(slots);
+        double flip_m = lm - lm_c;
+        for(size_t i = 0; i < non_matches.size(); i++) {
+          R[j][non_matches[i]] = flip_m +
+                    calculate_R(last_R(non_matches[i]), 
+                                map.get_map(non_matches[i]));        
+          map.remove_row_from_slot(non_matches[i]);
+        }
+        map.add_identity_map();
+        for(size_t i = 0; i < non_matches.size(); i++) {
+          map.assign_row_to_newest_index(non_matches[i]);
+        }
+      
         double log_num_mismatch = log(cohort->number_not_matching(j,a));
         double match_invariant = last_S() + penalties->log_fs_base +
                     penalties->log_mu_complement;
         double mismatch_invariant = log_num_mismatch + penalties->log_rho +
                     last_S();
-        vector<double> summands;
-        for(size_t i = 0; i < non_matches.size(); i++) {
-          summands.push_back(last_R(non_matches[i]));
-        }
         double mismatch_variant = lft1 + log_big_sum(summands);
         double corr_factor = logsum(mismatch_invariant, mismatch_variant) +
                     penalties->log_2mu_complement;
@@ -135,9 +156,7 @@ void haplotypeMatrix::extend_probability_at_span_after(size_t j,
               augmenation_count * penalties->log_mu;
   double lsum_H = last_S() - penalties->log_H;
   double R_invariant = lsum_H + logdiff(lfsl, lftl);
-  for(size_t i = 0; i < cohort->size(); i++) {
-    R[j][i] = mut_pen + logsum(lftl + R[j][i], R_invariant);
-  }
+  map.update_map_with_span(mut_pen + lftl, R_invariant - lftl);
   S[j] = mut_pen + last_S() + lfsl;
   last_span_extended = j;
 }
@@ -195,7 +214,8 @@ double haplotypeMatrix::calculate_probability() {
 
 haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
           haplotypeCohort* cohort, inputHaplotype* query) :
-          reference(ref), cohort(cohort), penalties(pen), query(query) {
+          reference(ref), cohort(cohort), penalties(pen), query(query),
+          map(delayMap(cohort->size(), 0)) {
   S = vector<double>(ref->number_of_sites(), 0);
   R = vector<vector<double> >(ref->number_of_sites(),
             vector<double>(cohort->size(),0));

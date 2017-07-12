@@ -4,6 +4,8 @@
 #include "lh_math.hpp"
 #include "lh_reference.hpp"
 #include "lh_input_haplotype.hpp"
+#include "lh_DP_map.hpp"
+#include "lh_delay_multiplier.hpp"
 
 using namespace std;
 
@@ -39,6 +41,7 @@ private:
   haplotypeCohort* cohort;
   penaltySet* penalties;
   inputHaplotype* query;
+  delayMap map;
   
   // This is used when the inputHaplotype begins with a span
   double initial_R;
@@ -83,5 +86,8 @@ public:
   size_t number_matching(size_t i);
   size_t number_not_matching(size_t i);
 };
+
+double calculate_R(double oldR, DPUpdateMap map);
+double calculate_R(double oldR, double coefficient, double constant);
 
 #endif
