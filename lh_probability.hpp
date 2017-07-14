@@ -55,25 +55,22 @@ private:
   
   bool last_extended_is_span();
   
-  double last_S();
-  double last_R(size_t index_among_haplotypes);
-  
   size_t size();
   
-  // checks for a span before the first site
-  void initialize_probability();
-  void extend_probability_at_site(size_t j, alleleValue a);
-  void extend_probability_at_site(size_t j);
-  void extend_probability_at_span_after(size_t j, 
-              int augmentation_count);
+
 public:
-  vector<double> S;
-  vector<vector<double> > R;
+  double S;
+  vector<double> R;
   
   haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
             haplotypeCohort* haplotypes, inputHaplotype* query);
   ~haplotypeMatrix();
   double calculate_probability();
+
+  void account_for_initial_span();
+  void extend_first_site();
+  
+  delayMap get_map();
 
   // TODO: implement these 
   // double estimate_probability_at_site(size_t j, alleleValue a);
@@ -81,6 +78,15 @@ public:
   // double minContinuing(int j);
   // double minMutating(int j);
   // double maxSwitching(int j);
+  
+  // checks for a span before the first site
+  void initialize_probability();
+  void extend_probability_at_site(size_t j, alleleValue a);
+  void extend_probability_at_site(size_t j);
+  void extend_probability_at_span_after(size_t j, 
+              int augmentation_count);
+              
+  void take_snapshot();
   
   vector<size_t> get_matches(size_t i);
   size_t number_matching(size_t i);
