@@ -44,6 +44,8 @@ public:
   // steps forward the "current site" position
   void increment_site_marker();
   
+  vector<size_t> rows_to_slots(const vector<size_t>& rows);
+  
   // takes in a set of slot indices and extends their maps_by_slot
   // time complexity is O(|indices| + n)
   void update_maps(const vector<size_t>& indices);
@@ -54,6 +56,8 @@ public:
   // storage of the DP state in O(|population|) rather than 
   // O(|population| + |sites|) space
   void hard_update_all();
+  
+  void hard_clear_all();
   
   // un-associates row from slot and assigns an out-of-bounds slot index
   // and decrements slot
@@ -73,6 +77,9 @@ public:
   DPUpdateMap get_map(size_t row);
   
   vector<DPUpdateMap> get_maps();
+  
+  vector<DPUpdateMap> get_maps_by_site();
+
   
   void update_map_with_span(DPUpdateMap span_map);
   void update_map_with_span(double coefficient, double constant);

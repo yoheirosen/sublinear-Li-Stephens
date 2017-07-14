@@ -23,7 +23,7 @@ DPUpdateMap DPUpdateMap::compose(DPUpdateMap inner) {
   } else {
     DPUpdateMap to_return;
     to_return.coefficient = coefficient + inner.coefficient; 
-    to_return.constant = logsum(constant, 
+    to_return.constant = logsum(inner.constant, 
                                 constant - inner.coefficient);
     return to_return;
   }
