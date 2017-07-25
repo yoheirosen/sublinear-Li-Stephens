@@ -1,6 +1,30 @@
 #include <cmath>
 #include "lh_probability.hpp"
-#include <iostream>
+
+haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
+          haplotypeCohort* cohort) :
+          reference(ref), cohort(cohort), penalties(pen),
+          map(delayMap(cohort->size(), 0)) {
+  S = 0;
+  R = vector<double>(cohort->size(),0);
+}
+
+haplotypeMatrix::haplotypeMatrix(const haplotypeMatrix &other, bool copy_map = true) {
+	reference = other.reference;
+	cohort = other.cohort;
+	penalties = other.penalties;
+	last_extended = other.last_extended;
+	last_span_extended = other.last_span_extended;
+  last_site_extended = other.last_site_extended;
+	last_allele = other.last_allele;
+	S = other.S;
+	R = other.R;
+	if(copy_map) {
+		map = delayMap(other.map);
+	} else {
+		map = delayMap(cohort->size(), last_extended);
+	}
+}
 
 haplotypeMatrix::~haplotypeMatrix() {
   
@@ -8,65 +32,6 @@ haplotypeMatrix::~haplotypeMatrix() {
 
 delayMap haplotypeMatrix::get_map() {
   return map;
-}
-
-void haplotypeMatrix::account_for_initial_span() {
-  if(query->has_left_tail()) {
-    // There is a uniform 1/|H| probability of starting on any given haplotype.
-    // All emission probabilities are the same. So all R-values are the same
-    
-    size_t length = query->get_left_tail();
-    size_t num_augs = query->get_augmentations(-1);
-    double lfsl = (length - 1) * penalties->log_fs_base;
-    double mutation_coefficient = 
-              (length - num_augs) * (penalties->log_mu_complement) +
-              num_augs * (penalties->log_mu);
-    initial_R = mutation_coefficient + lfsl - penalties->log_H;
-    for(size_t i = 0; i < R.size(); i++) {
-      R[i] = initial_R;
-    }
-    S = mutation_coefficient + lfsl;
-    last_span_extended = -1;
-  }
-}
-
-void haplotypeMatrix::extend_first_site() {
-  if(query->has_left_tail()) {
-    extend_probability_at_site(0);
-  } else {
-    vector<size_t> matches = cohort->get_matches(0, query->get_allele(0));
-    vector<size_t> non_matches = 
-              cohort->get_non_matches(0, query->get_allele(0));
-    // There are only two possible R-values at this site. There is a uniform
-    // 1/|H| probability of starting on any given haplotype; the emission
-    // probabilities account for differences in R-value
-    double initial_value = -penalties->log_H + penalties->log_mu_complement;
-    double m_initial_value = -penalties->log_H + penalties->log_mu;
-    
-    // Set the ones which match the query haplotype
-    for(size_t i = 0; i < matches.size(); i++) {
-      R[matches[i]] = initial_value;
-    }
-    // And the ones which don't
-    for(size_t i = 0; i < non_matches.size(); i++) {
-      R[non_matches[i]] = m_initial_value;
-    }
-    
-    S = -penalties->log_H + 
-                logsum(log(matches.size()) + penalties->log_mu_complement,
-                       log(non_matches.size()) + penalties->log_mu);
-    last_extended = 0;
-  }
-}
-
-
-void haplotypeMatrix::initialize_probability() {
-  account_for_initial_span();
-  extend_first_site();
-}
-
-void haplotypeMatrix::extend_probability_at_site(size_t j) {
-  extend_probability_at_site(j, query->get_allele(j));
 }
 
 double calculate_R(double oldR, DPUpdateMap map) {
@@ -77,58 +42,148 @@ double calculate_R(double oldR, double coefficient, double constant) {
   return calculate_R(oldR, DPUpdateMap(coefficient, constant));
 }
 
-void haplotypeMatrix::take_snapshot() {
-  map.hard_update_all();
-  size_t j = last_extended;
-  alleleValue a = query->get_allele(last_extended);
-  bool homogenous = (cohort->number_matching(j, a) == 0 ||
-            cohort->number_not_matching(j, a) == 0);
-  if(homogenous || last_extended_is_span()) {
-    for(int i = 0; i < cohort->size(); i++) {
-      R[i] = calculate_R(R[i], map.get_map(i));
-    }
-  } else if(cohort->match_is_rare(j, a)) {
-    vector<size_t> non_matches = cohort->get_non_matches(j, a);
-    for(int i = 0; i < non_matches.size(); i++) {
-      R[non_matches[i]] =
-                calculate_R(R[non_matches[i]], map.get_map(non_matches[i]));
+void haplotypeMatrix::initialize_probability_at_span(size_t length, 
+              size_t augmentation_count) {
+  // There is a uniform 1/|H| probability of starting on any given haplotype.
+  // All emission probabilities are the same. So all R-values are the same
+  double fs_of_l = (length - 1) * penalties->fs_of_one;
+  double mutation_factor =
+            (length - augmentation_count) * (penalties->one_minus_mu) +
+            augmentation_count * (penalties->mu);
+  double common_initial_R = mutation_factor + fs_of_l - penalties->log_H;
+  for(size_t i = 0; i < R.size(); i++) {
+    R[i] = common_initial_R;
+  }
+  S = mutation_factor + fs_of_l;
+  
+  last_span_extended = -1;
+}
+
+void haplotypeMatrix::initialize_probability_at_site(size_t site_index, 
+            alleleValue a) {
+  vector<size_t> matches = cohort->get_matches(site_index, a);
+  vector<size_t> non_matches = 
+            cohort->get_non_matches(site_index, a);
+  // There are only two possible R-values at this site. There is a uniform
+  // 1/|H| probability of starting on any given haplotype; the emission
+  // probabilities account for differences in R-value
+  double match_initial_value = -penalties->log_H + penalties->one_minus_mu;
+  double nonmatch_initial_value = -penalties->log_H + penalties->mu;
+
+  // Set the ones which match the query haplotype
+  for(size_t i = 0; i < matches.size(); i++) {
+    R[matches[i]] = match_initial_value;
+  }
+  // And the ones which don't
+  for(size_t i = 0; i < non_matches.size(); i++) {
+    R[non_matches[i]] = nonmatch_initial_value;
+  }
+
+  S = -penalties->log_H + 
+              logsum(log(matches.size()) + penalties->one_minus_mu,
+                     log(non_matches.size()) + penalties->mu);
+  record_last_extended(a);
+}
+
+void haplotypeMatrix::initialize_probability(size_t site_index, alleleValue a,
+            size_t left_tail_length = 0, size_t augmentation_count = 0) {
+  if(left_tail_length != 0) {
+    initialize_probability_at_span(left_tail_length, augmentation_count);
+    extend_probability_at_site(site_index, a);
+  } else {
+    initialize_probability_at_site(site_index, a);
+  }
+}
+
+void haplotypeMatrix::extend_probability_at_site(inputHaplotype* q, size_t j) {
+  extend_probability_at_site(q->get_site_index(j), q->get_allele(j));
+}
+
+void haplotypeMatrix::extend_probability_at_span_after(inputHaplotype* q, 
+            size_t j) {
+  extend_probability_at_span_after(q->get_site_index(j), 
+            q->get_augmentations(j));
+}
+
+void haplotypeMatrix::initialize_probability(inputHaplotype* q) {
+  if(q->has_sites()) {
+    if(q->has_left_tail()) {
+      initialize_probability(q->get_site_index(0), q->get_allele(0),
+                q->get_left_tail(), q->get_augmentations(0));
+    } else {
+      initialize_probability(q->get_site_index(0), q->get_allele(0));
     }
   } else {
-    vector<size_t> matches = cohort->get_matches(j, a);
-    for(int i = 0; i < matches.size(); i++) {
-      R[matches[i]] =
-                calculate_R(R[matches[i]], map.get_map(matches[i]));
-    }
+    initialize_probability_at_span(q->get_left_tail(), q->get_augmentations(-1));
   }
-  map.hard_clear_all();
+}
+
+void haplotypeMatrix::record_last_extended(alleleValue a) {
+  last_extended++;
+  last_site_extended++;
+  last_allele = a;
+}
+
+void haplotypeMatrix::take_snapshot() {
+  if(last_extended > 0) {
+    // step forward all delayMap slots which are not up to date
+    map.hard_update_all();
+    size_t j = last_extended;
+    bool reference_is_homogenous = 
+              (cohort->number_matching(j, last_allele) == 0 ||
+              cohort->number_not_matching(j, last_allele) == 0);
+    if(reference_is_homogenous || last_extended_is_span()) {
+      for(size_t i = 0; i < cohort->size(); i++) {
+        R[i] = calculate_R(R[i], map.get_map(i));
+      }
+    } else if(cohort->match_is_rare(j, last_allele)) {
+      // we have already calculated R at all matching rows
+      vector<size_t> non_matches = cohort->get_non_matches(j, last_allele);
+      for(size_t i = 0; i < non_matches.size(); i++) {
+        R[non_matches[i]] =
+                  calculate_R(R[non_matches[i]], map.get_map(non_matches[i]));
+      }
+    } else {
+      // we have already calculated R at all non-matching rows
+      vector<size_t> matches = cohort->get_matches(j, last_allele);
+      for(size_t i = 0; i < matches.size(); i++) {
+        R[matches[i]] =
+                  calculate_R(R[matches[i]], map.get_map(matches[i]));
+      }
+    }
+    // since all R-values are up to date, we do not need entries in the delayMap
+    // therefore we can clear them all and replace them with the identity map
+    map.hard_clear_all();
+  }
 } 
 
-void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
-  double lm = penalties->log_mu;
-  double lm_c = penalties->log_mu_complement;
+void haplotypeMatrix::extend_probability_at_site(size_t site_index, 
+            alleleValue a) {
+  double p_nonmatch = penalties->mu;
+  double p_match = penalties->one_minus_mu;
   // This is the coefficient of the variable R[j-1][i] term
-  double lft1 = penalties->log_ft_base;
+  double ft_of_1 = penalties->ft_of_one;
   // This is the non-variable rho*S[j-1] term
-  double lpS = penalties->log_rho + S;    
+  double p_recomb_x_S = penalties->rho + S;    
 
-  if(cohort->match_is_rare(j, a)) {
-    map.add_map_for_site(lm + lft1, lpS - lft1);
-    if(cohort->number_matching(j, a) == 0) {
+  if(cohort->match_is_rare(site_index, a)) {
+    map.add_map_for_site(p_nonmatch + ft_of_1, p_recomb_x_S - ft_of_1);
+    if(cohort->number_matching(site_index, a) == 0) {
       // separate case to avoid log-summing "log 0"
-      S = lm + S + penalties->log_fs_base;
+      S = p_nonmatch + S + penalties->fs_of_one;
     } else {
-      vector<size_t> matches = cohort->get_matches(j, a);
-            
+      vector<size_t> matches = cohort->get_matches(site_index, a);            
       vector<size_t> slots = map.rows_to_slots(matches);
+      
       map.update_maps(slots);
-      // it is important to note that at this point, the coefficient of the maps
-      // is off by a factor of lm_c - lm for all matching rows
-      double flip_m = lm_c - lm;
+      
+      double correct_to_p_match = p_match - p_nonmatch;
       for(size_t i = 0; i < matches.size(); i++) {
-        R[matches[i]] = flip_m +
+        R[matches[i]] = correct_to_p_match +
                     calculate_R(R[matches[i]], map.get_map(matches[i]));        
         map.remove_row_from_slot(matches[i]);
       }
+      
       map.add_identity_map();
       for(size_t i = 0; i < matches.size(); i++) {
         map.assign_row_to_newest_index(matches[i]);
@@ -139,31 +194,30 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
         summands.push_back(R[matches[i]]);
       }
       
-      double l_num_match = log(cohort->number_matching(j,a));
-      double l_2mc = penalties->log_2mu_complement;
-      double l_2mc_flip = l_2mc - lm_c;
-      double l_p = penalties->log_rho;
+      double correct_to_1_m_2mu = penalties->one_minus_2mu - p_match;
       
-      S += penalties->log_fs_base + lm;
-      S = logsum(S, l_2mc_flip + log_big_sum(summands));
+      S += penalties->fs_of_one + p_nonmatch;
+      S = logsum(S, correct_to_1_m_2mu + log_big_sum(summands));
     }
   } else {
-    map.add_map_for_site(lm_c + lft1, lpS - lft1);
-    if(cohort->number_not_matching(j, a) == 0) {
+    map.add_map_for_site(p_match + ft_of_1, p_recomb_x_S - ft_of_1);
+    if(cohort->number_not_matching(site_index, a) == 0) {
       // separate case to avoid log-summing "log 0"
-      S = lm_c + S + penalties->log_fs_base;
+      S = p_match + S + penalties->fs_of_one;
     } else {
-      vector<size_t> non_matches = cohort->get_non_matches(j, a);
-      
+      vector<size_t> non_matches = cohort->get_non_matches(site_index, a);
       vector<size_t> slots = map.rows_to_slots(non_matches);
+      
       map.update_maps(slots);
-      double flip_m = lm - lm_c;
+      
+      double correct_to_p_nonmatch = p_nonmatch - p_match;
       for(size_t i = 0; i < non_matches.size(); i++) {
-        R[non_matches[i]] = flip_m +
+        R[non_matches[i]] = correct_to_p_nonmatch +
                   calculate_R(R[non_matches[i]], 
                               map.get_map(non_matches[i]));        
         map.remove_row_from_slot(non_matches[i]);
       }
+      
       map.add_identity_map();
       for(size_t i = 0; i < non_matches.size(); i++) {
         map.assign_row_to_newest_index(non_matches[i]);
@@ -174,110 +228,54 @@ void haplotypeMatrix::extend_probability_at_site(size_t j, alleleValue a) {
         summands.push_back(R[non_matches[i]]);
       }
     
-      double l_num_mismatch = log(cohort->number_not_matching(j,a));
-      double l_2mc = penalties->log_2mu_complement;
-      double l_2mc_flip = l_2mc - lm;
-      double l_p = penalties->log_rho;
+      double correct_to_1_m_2mu = penalties->one_minus_2mu - p_nonmatch;
       
-      S += penalties->log_fs_base + lm_c;
-      S = logdiff(S, l_2mc_flip + log_big_sum(summands));     
+      S += penalties->fs_of_one + p_match;
+      S = logdiff(S, correct_to_1_m_2mu + log_big_sum(summands));     
     }
   }
-  last_extended = j;
+  record_last_extended(a);
   return;
 }
 
-void haplotypeMatrix::extend_probability_at_span_after(size_t j,
-            int augmenation_count) {
-  size_t length = query->get_span_after(j);
-  double lfsl = length * penalties->log_fs_base;
-  double lftl = length * penalties->log_ft_base;
-  double mut_pen = (length - augmenation_count) * penalties->log_mu_complement +
-              augmenation_count * penalties->log_mu;
+void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
+            size_t augmentation_count) {
+  size_t length = reference->span_length_after(site_index);
+  double lfsl = length * penalties->fs_of_one;
+  double lftl = length * penalties->ft_of_one;
+  double mut_pen = (length - augmentation_count) * penalties->one_minus_mu +
+              augmentation_count * penalties->mu;
   double RHS = S - penalties->log_H + logdiff(lfsl, lftl);
   map.update_map_with_span(mut_pen + lftl, RHS - lftl);
   S = mut_pen + S + lfsl;
-  last_span_extended = j;
+  last_span_extended = last_extended + 1;
 }
 
 bool haplotypeMatrix::last_extended_is_span() {
   return (last_extended == last_span_extended);
 }
 
-size_t haplotypeMatrix::size() {
-  return query->number_of_sites();
-}
-
 penaltySet::~penaltySet() {
   
 }
 
-penaltySet::penaltySet(double log_rho, double log_mu, int H) : H(H), 
-          log_rho(log_rho), log_mu(log_mu) {
+penaltySet::penaltySet(double rho, double mu, int H) : H(H), 
+          rho(rho), mu(mu) {
   log_H = log(H);
-  log_rho_complement = log1p(-exp(log_rho));
-  log_mu_complement = log1p(-exp(log_mu));
-  log_2mu_complement = log1p(-2*exp(log_mu));
-  log_ft_base = log1p(-2*exp(log_rho));
-  log_fs_base = logsum(log_ft_base, log_rho + log_H);
+  one_minus_rho = log1p(-exp(rho));
+  one_minus_mu = log1p(-exp(mu));
+  one_minus_2mu = log1p(-2*exp(mu));
+  ft_of_one = log1p(-2*exp(rho));
+  fs_of_one = logsum(ft_of_one, rho + log_H);
 }
 
-double haplotypeMatrix::calculate_probability() {
-  initialize_probability();
-  if(query->has_sites()) {
-    if(query->has_span_after(0)) {
-      extend_probability_at_span_after(0, query->get_augmentations(0));
-    }
-    for(size_t i = 1; i < size(); i++) {
-      extend_probability_at_site(i, query->get_allele(i));
-      if(query->has_span_after(i)) {
-        extend_probability_at_span_after(i, query->get_augmentations(i));
-      }
+double haplotypeMatrix::calculate_probability(inputHaplotype* q) {
+  initialize_probability(q);
+  for(size_t j = 1; j < q->number_of_sites(); j++) {
+    extend_probability_at_site(q, j);
+    if(q->has_span_after(j)) {
+      extend_probability_at_span_after(q, j);
     }
   }
   return S;
-}
-
-haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
-          haplotypeCohort* cohort, inputHaplotype* query) :
-          reference(ref), cohort(cohort), penalties(pen), query(query),
-          map(delayMap(cohort->size(), 0)) {
-  S = 0;
-  R = vector<double>(cohort->size(),0);
-}
-
-// TODO: implement these 
-// double haplotypeMatrix::minContinuing(int j) {
-//   double newC = cohort->number_matching(j, query->get_allele(j));
-//   double oldC = cohort->number_matching(j-1, query->get_allele(j-1));
-//   return min(newC, oldC);
-// }
-// 
-// double haplotypeMatrix::minMutating(int j) {
-//   double newM = cohort->number_not_matching(j, query->get_allele(j));
-//   double oldM = cohort->number_not_matching(j-1, query->get_allele(j-1));
-//   return min(newM, oldM);
-// }
-// 
-// double haplotypeMatrix::maxSwitching(int j) {
-//   double newC = cohort->number_matching(j, query->get_allele(j));
-//   double oldC = cohort->number_matching(j-1, query->get_allele(j-1));
-//   return 0;
-// }
-// 
-// double haplotypeMatrix::estimate_probability_at_site(size_t j, alleleValue a) {
-//   return 0;
-// }
-
-vector<size_t> haplotypeMatrix::get_matches(size_t i) {
-  return cohort->get_matches(query->get_rel_index(i), query->get_allele(i));
-}
-
-size_t haplotypeMatrix::number_matching(size_t i) {
-  return cohort->number_matching(query->get_rel_index(i), query->get_allele(i));
-}
-
-size_t haplotypeMatrix::number_not_matching(size_t i) {
-  return cohort->number_not_matching(query->get_rel_index(i),
-            query->get_allele(i));
 }

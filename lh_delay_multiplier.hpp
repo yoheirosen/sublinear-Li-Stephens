@@ -41,6 +41,10 @@ private:
   // slots can be added in their place
   vector<size_t> empty_map_slots;
 public:
+  delayMap();
+  delayMap(size_t rows, size_t start = 0);
+  delayMap(const delayMap& other);
+    
   // steps forward the "current site" position
   void increment_site_marker();
   
@@ -79,7 +83,6 @@ public:
   vector<DPUpdateMap> get_maps();
   
   vector<DPUpdateMap> get_maps_by_site();
-
   
   void update_map_with_span(DPUpdateMap span_map);
   void update_map_with_span(double coefficient, double constant);
@@ -87,8 +90,6 @@ public:
   void add_map_for_site(double coefficient, double constant);
   
   size_t last_update(size_t row);
-
-  delayMap(size_t rows, size_t start = 0);
 };
 
 #endif

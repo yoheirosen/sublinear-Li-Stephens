@@ -1,8 +1,11 @@
 #include "lh_delay_multiplier.hpp"
 #include "lh_math.hpp"
-#include <iostream>
 
 using namespace std;
+
+delayMap::delayMap() {
+  
+}
 
 delayMap::delayMap(size_t rows, size_t start) : 
             dM_start(start) {
@@ -11,6 +14,19 @@ delayMap::delayMap(size_t rows, size_t start) :
   slots_by_row = vector<size_t>(rows, 0);
   counts = {rows};
   dM_start = start;
+}
+
+delayMap::delayMap(const delayMap &other) {
+	added_span = other.added_span;
+	updated_maps = other.updated_maps;
+	dM_start = other.dM_start;
+	current_site = other.current_site;
+	maps_by_site = other.maps_by_site;
+	slots_by_row = other.slots_by_row;
+	updated_to = other.updated_to;
+	maps_by_slot = other.maps_by_slot;
+	counts = other.counts;
+	empty_map_slots = other.empty_map_slots;
 }
 
 void delayMap::assign_row_to_newest_index(size_t row) {

@@ -14,16 +14,16 @@ using namespace std;
 struct penaltySet{
   int H;
   double log_H;
-  double log_rho;
-  double log_mu;
-  double log_rho_complement;
-  double log_mu_complement;
-  double log_2mu_complement;
+  double rho;
+  double mu;
+  double one_minus_rho;
+  double one_minus_mu;
+  double one_minus_2mu;
   
   // log of (1 - 2*rho)
-  double log_ft_base;
+  double ft_of_one;
   // log of (1 - 2*rho + H*rho)
-  double log_fs_base;
+  double fs_of_one;
   
   penaltySet(double logRho, double logMu, int H);
   ~penaltySet();
@@ -40,35 +40,29 @@ private:
   linearReferenceStructure* reference;
   haplotypeCohort* cohort;
   penaltySet* penalties;
-  inputHaplotype* query;
   delayMap map;
-  
-  // This is used when the inputHaplotype begins with a span
-  double initial_R;
   
   // trackers for the last indices extended. spans are indexed according to
   // the site preceding them, except for index -1, the span before site 0
   // -1 : nothing extended; i : index i last extended
   int last_extended = -1;
+  size_t last_site_extended;
+  alleleValue last_allele;
+  void record_last_extended(alleleValue a);
   // -2 : nothing extended; indexing as above
   int last_span_extended = -2;
-  
   bool last_extended_is_span();
-  
-  size_t size();
-  
 
 public:
+  haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
+            haplotypeCohort* haplotypes);
+  haplotypeMatrix(const haplotypeMatrix& other, bool copy_map);
+  ~haplotypeMatrix();
+  
   double S;
   vector<double> R;
   
-  haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
-            haplotypeCohort* haplotypes, inputHaplotype* query);
-  ~haplotypeMatrix();
-  double calculate_probability();
-
-  void account_for_initial_span();
-  void extend_first_site();
+  double calculate_probability(inputHaplotype* q);
   
   delayMap get_map();
 
@@ -80,17 +74,19 @@ public:
   // double maxSwitching(int j);
   
   // checks for a span before the first site
-  void initialize_probability();
-  void extend_probability_at_site(size_t j, alleleValue a);
-  void extend_probability_at_site(size_t j);
-  void extend_probability_at_span_after(size_t j, 
-              int augmentation_count);
+  void initialize_probability(inputHaplotype* q);
+  void extend_probability_at_site(inputHaplotype* q, size_t j);
+  void extend_probability_at_span_after(inputHaplotype* q, size_t j);
+  
+  void initialize_probability_at_span(size_t length, size_t augmentation_count);
+  void initialize_probability_at_site(size_t site_index, alleleValue a);
+  void initialize_probability(size_t site_index, alleleValue a,
+              size_t left_tail_length, size_t augmentation_count);
+  void extend_probability_at_site(size_t site_index, alleleValue a);
+  void extend_probability_at_span_after(size_t site_index, 
+              size_t augmentation_count);            
               
   void take_snapshot();
-  
-  vector<size_t> get_matches(size_t i);
-  size_t number_matching(size_t i);
-  size_t number_not_matching(size_t i);
 };
 
 double calculate_R(double oldR, DPUpdateMap map);
