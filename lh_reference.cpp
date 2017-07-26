@@ -130,6 +130,46 @@ alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_i
   return site_index_to_reference_allele[site_index];
 }
 
+size_t linearReferenceStructure::find_site_above(size_t position) {
+  if(is_site(position)) {
+    return get_site_index(position);
+  } else {
+    if(get_position(0) > position) {
+      return 0;
+    } else {
+      return find_site_below(position) + 1;
+    }
+  }
+}
+
+size_t linearReferenceStructure::find_site_below(size_t position) {
+  if(is_site(position)) {
+    return get_site_index(position);
+  } else {
+    size_t lower_bound = 0;
+    size_t upper_bound = number_of_sites() - 1;
+    if(position > get_position(upper_bound)) {
+      return upper_bound;
+    }
+    size_t mid = upper_bound/2;
+    while(true) {
+      if(get_position(mid) > position) {
+        if(mid - lower_bound == 1) {
+          return lower_bound;
+        }
+        upper_bound = mid;
+        mid = (upper_bound - lower_bound)/2 + lower_bound;
+      } else {
+        if(upper_bound - mid == 1) {
+          return mid;
+        }
+        lower_bound = mid;
+        mid = (upper_bound - lower_bound)/2 + lower_bound;
+      }
+    }
+  }
+}
+
 haplotypeCohort::~haplotypeCohort() {
   
 }
@@ -166,15 +206,8 @@ size_t haplotypeCohort::size() {
 }
 
 vector<size_t> haplotypeCohort::get_matches(size_t site_index, alleleValue a) {
-  vector<size_t> matchlist;
   size_t allele_rank = (size_t)a;
-  for(size_t i = 0; i < 
-        (haplotype_indices_by_site_and_allele[site_index][allele_rank]).size();
-        i++) {
-    matchlist.push_back(
-          haplotype_indices_by_site_and_allele[site_index][allele_rank][i]);
-  }
-  return matchlist;
+  return haplotype_indices_by_site_and_allele[site_index][allele_rank];
 }
 
 haplotypeCohort::haplotypeCohort(vector<string>& haplotypes, 
@@ -219,3 +252,6 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
   return nonmatchlist;
 }
 
+vector<alleleValue> haplotypeCohort::get_alleles_at_site(size_t site_index) {
+  return haplotype_alleles_by_site_index[site_index];
+}

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 
 using namespace std;
 
@@ -48,6 +49,9 @@ public:
   size_t absolute_length();
   
   alleleValue get_reference_allele_at_site(size_t site_index);
+  
+  size_t find_site_above(size_t position);
+  size_t find_site_below(size_t position);
 };
 
 // converts unexpected input to ref
@@ -80,6 +84,8 @@ public:
   size_t number_matching(size_t site_index, alleleValue a);
   size_t number_not_matching(size_t site_index, alleleValue a);
   bool match_is_rare(size_t site_index, alleleValue a);
+  
+  vector<alleleValue> get_alleles_at_site(size_t site_index);
 };
 
 #endif

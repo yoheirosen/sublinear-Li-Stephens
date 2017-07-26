@@ -6,6 +6,11 @@ inputHaplotype::~inputHaplotype() {
   
 }
 
+inputHaplotype::inputHaplotype(linearReferenceStructure* reference) : 
+          reference(reference) {
+  
+}
+
 inputHaplotype::inputHaplotype(vector<alleleValue> query, 
             vector<size_t> augmentation_count) : alleles(query), 
             augmentations(augmentation_count) {
@@ -103,15 +108,15 @@ inputHaplotype::inputHaplotype(string query, string reference_sequence,
   if(!has_no_sites) {
     for(size_t i = 0; i < number_of_sites; i++) {
       size_t rel_pos_site_i = 
-                reference->get_position(get_rel_index(i)) - start_position;
+                reference->get_position(get_site_index(i)) - start_position;
       alleles.push_back(char_to_allele(query[rel_pos_site_i], 
-                  reference->get_reference_allele_at_site(get_rel_index(i))));
-      if(reference->has_span_after(get_rel_index(i))) {
+                  reference->get_reference_allele_at_site(get_site_index(i))));
+      if(reference->has_span_after(get_site_index(i))) {
         size_t upper_limit_of_span;
         if(i == number_of_sites - 1) {
           upper_limit_of_span = end_position - start_position;
         } else {
-          upper_limit_of_span = reference->get_position(get_rel_index(i + 1))
+          upper_limit_of_span = reference->get_position(get_site_index(i + 1))
                     - 1 - start_position;
         }
         size_t counter = 0;
@@ -166,31 +171,7 @@ void inputHaplotype::edit(size_t position, char new_c, char old_c, char ref) {
 }
 
 size_t inputHaplotype::find_site_below(size_t p) {
-  if(reference->is_site(p)) {
-    return reference->get_site_index(p);
-  } else {
-    size_t lower_bound = 0;
-    size_t upper_bound = reference->number_of_sites() - 1;
-    if(p > reference->get_position(upper_bound)) {
-      return upper_bound;
-    }
-    size_t mid = upper_bound/2;
-    while(true) {
-      if(reference->get_position(mid) > p) {
-        if(mid - lower_bound == 1) {
-          return lower_bound;
-        }
-        upper_bound = mid;
-        mid = (upper_bound - lower_bound)/2 + lower_bound;
-      } else {
-        if(upper_bound - mid == 1) {
-          return mid;
-        }
-        lower_bound = mid;
-        mid = (upper_bound - lower_bound)/2 + lower_bound;
-      }
-    }
-  }
+  return reference->find_site_below(p);
 }
 
 void inputHaplotype::edit(size_t start_pos, size_t end_pos, string new_string, 
@@ -209,7 +190,7 @@ size_t inputHaplotype::get_augmentations(int j) {
   return augmentations[j + 1];
 }
 
-size_t inputHaplotype::get_rel_index(size_t j) {
+size_t inputHaplotype::get_site_index(size_t j) {
   return j + start_index;
 }
 
@@ -225,7 +206,7 @@ size_t inputHaplotype::get_span_after(size_t i) {
   if(i = end_index) {
     return right_tail_length;
   } else {
-    return reference->span_length_after(get_rel_index(i));
+    return reference->span_length_after(get_site_index(i));
   }
 }
 
@@ -233,7 +214,7 @@ bool inputHaplotype::has_span_after(size_t i) {
   if(i = end_index) {
     return right_tail_length != 0;
   } else {
-    return reference->span_length_after(get_rel_index(i));
+    return reference->span_length_after(get_site_index(i));
   }
 }
 

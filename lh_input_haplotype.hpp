@@ -29,6 +29,7 @@ private:
   
   void build_relative_positions();
 public:
+  inputHaplotype(linearReferenceStructure* reference);
   inputHaplotype(vector<alleleValue> query, vector<size_t> augmentation_count);
   inputHaplotype(vector<alleleValue> query, vector<size_t> augmentation_count,
             linearReferenceStructure *reference, size_t start_pos = 1, 
@@ -57,7 +58,7 @@ public:
   // meaningful answer, there must be a site below p
   size_t find_site_below(size_t p);
   
-  size_t get_rel_index(size_t j);
+  size_t get_site_index(size_t j);
   bool has_sites();
   size_t number_of_sites();
 };
