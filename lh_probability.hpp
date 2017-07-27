@@ -62,8 +62,6 @@ public:
   double S;
   vector<double> R;
   
-  double calculate_probability(inputHaplotype* q);
-  
   delayMap get_map();
 
   // TODO: implement these 
@@ -78,15 +76,19 @@ public:
   void extend_probability_at_site(inputHaplotype* q, size_t j);
   void extend_probability_at_span_after(inputHaplotype* q, size_t j);
   
+  double calculate_probability(inputHaplotype* q);
+  
+  void initialize_probability(size_t site_index, alleleValue a,
+              size_t left_tail_length = 0, size_t augmentation_count = 0);
   void initialize_probability_at_span(size_t length, size_t augmentation_count);
   void initialize_probability_at_site(size_t site_index, alleleValue a);
-  void initialize_probability(size_t site_index, alleleValue a,
-              size_t left_tail_length, size_t augmentation_count);
   void extend_probability_at_site(size_t site_index, alleleValue a);
   void extend_probability_at_span_after(size_t site_index, 
               size_t augmentation_count);            
               
   void take_snapshot();
+  double prefix_likelihood();
+  double partial_likelihood_by_row(size_t row);
 };
 
 double calculate_R(double oldR, DPUpdateMap map);
