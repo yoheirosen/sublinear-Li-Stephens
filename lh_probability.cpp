@@ -16,6 +16,36 @@ penaltySet::penaltySet(double rho, double mu, int H) : H(H),
   fs_of_one = logsum(ft_of_one, rho + log_H);
 }
 
+DPUpdateMap penaltySet::get_current_map(double last_sum, bool match_is_rare) {
+  double p_recomb_x_S = rho + last_sum;
+  if(match_is_rare) {
+    return DPUpdateMap(mu + ft_of_one, p_recomb_x_S - ft_of_one);
+  } else {
+    return DPUpdateMap(one_minus_mu + ft_of_one, p_recomb_x_S - ft_of_one);
+  }
+}
+
+double penaltySet::get_minority_map_correction(bool match_is_rare) {
+  if(match_is_rare) {
+    return one_minus_mu - mu;
+  } else {
+    return mu - one_minus_mu;
+  }
+}
+
+void penaltySet::update_S(double& S, vector<double>& summands, 
+              bool match_is_rare) {
+  if(match_is_rare) {
+    double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
+    S += fs_of_one + mu;
+    S = logsum(S, correct_to_1_m_2mu + log_big_sum(summands));
+  } else {
+    double correct_to_1_m_2mu = one_minus_2mu - mu;
+    S += fs_of_one + mu;
+    S = logdiff(S, correct_to_1_m_2mu + log_big_sum(summands));
+  }
+}
+
 haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
           haplotypeCohort* cohort) :
           reference(ref), cohort(cohort), penalties(pen),
@@ -148,83 +178,34 @@ void haplotypeMatrix::initialize_probability_at_site(size_t site_index,
   record_last_extended(a);
 }
 
-
-void haplotypeMatrix::extend_probability_at_site(size_t site_index, 
+void haplotypeMatrix::extend_probability_at_site(size_t site_index,
             alleleValue a) {
-  double p_nonmatch = penalties->mu;
+  bool match_is_rare = cohort->match_is_rare(site_index, a);
+  DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
+  map.add_map_for_site(current_map);
   double p_match = penalties->one_minus_mu;
-  // This is the coefficient of the variable R[j-1][i] term
-  double ft_of_1 = penalties->ft_of_one;
-  // This is the non-variable rho*S[j-1] term
-  double p_recomb_x_S = penalties->rho + S;    
-
-  if(cohort->match_is_rare(site_index, a)) {
-    map.add_map_for_site(p_nonmatch + ft_of_1, p_recomb_x_S - ft_of_1);
-    if(cohort->number_matching(site_index, a) == 0) {
-      // separate case to avoid log-summing "log 0"
-      S = p_nonmatch + S + penalties->fs_of_one;
-    } else {
-      vector<size_t> matches = cohort->get_matches(site_index, a);            
-      vector<size_t> slots = map.rows_to_slots(matches);
-      
-      map.update_maps(slots);
-      
-      double correct_to_p_match = p_match - p_nonmatch;
-      for(size_t i = 0; i < matches.size(); i++) {
-        R[matches[i]] = correct_to_p_match +
-                    calculate_R(R[matches[i]], map.get_map(matches[i]));        
-        map.remove_row_from_slot(matches[i]);
-      }
-      
-      map.add_identity_map();
-      for(size_t i = 0; i < matches.size(); i++) {
-        map.assign_row_to_newest_index(matches[i]);
-      }
-      
-      vector<double> summands;
-      for(size_t i = 0; i < matches.size(); i++) {
-        summands.push_back(R[matches[i]]);
-      }
-      
-      double correct_to_1_m_2mu = penalties->one_minus_2mu - p_match;
-      
-      S += penalties->fs_of_one + p_nonmatch;
-      S = logsum(S, correct_to_1_m_2mu + log_big_sum(summands));
-    }
+  double p_nonmatch = penalties->mu;
+  if(cohort->number_matching(site_index, a) == 0) {
+    // separate case to avoid log-summing "log 0"
+    S = p_nonmatch + S + penalties->fs_of_one;
+  } else if(cohort->number_not_matching(site_index, a) == 0) {
+    // separate case to avoid log-summing "log 0"
+    S = p_match + S + penalties->fs_of_one;
   } else {
-    map.add_map_for_site(p_match + ft_of_1, p_recomb_x_S - ft_of_1);
-    if(cohort->number_not_matching(site_index, a) == 0) {
-      // separate case to avoid log-summing "log 0"
-      S = p_match + S + penalties->fs_of_one;
-    } else {
-      vector<size_t> non_matches = cohort->get_non_matches(site_index, a);
-      vector<size_t> slots = map.rows_to_slots(non_matches);
-      
-      map.update_maps(slots);
-      
-      double correct_to_p_nonmatch = p_nonmatch - p_match;
-      for(size_t i = 0; i < non_matches.size(); i++) {
-        R[non_matches[i]] = correct_to_p_nonmatch +
-                  calculate_R(R[non_matches[i]], 
-                              map.get_map(non_matches[i]));        
-        map.remove_row_from_slot(non_matches[i]);
-      }
-      
-      map.add_identity_map();
-      for(size_t i = 0; i < non_matches.size(); i++) {
-        map.assign_row_to_newest_index(non_matches[i]);
-      }
+    vector<size_t> active_rows = cohort->get_active_rows(site_index, a);
+    map.update_map_with_active_rows(active_rows);
+    double correction = penalties->get_minority_map_correction(match_is_rare);
     
-      vector<double> summands;
-      for(size_t i = 0; i < non_matches.size(); i++) {
-        summands.push_back(R[non_matches[i]]);
-      }
-    
-      double correct_to_1_m_2mu = penalties->one_minus_2mu - p_nonmatch;
-      
-      S += penalties->fs_of_one + p_match;
-      S = logdiff(S, correct_to_1_m_2mu + log_big_sum(summands));     
+    for(size_t i = 0; i < active_rows.size(); i++) {
+      R[active_rows[i]] = correction + 
+                  calculate_R(R[active_rows[i]], map.get_map(active_rows[i]));  
     }
+    map.reset_rows(active_rows);
+    vector<double> summands;
+    for(size_t i = 0; i < active_rows.size(); i++) {
+      summands.push_back(R[active_rows[i]]);
+    }
+    penalties->update_S(S, summands, match_is_rare);
   }
   record_last_extended(a);
   return;

@@ -212,3 +212,18 @@ size_t delayMap::last_update(size_t row) {
 vector<DPUpdateMap> delayMap::get_maps_by_site() {
   return maps_by_site;
 }
+
+void delayMap::reset_rows(vector<size_t>& rows) {
+  for(size_t i = 0; i < rows.size(); i++) {
+    map->remove_row_from_slot(rows[i]);
+  }
+  map.add_identity_map();
+  for(size_t i = 0; i < rows.size(); i++) {
+    map.assign_row_to_newest_index(rows[i]);
+  }
+}
+
+void delayMap::update_map_with_active_rows(vector<size_t>& active_rows) {
+  vector<size_t> slots = map.rows_to_slots(active_rows);
+  update_maps(slots);
+}

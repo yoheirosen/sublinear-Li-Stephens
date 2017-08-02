@@ -14,7 +14,11 @@ struct DPUpdateMap{
 
   // Composes the maps f1: x |-> A1(x + B1) and f2: x |-> A2(x + B2) to form a map
   // f': x |-> A2A1(x + B1 + B2/A1). Performs this in log-space
-  DPUpdateMap compose(DPUpdateMap inner);
+  DPUpdateMap compose(DPUpdateMap& inner);
+  void compose_in_place(DPUpdateMap& inner);
+  
+  DPUpdateMap scale(double C);
+  void scale_in_place(double C);
 };
 
 #endif

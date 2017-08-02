@@ -86,6 +86,8 @@ public:
   bool match_is_rare(size_t site_index, alleleValue a);
   
   vector<alleleValue> get_alleles_at_site(size_t site_index);
+  
+  vector<size_t> get_active_rows(size_t site, alleleValue a);
 };
 
 #endif

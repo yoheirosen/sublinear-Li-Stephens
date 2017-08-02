@@ -255,3 +255,11 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
 vector<alleleValue> haplotypeCohort::get_alleles_at_site(size_t site_index) {
   return haplotype_alleles_by_site_index[site_index];
 }
+
+vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) {
+  if(match_is_rare(site, a)) {
+    return get_matches(site, a);
+  } else {
+    return get_non_matches(site, a);
+  }
+}

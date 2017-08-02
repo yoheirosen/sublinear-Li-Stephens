@@ -27,6 +27,10 @@ struct penaltySet{
   
   penaltySet(double logRho, double logMu, int H);
   ~penaltySet();
+  
+  DPUpdateMap get_current_map(double last_sum, bool match_is_rare);
+  double get_minority_map_correction(bool match_is_rare);
+  void update_S(double& S, vector<double>& summands, bool match_is_rare);
 };
 
 // A haplotypeMatrix is the matrix which iteratively calculates haplotype

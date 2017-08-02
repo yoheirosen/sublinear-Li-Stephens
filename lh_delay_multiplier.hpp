@@ -90,6 +90,9 @@ public:
   void add_map_for_site(double coefficient, double constant);
   
   size_t last_update(size_t row);
+  
+  void reset_rows(vector<size_t>& rows);
+  void update_map_with_active_rows(vector<size_t>& active_rows);
 };
 
 #endif
