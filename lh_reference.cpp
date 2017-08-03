@@ -148,6 +148,9 @@ size_t linearReferenceStructure::find_site_below(size_t position) {
   } else {
     size_t lower_bound = 0;
     size_t upper_bound = number_of_sites() - 1;
+    if(position < get_position(0)) {
+      return SIZE_MAX;
+    }
     if(position > get_position(upper_bound)) {
       return upper_bound;
     }

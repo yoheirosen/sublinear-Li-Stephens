@@ -50,7 +50,9 @@ public:
   
   alleleValue get_reference_allele_at_site(size_t site_index);
   
+  // behavior when there is no site above: returns the 1-past-the-end index
   size_t find_site_above(size_t position);
+  // behavior when there is no site below: returns SIZE_MAX
   size_t find_site_below(size_t position);
 };
 
