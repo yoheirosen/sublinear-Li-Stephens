@@ -205,7 +205,7 @@ size_t haplotypeCohort::size() {
   return number_of_haplotypes;
 }
 
-vector<size_t> haplotypeCohort::get_matches(size_t site_index, alleleValue a) {
+vector<size_t>& haplotypeCohort::get_matches(size_t site_index, alleleValue a) {
   size_t allele_rank = (size_t)a;
   return haplotype_indices_by_site_and_allele[site_index][allele_rank];
 }
@@ -252,7 +252,7 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
   return nonmatchlist;
 }
 
-vector<alleleValue> haplotypeCohort::get_alleles_at_site(size_t site_index) {
+vector<alleleValue>& haplotypeCohort::get_alleles_at_site(size_t site_index) {
   return haplotype_alleles_by_site_index[site_index];
 }
 

@@ -67,13 +67,6 @@ public:
   vector<double> R;
   
   delayMap get_map();
-
-  // TODO: implement these 
-  // double estimate_probability_at_site(size_t j, alleleValue a);
-  // helper functions for probability estimation
-  // double minContinuing(int j);
-  // double minMutating(int j);
-  // double maxSwitching(int j);
   
   // checks for a span before the first site
   void initialize_probability(inputHaplotype* q);

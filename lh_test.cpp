@@ -7,7 +7,6 @@
 #include "lh_input_haplotype.hpp"
 #include "lh_delay_multiplier.hpp"
 #include "catch.hpp"
-#include <iostream>
 
 using namespace std;
 
@@ -246,7 +245,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
   
   SECTION( "Partial likelihood is correctly calculated at an initial site" ) {
     penaltySet penalties = penaltySet(-6, -9, 2);
-    
+
     string ref_seq = "A";
     vector<size_t> positions = {0};
     linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -254,39 +253,39 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     vector<string> allA = vector<string>(2, "A");
     vector<string> allT = vector<string>(2, "T");
     vector<string> AT = {"A","T"};    
-    
+
     haplotypeCohort cohort_allA = haplotypeCohort(allA, &ref_struct);
     haplotypeCohort cohort_allT = haplotypeCohort(allT, &ref_struct);
     haplotypeCohort cohort_AT = haplotypeCohort(AT, &ref_struct);
-    
+
     inputHaplotype query = inputHaplotype((string)"A", ref_seq, &ref_struct);
 
     haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_allA, &query);
-    double probability_allA = matrix_allA.calculate_probability();
+                &cohort_allA);
+    double probability_allA = matrix_allA.calculate_probability(&query);
 
     haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_allT, &query);
-    double probability_allT = matrix_allT.calculate_probability();
+                &cohort_allT);
+    double probability_allT = matrix_allT.calculate_probability(&query);
 
     haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_AT, &query);
-    double probability_AT = matrix_AT.calculate_probability();
+                &cohort_AT);
+    double probability_AT = matrix_AT.calculate_probability(&query);
 
-    double R0_allA_p = log(0.5) + penalties.log_mu_complement;
-    double R0_allT_p = log(0.5) + penalties.log_mu;
+    double R0_allA_p = log(0.5) + penalties.one_minus_mu;
+    double R0_allT_p = log(0.5) + penalties.mu;
     double R0_AT_p = R0_allA_p;
     double R1_AT_p = R0_allT_p;
     double p_allA_p = log(2) + R0_allA_p;
     double p_allT_p = log(2) + R0_allT_p;
     double p_AT_p = logsum(R0_AT_p,R1_AT_p);
-        
+
     REQUIRE(fabs(matrix_allA.R[0] - R0_allA_p) < eps);
     REQUIRE(fabs(matrix_allT.R[0] - R0_allT_p) < eps);
-    
+
     REQUIRE(fabs(matrix_AT.R[0] - R0_AT_p) < eps);
     REQUIRE(fabs(matrix_AT.R[1] - R1_AT_p) < eps);
-    
+
     REQUIRE(fabs(probability_allA - p_allA_p) < eps);
     REQUIRE(fabs(probability_allT - p_allT_p) < eps);
     REQUIRE(fabs(probability_AT - p_AT_p) < eps);
@@ -308,22 +307,22 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     
     inputHaplotype query = inputHaplotype((string)"AA", ref_seq, &ref_struct);
     haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_allA, &query);
+                &cohort_allA);
     haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_allT, &query);
+                &cohort_allT);
     haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort_AT, &query);
-    double R0A = log(0.25) + penalties.log_mu_complement;
-    double R0T = log(0.25) + penalties.log_mu;
+                &cohort_AT);
+    double R0A = log(0.25) + penalties.one_minus_mu;
+    double R0T = log(0.25) + penalties.mu;
     double S0 = log(0.5);
-    double ftR0A = penalties.log_ft_base + R0A;
-    double ftR0T = penalties.log_ft_base + R0T;
-    double pS = penalties.log_rho + S0;
+    double ftR0A = penalties.ft_of_one + R0A;
+    double ftR0T = penalties.ft_of_one + R0T;
+    double pS = penalties.rho + S0;
     
-    double R0_allA_p = penalties.log_mu_complement + logsum(ftR0A, pS);
-    double R1_allA_p = penalties.log_mu_complement + logsum(ftR0T, pS);
-    double R0_allT_p = penalties.log_mu + logsum(ftR0A, pS);
-    double R1_allT_p = penalties.log_mu + logsum(ftR0T, pS);
+    double R0_allA_p = penalties.one_minus_mu + logsum(ftR0A, pS);
+    double R1_allA_p = penalties.one_minus_mu + logsum(ftR0T, pS);
+    double R0_allT_p = penalties.mu + logsum(ftR0A, pS);
+    double R1_allT_p = penalties.mu + logsum(ftR0T, pS);
     double R0_AT_p = R0_allA_p;
     double R1_AT_p = R1_allA_p;
     double R2_AT_p = R0_allT_p;
@@ -332,20 +331,20 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     double p_allT_p = log(2) + logsum(R0_allT_p, R1_allT_p);
     double p_AT_p = logsum(logsum(R0_AT_p, R1_AT_p), logsum(R2_AT_p, R3_AT_p));
       
-    matrix_allA.initialize_probability();
-    matrix_allA.extend_probability_at_site(1);
+    matrix_allA.initialize_probability(&query);
+    matrix_allA.extend_probability_at_site(&query, 1);
     matrix_allA.take_snapshot();
     REQUIRE(fabs(matrix_allA.R[0] - R0_allA_p) < eps);
     REQUIRE(fabs(matrix_allA.R[1] - R1_allA_p) < eps);
     
-    matrix_allT.initialize_probability();
-    matrix_allT.extend_probability_at_site(1);
+    matrix_allT.initialize_probability(&query);
+    matrix_allT.extend_probability_at_site(&query, 1);
     matrix_allT.take_snapshot();
     REQUIRE(fabs(matrix_allT.R[0] - R0_allT_p) < eps);
     REQUIRE(fabs(matrix_allT.R[1] - R1_allT_p) < eps);
     
-    matrix_AT.initialize_probability();
-    matrix_AT.extend_probability_at_site(1);
+    matrix_AT.initialize_probability(&query);
+    matrix_AT.extend_probability_at_site(&query, 1);
     matrix_AT.take_snapshot();
     REQUIRE(fabs(matrix_AT.R[0] - R0_AT_p) < eps);
     REQUIRE(fabs(matrix_AT.R[1] - R1_AT_p) < eps);
@@ -375,11 +374,11 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     inputHaplotype query_1_aug = inputHaplotype((string)"AAAAAT", ref_seq, 
               &ref_struct);
     
-    double lmu = penalties.log_mu;
-    double lmu_c = penalties.log_mu_complement;
-    double lfsb = penalties.log_fs_base;
-    double lftb = penalties.log_ft_base;
-    double lrho = penalties.log_rho;
+    double lmu = penalties.mu;
+    double lmu_c = penalties.one_minus_mu;
+    double lfsb = penalties.fs_of_one;
+    double lftb = penalties.ft_of_one;
+    double lrho = penalties.rho;
     double lfsl = 5 * lfsb;
     double lftl = 5 * lftb;
     
@@ -397,10 +396,9 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     double p_1a_p = lmu_c*4 + lmu + lfsl + lS_i;
     
     haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query_0_aug);
-    matrix_0_aug.initialize_probability();
-    matrix_0_aug.extend_probability_at_span_after(0,
-                query_0_aug.get_augmentations(0));
+                &cohort);
+    matrix_0_aug.initialize_probability(&query_0_aug);
+    matrix_0_aug.extend_probability_at_span_after(&query_0_aug, 0);
     matrix_0_aug.take_snapshot();
 
     REQUIRE(fabs(matrix_0_aug.R[0] - R0_0a_p) < eps);
@@ -408,10 +406,9 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     REQUIRE(fabs(matrix_0_aug.S- p_0a_p) < eps);
 
     haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query_1_aug);
-    matrix_1_aug.initialize_probability();
-    matrix_1_aug.extend_probability_at_span_after(0, 
-                query_1_aug.get_augmentations(0));
+                &cohort);
+    matrix_1_aug.initialize_probability(&query_1_aug);
+    matrix_1_aug.extend_probability_at_span_after(&query_1_aug, 0);
     matrix_1_aug.take_snapshot();
   
     REQUIRE(fabs(matrix_1_aug.R[0] - R0_1a_p) < eps);
@@ -438,13 +435,13 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
               inputHaplotype((string)"TAAAAA", ref_seq, &ref_struct);
     
     haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query_0_aug);
+                &cohort);
     haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query_1_aug);
+                &cohort);
     
-    double lmu = penalties.log_mu;
-    double lmu_c = penalties.log_mu_complement;
-    double lfsb = penalties.log_fs_base;
+    double lmu = penalties.mu;
+    double lmu_c = penalties.one_minus_mu;
+    double lfsb = penalties.fs_of_one;
     
     double R0_0a_p = 6*lmu_c + 5*lfsb - log(3);
     double R2_0a_p = 5*lmu_c + 5*lfsb + lmu - log(3);
@@ -453,13 +450,13 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     double p_0a_p = 5*lmu_c + 5*lfsb + logdiff(log(2), lmu) - log(3);
     double p_1a_p = 4*lmu_c + lmu + 5*lfsb + logdiff(log(2), lmu) - log(3);
     
-    matrix_0_aug.initialize_probability();
+    matrix_0_aug.initialize_probability(&query_0_aug);
     matrix_0_aug.take_snapshot();
     REQUIRE(fabs(matrix_0_aug.R[0] - R0_0a_p) < eps);
     REQUIRE(fabs(matrix_0_aug.R[2] - R2_0a_p) < eps);
     REQUIRE(fabs(matrix_0_aug.S - p_0a_p) < eps);
     
-    matrix_1_aug.initialize_probability();
+    matrix_1_aug.initialize_probability(&query_1_aug);
     matrix_1_aug.take_snapshot();
     REQUIRE(fabs(matrix_1_aug.R[0] - R0_1a_p) < eps);
     REQUIRE(fabs(matrix_1_aug.R[2] - R2_1a_p) < eps);
@@ -486,12 +483,12 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     inputHaplotype query = inputHaplotype(query_string, ref_seq, &ref_struct);
     
     haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query);
+                &cohort);
     
-    double lmu_c = penalties.log_mu_complement;
-    double lmu = penalties.log_mu;
-    double lrho = penalties.log_rho;
-    double lftb = penalties.log_ft_base;
+    double lmu_c = penalties.one_minus_mu;
+    double lmu = penalties.mu;
+    double lrho = penalties.rho;
+    double lftb = penalties.ft_of_one;
     double l2_mu = logdiff(log(2), lmu);
     
     vector<double> correct_Ss;
@@ -548,7 +545,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     // 11100
     // @ 0, haplotypes 0 and 2 match, match more common
     // work done at all since initial
-    matrix.initialize_probability();
+    matrix.initialize_probability(&query);
     REQUIRE(fabs(matrix.R[0] - correct_Rs[0][0]) < eps);
     REQUIRE(fabs(matrix.R[1] - correct_Rs[0][1]) < eps); 
     REQUIRE(fabs(matrix.R[2] - correct_Rs[0][2]) < eps); 
@@ -557,7 +554,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     // @ 1, haplotype 2 matches, non-match more common
     // work done at 2, match
     // delay 0 and 1
-    matrix.extend_probability_at_site(1);
+    matrix.extend_probability_at_site(&query, 1);
     // REQUIRE(fabs(matrix.R[0] - correct_Rs[1][0]) < eps);
     // REQUIRE(fabs(matrix.R[1] - correct_Rs[1][1]) < eps); 
     REQUIRE(fabs(matrix.R[2] - correct_Rs[1][2]) < eps); 
@@ -566,7 +563,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     // @ 2, haplotypes 0 and 2 match, match more common
     // work done at 1, non-match
     // delay 0 and 2
-    matrix.extend_probability_at_site(2);
+    matrix.extend_probability_at_site(&query, 2);
     // REQUIRE(fabs(matrix.R[0] - correct_Rs[2][0]) < eps);
     REQUIRE(fabs(matrix.R[1] - correct_Rs[2][1]) < eps); 
     // REQUIRE(fabs(matrix.R[2] - correct_Rs[2][2]) < eps); 
@@ -575,7 +572,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     // @ 3, haplotypes 0 and 1 match, match more common
     // work done at 2, non-match
     // delay 0 and 1
-    matrix.extend_probability_at_site(3);
+    matrix.extend_probability_at_site(&query, 3);
     // matrix.take_snapshot();
     // REQUIRE(fabs(matrix.R[0] - correct_Rs[3][0]) < eps);
     // REQUIRE(fabs(matrix.R[1] - correct_Rs[3][1]) < eps); 
@@ -585,7 +582,7 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
     // @ 4, haplotype 1 matches, non-match more common
     // work done at 1, match
     // delay 0 and 2
-    matrix.extend_probability_at_site(4);
+    matrix.extend_probability_at_site(&query, 4);
     matrix.take_snapshot();
     REQUIRE(fabs(matrix.R[0] - correct_Rs[4][0]) < eps);
     REQUIRE(fabs(matrix.R[1] - correct_Rs[4][1]) < eps); 
@@ -618,12 +615,12 @@ TEST_CASE( "Haplotype probabilities are correctly calculated", "[haplotype][prob
                 &ref_struct_span);
                 
     haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
-                &cohort, &query);
+                &cohort);
     haplotypeMatrix matrix_span = haplotypeMatrix(&ref_struct_span, &penalties, 
-                &cohort_span, &query_span);
+                &cohort_span);
                 
-    double probability = matrix.calculate_probability();
-    double probability_span = matrix_span.calculate_probability();
+    double probability = matrix.calculate_probability(&query);
+    double probability_span = matrix_span.calculate_probability(&query_span);
       
     REQUIRE(fabs(matrix.R[0] - matrix_span.R[0]) < eps);
     REQUIRE(fabs(matrix.R[1] - matrix_span.R[1]) < eps); 
@@ -666,7 +663,7 @@ TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
     REQUIRE(overlap_9_16.has_sites() == true);
     REQUIRE(overlap_9_16.number_of_sites() == 2);
     REQUIRE(overlap_9_16.get_left_tail() == 1);
-    REQUIRE(overlap_9_16.get_rel_index(0) == 1);
+    REQUIRE(overlap_9_16.get_site_index(0) == 1);
     REQUIRE(overlap_9_16.get_augmentations(-1) == 1);
     REQUIRE(overlap_9_16.get_augmentations(0) == 4);
     REQUIRE(overlap_9_16.get_augmentations(1) == 1);
