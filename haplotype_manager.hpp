@@ -47,12 +47,16 @@ private:
   void find_ref_only_sites_and_alleles();
 
   vector<size_t> invariant_penalties_by_read_site;
+  vector<size_t> invariant_penalties_by_ref_site;
   void count_invariant_penalties();
   
   haplotypeStateTree tree;
   
   bool ref_sites = false;
   void check_for_ref_sites();
+  
+  vector<haplotypeStateNode*> nodes_at_last_level_built;
+  size_t last_level_built;
 public:
   haplotypeManager(
           linearReferenceStructure* reference, haplotypeCohort* cohort, 

@@ -179,6 +179,7 @@ void haplotypeManager::count_invariant_penalties() {
     size_t count_from;
     size_t count_until;
     
+    // count by read site
     // initial span
     count_from = start_position;    
     if(read_site_read_positions.size() != 0) {
@@ -187,7 +188,7 @@ void haplotypeManager::count_invariant_penalties() {
       count_until = end_position + 1;
     }
     for(size_t p = count_from; p < count_until; p++) {
-      if(!reference_sequence-matches(p, 
+      if(!reference_sequence->matches(p, 
               char_to_allele(read_reference->at(read_position(p)))) {
         running_count++;
       }
@@ -196,7 +197,7 @@ void haplotypeManager::count_invariant_penalties() {
     
     // spans following read sites i to 1-before-end
     for(size_t i = 0; i < read_site_read_positions.size() - 1; i++) {
-      size_t count_from = get_read_site_ref_position(i);
+      count_from = get_read_site_ref_position(i);
       count_until = get_read_site_ref_position(i + 1);
       for(size_t p = count_from; p < count_until; p++) {
         if(!reference_sequence-matches(p, 
@@ -212,12 +213,58 @@ void haplotypeManager::count_invariant_penalties() {
       count_from = get_read_site_ref_position(read_sites() - 1);
       count_until = end_position + 1;
       for(size_t p = count_from; p < count_until; p++) {
-        if(!reference_sequence-matches(p, 
+        if(!reference_sequence->matches(p, 
                 char_to_allele(read_reference->at(read_position(p)))) {
           running_count++;
         }
       }
       invariant_penalties_by_read_site.push_back(running_count);
+    }
+    
+    // count by ref site
+    running_count = 0;
+    
+    count_from = start_position;    
+    if(contains_ref_sites()) {
+      count_until = reference->get_position(
+              reference->find_site_above(start_position));
+    } else {
+      count_until = end_position + 1;
+    }
+    for(size_t p = count_from; p < count_until; p++) {
+      if(!reference_sequence->matches(p, 
+              char_to_allele(read_reference->at(read_position(p)))) {
+        running_count++;
+      }
+    }
+    invariant_penalties_by_ref_site.push_back(running_count);
+    
+    if(contains_ref_sites()) {
+      // spans following ref sites i to 1-before-end
+      for(size_t i = reference->find_site_above(start_position) + 1;
+              i < reference->find_site_below(end_position) - 1; i++) {
+        count_from = reference->get_position(i) + 1;
+        count_until = reference->get_position(i + 1) - 1;
+        for(size_t p = count_from; p < count_until; p++) {
+          if(!reference_sequence->matches(p, 
+                  char_to_allele(read_reference->at(read_position(p)))) {
+            running_count++;
+          }
+        }
+        invariant_penalties_by_ref_site.push_back(running_count);
+      }
+      
+      count_from = 
+             reference->get_position(
+                    reference->find_site_below(end_position)) + 1;
+      count_until = end_position + 1;
+      for(size_t p = count_from; p < count_until; p++) {
+        if(!reference_sequence->matches(p, 
+                char_to_allele(read_reference->at(read_position(p)))) {
+          running_count++;
+        }
+      }
+      invariant_penalties_by_ref_site.push_back(running_count);
     }
   }
 }
@@ -294,5 +341,71 @@ void haplotypeManager::initialize_tree() {
         }
       }
     }
+  }
+}
+
+void haplotypeManager::build_first_level(double threshold) {
+  initialize_tree();
+  if(shared_sites() > 0) {
+    tree.branch_node_by_alleles_at_site(tree.root,
+            get_shared_site_ref_index(0), threshold);
+    nodes_at_last_level_built = tree.root->get_unordered_children();
+    last_level_built = 0;
+  }
+}
+
+void haplotypeManager::build_next_level(double threshold) {
+  if(last_level_built >= shared_sites() - 1) {
+    return;
+  } else {
+    // step all states forward
+    // TODO: confirm this things meets neccessary gurantees
+    double highest_failure = 0;
+    for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
+      haplotypeStateNode* n = nodes_at_last_level_built[i];
+      double starting_level = n->prefix_likelihood();
+      if(starting_level < highest_failure - penalties->rho
+              && highest_failure != 0) {
+        tree.remove_node_and_unshared_ancestors(n);
+        nodes_at_last_level_built[i] = nullptr;
+      } else {
+        for(size_t j = get_shared_site_ref_index(last_level_built) + 1;
+                j < get_shared_site_ref_index(last_level_built + 1); j++) {
+          alleleValue a =
+                  ref_sites_after_shared_sites[last_level_built + 1][
+                          j - get_shared_site_ref_index(last_level_built) - 1];
+          tree.extend_node_by_allele_at_site(n, j, a);
+          if(n->prefix_likelihood() < threshold) {
+            tree.remove_node_and_unshared_ancestors(n);
+            nodes_at_last_level_built[i] = nullptr;
+            if(highest_failure == 0) {
+              highest_failure = starting_level;
+            } else {
+              if(starting_level > highest_failure) {
+                highest_failure = starting_level;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+    // TODO reserve memory for this massive thing! And be smarter with copying
+    vector<haplotypeStateNode> temp;
+    for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
+      haplotypeStateNode* n = nodes_at_last_level_built[i];
+      if(n != nullptr) {
+        tree.branch_node_by_alleles_at_site(n, 
+                  get_shared_site_ref_index(last_level_built + 1), threshold);
+        if(n->number_of_children() == 0) {
+          remove_node_and_unshared_ancestors(n);
+        } else {
+          for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
+            temp.push_back(n->get_unordered_children()[j]);
+          }
+        }
+      }
+    }
+    last_level_built++;
   }
 }
