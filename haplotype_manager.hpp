@@ -83,7 +83,8 @@ public:
 
   size_t get_ref_site_below_read_site(size_t i);
   
-  float invariant_penalty_at_read_site(size_t i);
+  double invariant_penalty_at_read_site(size_t i);
+  double invariant_penalties_by_ref_site(size_t i);
   
   bool contains_shared_sites();
   bool contains_ref_sites();
@@ -94,6 +95,13 @@ public:
   // initializes haplotypeStateTree *tree; extends it to the positions before
   // the first shared site and returns the prefix likelihood up to this point
   void initialize_tree();
+  
+  void build_first_level(double threshold);
+  void build_next_level(double threshold);
+  void fill_in_level(double threshold, size_t start_site,
+          size_t upper_bound_site); 
+  void extend_final_level(double threshold);
+  void build_entire_tree(double threshold);
 };
 
 

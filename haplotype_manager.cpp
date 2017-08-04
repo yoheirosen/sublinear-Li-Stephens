@@ -98,11 +98,19 @@ size_t haplotypeManager::get_ref_site_below_read_site(size_t i) {
   return ref_site_below_read_site[i];
 }
 
-float haplotypeManager::invariant_penalty_at_read_site(size_t i) {
+double haplotypeManager::invariant_penalty_at_read_site(size_t i) {
   if(read_reference == nullptr) {
     return 0;
   } else {
     return (penalties->mu)*invariant_penalties_by_read_site[i];
+  }
+}
+
+double haplotypeManager::invariant_penalty_at_ref_site(size_t i) {
+  if(read_reference == nullptr) {
+    return 0;
+  } else {
+    return (penalties->mu)*invariant_penalties_by_ref_site[i];
   }
 }
 
@@ -360,43 +368,20 @@ void haplotypeManager::build_next_level(double threshold) {
   } else {
     // step all states forward
     // TODO: confirm this things meets neccessary gurantees
-    double highest_failure = 0;
-    for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
-      haplotypeStateNode* n = nodes_at_last_level_built[i];
-      double starting_level = n->prefix_likelihood();
-      if(starting_level < highest_failure - penalties->rho
-              && highest_failure != 0) {
-        tree.remove_node_and_unshared_ancestors(n);
-        nodes_at_last_level_built[i] = nullptr;
-      } else {
-        for(size_t j = get_shared_site_ref_index(last_level_built) + 1;
-                j < get_shared_site_ref_index(last_level_built + 1); j++) {
-          alleleValue a =
-                  ref_sites_after_shared_sites[last_level_built + 1][
-                          j - get_shared_site_ref_index(last_level_built) - 1];
-          tree.extend_node_by_allele_at_site(n, j, a);
-          if(n->prefix_likelihood() < threshold) {
-            tree.remove_node_and_unshared_ancestors(n);
-            nodes_at_last_level_built[i] = nullptr;
-            if(highest_failure == 0) {
-              highest_failure = starting_level;
-            } else {
-              if(starting_level > highest_failure) {
-                highest_failure = starting_level;
-              }
-            }
-            break;
-          }
-        }
-      }
-    }
+    fill_in_level(threshold, get_shared_site_ref_index(last_level_built) + 1,
+            get_shared_site_ref_index(last_level_built + 1));
     // TODO reserve memory for this massive thing! And be smarter with copying
     vector<haplotypeStateNode> temp;
+    double current_threshold = threshold
+            - invariant_penalty_at_read_site(
+                      get_shared_site_read_index(
+                                last_level_built + 1));
     for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
       haplotypeStateNode* n = nodes_at_last_level_built[i];
       if(n != nullptr) {
         tree.branch_node_by_alleles_at_site(n, 
-                  get_shared_site_ref_index(last_level_built + 1), threshold);
+                  get_shared_site_ref_index(last_level_built + 1), 
+                          current_threshold);
         if(n->number_of_children() == 0) {
           remove_node_and_unshared_ancestors(n);
         } else {
@@ -407,5 +392,67 @@ void haplotypeManager::build_next_level(double threshold) {
       }
     }
     last_level_built++;
+  }
+}
+
+void haplotypeManager::fill_in_level(double threshold,
+        size_t start_site, size_t upper_bound_site) {
+  double highest_failure = 0;
+  for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
+    haplotypeStateNode* n = nodes_at_last_level_built[i];
+    double starting_level = n->prefix_likelihood();
+    if(starting_level < highest_failure - penalties->rho
+            && highest_failure != 0) {
+      tree.remove_node_and_unshared_ancestors(n);
+      nodes_at_last_level_built[i] = nullptr;
+    } else {
+      // TODO: pre-computation bounds per-allele
+      for(size_t j = start_site; j < upper_bound_site; j++) {
+        alleleValue a =
+                ref_sites_after_shared_sites[last_level_built + 1][
+                        j - get_shared_site_ref_index(last_level_built) - 1];
+        tree.extend_node_by_allele_at_site(n, j, a);
+        if(n->prefix_likelihood() + invariant_penalty_at_ref_site(j)
+                < threshold) {
+          tree.remove_node_and_unshared_ancestors(n);
+          nodes_at_last_level_built[i] = nullptr;
+          if(highest_failure == 0) {
+            highest_failure = starting_level;
+          } else {
+            if(starting_level > highest_failure) {
+              highest_failure = starting_level;
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+}
+
+void haplotypeManager::extend_final_level(double threshold) {
+  fill_in_level(threshold,
+          get_shared_site_ref_index(shared_sites() - 1),
+          ref_sites_after_shared_sites.back().back().site_index + 1);
+  vector<haplotypeStateNode*> temp = nodes_at_last_level_built;
+  nodes_at_last_level_built.clear();
+  size_t terminal_span = end_position
+  if(terminal_span != 0) {
+    for(size_t i = 0; i < temp.size(); i++) {
+      haplotypeStateNode* n = temp[i];
+      if(n != nullptr) {
+        // TODO: variable length final span function
+      }
+    }
+  }
+}
+
+void haplotypeManager::build_entire_tree(double threshold) {
+  build_first_level(threshold);
+  for(size_t i = 1; i < shared_sites(); i++) {
+    build_next_level(threshold);
+  }
+  if(shared_sites() != 0) {
+    extend_final_level(threshold);
   }
 }
