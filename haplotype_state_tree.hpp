@@ -8,12 +8,6 @@
 
 using namespace std;
 
-struct alleleAtPosition{
-  size_t position;
-  alleleValue allele;
-  alleleAtPosition(size_t position, alleleValue allele);
-};
-
 struct scoredNode{
   float score;
   haplotypeStateNode* node;

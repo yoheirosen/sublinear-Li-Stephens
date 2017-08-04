@@ -2,12 +2,6 @@
 
 using namespace std;
 
-
-alleleAtPosition::alleleAtPosition(size_t position, alleleValue allele) : 
-            position(position), allele(allele) {
-              
-}
-
 scoredNode::scoredNode(haplotypeStateNode* node, float score) : node(node),
             score(score) {
               
