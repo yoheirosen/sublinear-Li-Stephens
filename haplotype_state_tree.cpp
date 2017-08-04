@@ -2,11 +2,6 @@
 
 using namespace std;
 
-scoredNode::scoredNode(haplotypeStateNode* node, float score) : node(node),
-            score(score) {
-              
-}
-
 haplotypeStateTree::haplotypeStateTree() {
   root = new haplotypeStateNode();
 }
@@ -25,7 +20,14 @@ haplotypeStateNode* haplotypeStateTree::alleles_to_state(
             vector<alleleValue> identifiers) {
   haplotypeStateNode* current_node = root;
   for(size_t i = 0; i < identifiers.size(); i++) {
+    if(current_node->is_leaf()) {
+      current_node == nullptr;
+      break;
+    }
     current_node = current_node->get_child(identifiers[i]);
+    if(current_node == nullptr) {
+      break;
+    }
   }
   return current_node;
 }

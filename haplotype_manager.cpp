@@ -456,3 +456,42 @@ void haplotypeManager::build_entire_tree(double threshold) {
     extend_final_level(threshold);
   }
 }
+
+scoredNode::scoredNode(haplotypeStateNode* node, double score) : node(node),
+            score(score) {
+              
+}
+
+scoredNode haplotypeManager::find_node_by_prefix(string& prefix) {
+  vector<alleleValue> prefix_alleles;
+  for(size_t i = 0; i < prefix.length(); i++) {
+    prefix_alleles.push_back(char_to_allele(prefix[i]));
+  }
+  haplotypeStateNode* result = tree.alleles_to_state(prefix_alleles);
+  return scoredNode(result);
+}
+
+scoredNode scoredNode::extend_search(char c) {
+  return extend_search(char_to_allele(c));
+}
+
+scoredNode scoredNode::extend_search(alleleValue a) {
+  haplotypeStateNode* result = node->get_child(a);
+  return scoredNode(result);
+}
+
+scoredNode::scoredNode(haplotypeStateNode* node) : node(node) {
+  if(result != nullptr) {
+    if(result->state != nullptr) {
+      return scoredNode(result, result->prefix_likelihood());
+    } else {
+      return scoredNode(result, 0);
+    }
+  } else {
+    return scoredNode(nullptr, 0);
+  }
+}
+
+scoredNode scoredNode::pop_back() {
+  return scoredNode(node->get_parent(), 0);
+}

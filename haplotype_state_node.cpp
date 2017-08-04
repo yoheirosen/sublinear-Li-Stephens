@@ -87,6 +87,7 @@ haplotypeStateNode* haplotypeStateNode::get_child(alleleValue a) const {
       return children[i];
     }
   }
+  return nullptr;
 }
 
 vector<haplotypeStateNode*> haplotypeStateNode::get_unordered_children() const {

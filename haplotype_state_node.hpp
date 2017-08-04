@@ -21,7 +21,7 @@ private:
   alleleAtSite unique_identifying_allele;
   haplotypeStateNode* parent = nullptr;
   vector<haplotypeStateNode*> children;
-  
+    
   // quickly delete members without preserving ordering
 public:
   haplotypeMatrix* state = nullptr;  

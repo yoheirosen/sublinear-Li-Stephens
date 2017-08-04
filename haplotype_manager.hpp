@@ -9,6 +9,16 @@
 
 using namespace std;
 
+struct scoredNode{
+  double score;
+  haplotypeStateNode* node;
+  scoredNode(haplotypeStateNode* node, double score);
+  scoredNode(haplotypeStateNode* node);
+  extend_search(char c);
+  extend_search(alleleValue a);
+  pop_back();
+};
+
 struct haplotypeManager{
 private:
   linearReferenceStructure* reference;
@@ -102,6 +112,8 @@ public:
           size_t upper_bound_site); 
   void extend_final_level(double threshold);
   void build_entire_tree(double threshold);
+  
+  scoredNode haplotypeManager::find_node_by_prefix(string& prefix);
 };
 
 

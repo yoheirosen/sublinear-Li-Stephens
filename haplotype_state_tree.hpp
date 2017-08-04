@@ -8,12 +8,6 @@
 
 using namespace std;
 
-struct scoredNode{
-  float score;
-  haplotypeStateNode* node;
-  scoredNode(node, score);
-};
-
 struct haplotypeStateTree{
 private:
   linearReferenceStructure* ref;
