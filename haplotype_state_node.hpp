@@ -2,7 +2,6 @@
 #define HAPLOTYPE_STATE_NODE_H
 
 #include "lh_probability.hpp"
-#include "lh_delay_multiplier.hpp"
 #include <unordered_set>
 
 using namespace std;
@@ -24,8 +23,6 @@ private:
   vector<haplotypeStateNode*> children;
   
   // quickly delete members without preserving ordering
-  void remove_child_from_childvector(size_t index);
-  void remove_child_from_childvector(haplotypeStateNode* n);
 public:
   haplotypeMatrix* state = nullptr;  
 
@@ -49,6 +46,7 @@ public:
   vector<haplotypeStateNode*> get_ordered_children();
   size_t number_of_children() const;
   haplotypeStateNode* get_parent() const;
+  size_t node_to_child_index(haplotypeStateNode* n);
   
   void extend_state_by_site(alleleAtSite a_at_s);
   void extend_state_by_all_alleles();
@@ -56,6 +54,8 @@ public:
   
   void remove_child(haplotypeStateNode* c);
   void remove_child(alleleValue a);
+  void remove_child_from_childvector(size_t index);
+  void remove_child_from_childvector(haplotypeStateNode* n);
   
   void clear_state();
   void copy_state_from_node(haplotypeStateNode* other);  

@@ -1,4 +1,4 @@
-#include "haplotype_state_tree.hpp"
+#include "haplotype_state_node.hpp"
 #include <algorithm>
 
 using namespace std;
@@ -10,21 +10,6 @@ alleleAtSite::alleleAtSite() {
 alleleAtSite::alleleAtSite(size_t site, alleleValue allele) : site_index(site), 
           allele(allele) {
   
-}
-
-void haplotypeStateNode::remove_child_from_childvector(size_t index) {
-  children[index] = children.back();
-  children.pop_back();
-}
-
-void haplotypeStateNode::remove_child_from_childvector(
-            haplotypeStateNode* c) {
-  for(size_t i = 0; i < children.size(); i++) {
-    if(children[i] == c) {
-      remove_child_from_childvector(i);      
-      return;
-    }
-  }
 }
 
 haplotypeStateNode::haplotypeStateNode() {
@@ -121,15 +106,28 @@ haplotypeStateNode* haplotypeStateNode::get_parent() const {
   return parent;
 }
 
+size_t node_to_child_index(haplotypeStateNode* c) {
+  for(size_t i = 0; i < children.size(); i++) {
+    if(children[i] == c) {
+      return i;
+    }
+  }
+}
+
 void haplotypeStateNode::extend_state_by_site(alleleAtSite a_at_s) {
   state->extend_probability_at_site(a_at_s.site_index, a_at_s.allele);
 }
 
-void haplotypeStateNode::extend_state_by_all_alleles() {
+void haplotypeStateNode::extend_state_by_all_alleles(size_t site) {
   for(int i = 0; i < 5; i++) {
-    // haplotypeStateNode* new_child = new haplotypeStateNode
-    // extend_state_by_site()
+    alleleValue a = (alleleValue)i;
+    haplotypeStateNode* new_child = 
+              new haplotypeStateNode(alleleAtSite(site, a), this);
+    new_child->copy_state_from_node(this);
+    new_child->extend_probability_at_site(site, a);
   }
+  delete this->state;
+  this->state = nullptr;
 }
 
 void haplotypeStateNode::extend_by_alleles_over_threshold(double threshold) {
@@ -144,13 +142,10 @@ void haplotypeStateNode::extend_by_alleles_over_threshold(double threshold) {
 }
 
 void haplotypeStateNode::remove_child(haplotypeStateNode* c) {
-  for(size_t i = 0; i < children.size(); i++) {
-    if(children[i] == c) {
-      delete children[i];
-      remove_child_from_childvector(i);      
-      return;
-    }
-  }
+  size_t i = node_to_child_index(c);
+  delete children[i];
+  remove_child_from_childvector(i);      
+  return;
 }
 
 void haplotypeStateNode::remove_child(alleleValue a) {
@@ -161,6 +156,17 @@ void haplotypeStateNode::remove_child(alleleValue a) {
       return;
     }
   }
+}
+
+void haplotypeStateNode::remove_child_from_childvector(size_t index) {
+  children[index] = children.back();
+  children.pop_back();
+}
+
+void haplotypeStateNode::remove_child_from_childvector(
+            haplotypeStateNode* c) {
+  remove_child_from_childvector(node_to_child_index(c));      
+  return;
 }
 
 void haplotypeStateNode::clear_state() {

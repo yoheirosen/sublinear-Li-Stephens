@@ -55,7 +55,6 @@ private:
   void record_last_extended(alleleValue a);
   // -2 : nothing extended; indexing as above
   int last_span_extended = -2;
-  bool last_extended_is_span();
 
 public:
   haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
@@ -86,6 +85,9 @@ public:
   void take_snapshot();
   double prefix_likelihood();
   double partial_likelihood_by_row(size_t row);
+  
+  bool last_extended_is_span();
+  size_t get_last_site();
 };
 
 double calculate_R(double oldR, DPUpdateMap map);

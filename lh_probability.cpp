@@ -1,7 +1,5 @@
 #include <cmath>
 #include "lh_probability.hpp"
-#include <iostream>
-
 
 penaltySet::~penaltySet() {
   
