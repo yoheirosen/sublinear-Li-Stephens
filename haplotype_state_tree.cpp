@@ -7,8 +7,8 @@ haplotypeStateTree::haplotypeStateTree() {
 }
 
 haplotypeStateTree::haplotypeStateTree(linearReferenceStructure* reference, 
-            penaltySet* pen, haplotypeCohort* cohort) :
-            ref(reference), pen(pen), cohort(cohort) {
+            penaltySet* penalties, haplotypeCohort* cohort) :
+            reference(reference), penalties(penalties), cohort(cohort) {
   root = new haplotypeStateNode();
 }
 
@@ -61,18 +61,23 @@ void haplotypeStateTree::remove_node(haplotypeStateNode* n) {
 
 void haplotypeStateTree::remove_node_and_unshared_ancestors(
             haplotypeStateNode* n) {
-  if(!n->is_leaf()) {
+  if(n == root) {
     remove_node(n);
   } else {
-    haplotypeStateNode* current_node = n;
+    haplotypeStateNode* current_node = n->get_parent();
     haplotypeStateNode* next_node;
+    remove_node(n);
     while(current_node->is_leaf()) {
-      next_node = current_node->get_parent();
-      // remove from children of parent
-      delete current_node;
-      current_node = next_node;
+      if(current_node == root) {
+        remove_node(n);
+        break;
+      } else {
+        next_node = current_node->get_parent();
+        // remove from children of parent
+        next_node->remove_child(current_node);
+        current_node = next_node;
+      }
     }
-    current_node->remove_child_from_childvector();
   }
 }
 
@@ -86,30 +91,33 @@ void haplotypeStateTree::remove_unlikely_children(haplotypeStateNode* n,
 }
 
 size_t haplotypeStateTree::length_to_node(haplotypeStateNode* n) const {
-  return ref->get_position(n->get_end_site_index()) - initial_position;
+  return reference->get_position(n->get_end_site_index()) - initial_position;
 }
 
 void haplotypeStateTree::start_with_active_site(size_t i) {
-  segregating_sites.push_back(i);
-  for(size_t j = 0; j < reference->get_alleles_at_site().size(); j++) {
+  for(size_t j = 0; j < cohort->get_alleles_at_site(i).size(); j++) {
     haplotypeStateNode* new_branch = 
             root->add_child(alleleAtSite(i, 
-                    reference->get_alleles_at_site()[j]));
+                    cohort->get_alleles_at_site(i)[j]));
   }
 }
 
+void haplotypeStateTree::set_initial_position(size_t position) {
+  initial_position = position;
+}
+
 void haplotypeStateTree::start_with_inactive_site(size_t i, alleleValue a) {
-  root->state = new haplotypeMatrix(ref, pen, cohort);
+  root->state = new haplotypeMatrix(reference, penalties, cohort);
   root->state->initialize_probability_at_site(i, a);
 }
 
 void haplotypeStateTree::start_with_span(size_t length) {
-  root->state = new haplotypeMatrix(ref, pen, cohort);
+  root->state = new haplotypeMatrix(reference, penalties, cohort);
   root->state->initialize_probability_at_span(length, 0);
 }
 
 void haplotypeStateTree::fill_in_span_before(haplotypeStateNode* n, size_t i) {
-  if(!(n->state->last_extended_is_span()) && n->state->has_span_before(i)) {
+  if(!(n->state->last_extended_is_span()) && reference->has_span_before(i)) {
     n->state->extend_probability_at_span_after(i-1, 0);
   }
 }
@@ -123,10 +131,10 @@ void haplotypeStateTree::extend_node_by_allele_at_site(haplotypeStateNode* n,
 void haplotypeStateTree::branch_node_by_alleles_at_site(haplotypeStateNode* n, 
         size_t i, double threshold) {
   fill_in_span_before(n, i);
-  for(size_t j = 0; j < reference->get_alleles_at_site().size(); j++) {
+  for(size_t j = 0; j < cohort->get_alleles_at_site(i).size(); j++) {
     haplotypeStateNode* new_branch = 
             n->add_child_copying_state(alleleAtSite(i, 
-                    reference->get_alleles_at_site()[j]));
+                    cohort->get_alleles_at_site(i)[j]));
   }
   delete n->state;
   if(threshold != 0) {

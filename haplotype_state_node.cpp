@@ -107,7 +107,7 @@ haplotypeStateNode* haplotypeStateNode::get_parent() const {
   return parent;
 }
 
-size_t node_to_child_index(haplotypeStateNode* c) {
+size_t haplotypeStateNode::node_to_child_index(haplotypeStateNode* c) {
   for(size_t i = 0; i < children.size(); i++) {
     if(children[i] == c) {
       return i;
@@ -125,14 +125,15 @@ void haplotypeStateNode::extend_state_by_all_alleles(size_t site) {
     haplotypeStateNode* new_child = 
               new haplotypeStateNode(alleleAtSite(site, a), this);
     new_child->copy_state_from_node(this);
-    new_child->extend_probability_at_site(site, a);
+    new_child->state->extend_probability_at_site(site, a);
   }
   delete this->state;
   this->state = nullptr;
 }
 
-void haplotypeStateNode::extend_by_alleles_over_threshold(double threshold) {
-  extend_state_by_all_alleles();
+void haplotypeStateNode::extend_by_alleles_over_threshold(size_t site,
+            double threshold) {
+  extend_state_by_all_alleles(site);
   for(size_t i = 0; i < children.size(); i++) {
     if(children[i]->prefix_likelihood() < threshold) {
       delete children[i];

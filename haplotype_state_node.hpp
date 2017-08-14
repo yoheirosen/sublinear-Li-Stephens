@@ -49,8 +49,8 @@ public:
   size_t node_to_child_index(haplotypeStateNode* n);
   
   void extend_state_by_site(alleleAtSite a_at_s);
-  void extend_state_by_all_alleles();
-  void extend_by_alleles_over_threshold(double threshold);
+  void extend_state_by_all_alleles(size_t site);
+  void extend_by_alleles_over_threshold(size_t site, double threshold);
   
   void remove_child(haplotypeStateNode* c);
   void remove_child(alleleValue a);

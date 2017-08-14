@@ -10,20 +10,23 @@ using namespace std;
 
 struct haplotypeStateTree{
 private:
-  linearReferenceStructure* ref;
-  penaltySet* pen;
+  linearReferenceStructure* reference;
+  penaltySet* penalties;
   haplotypeCohort* cohort;
-  haplotypeStateNode* root;
   vector<size_t> segregating_sites;
+  size_t initial_position = SIZE_MAX;
 public:
   haplotypeStateTree();
   haplotypeStateTree(linearReferenceStructure* ref, penaltySet* pen, 
               haplotypeCohort* cohort);
   ~haplotypeStateTree();
   
+  haplotypeStateNode* root;
+  
   void start_with_active_site(size_t i);
   void start_with_inactive_site(size_t i, alleleValue a);
   void start_with_span(size_t length);
+  void set_initial_position(size_t position);
   
   // do not call on the first site instead of start_with_span(). It will not
   // correctly initialize, nor will it handle the case that the initial span is

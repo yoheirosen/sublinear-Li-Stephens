@@ -1,3 +1,10 @@
+// A population reference cohort is expressed using two elements:
+// 1. a linearReferenceStructure which stores positions of sites of variation
+//    in a population
+// 2. a haplotypeCohort which stores vectors of haplotype indices containing a
+//    given allele at a given site. This is essential for rapid calculation of
+//    the population likelihoods
+
 #ifndef LINEAR_REFERENCE_STRUCTURE_H
 #define LINEAR_REFERENCE_STRUCTURE_H
 
