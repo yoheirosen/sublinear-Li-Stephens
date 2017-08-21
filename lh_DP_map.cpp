@@ -33,7 +33,8 @@ void DPUpdateMap::compose_in_place(DPUpdateMap& inner) {
     this->scale_in_place(C);
     return;
   } else if(inner.constant < 0) {
-    this->scale_in_place(coefficient);
+    this->coefficient = this->coefficient + inner.coefficient;
+    this->constant = this->constant - inner.coefficient;
     return;
   } else {
     this->coefficient = this->coefficient + inner.coefficient; 
