@@ -9,8 +9,8 @@ double logdiff(double a, double b);
 
 double logsum(double a, double b);
 
-double log_big_sum(vector<double>& R);
+double log_big_sum(const vector<double>& R);
 
-double log_weighted_big_sum(vector<double>& R, vector<size_t>& counts);
+double log_weighted_big_sum(const vector<double>& R, const vector<size_t>& counts);
 
 #endif

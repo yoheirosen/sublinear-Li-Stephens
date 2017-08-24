@@ -11,14 +11,14 @@ inputHaplotype::inputHaplotype(linearReferenceStructure* reference) :
   
 }
 
-inputHaplotype::inputHaplotype(vector<alleleValue> query, 
-            vector<size_t> augmentation_count) : alleles(query), 
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
+            const vector<size_t>& augmentation_count) : alleles(query), 
             augmentations(augmentation_count) {
   
 }
 
-inputHaplotype::inputHaplotype(vector<alleleValue> query, 
-            vector<size_t> augmentation_count, 
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
+            const vector<size_t>& augmentation_count, 
             linearReferenceStructure* reference, size_t start_pos, 
             size_t length) : reference(reference), alleles(query), 
             augmentations(augmentation_count), start_position(start_pos)
@@ -133,7 +133,7 @@ inputHaplotype::inputHaplotype(string query, string reference_sequence,
   }
 }
 
-bool inputHaplotype::has_sites() {
+bool inputHaplotype::has_sites() const {
   return !has_no_sites;
 }
 
@@ -170,7 +170,7 @@ void inputHaplotype::edit(size_t position, char new_c, char old_c, char ref) {
   }
 }
 
-size_t inputHaplotype::find_site_below(size_t p) {
+size_t inputHaplotype::find_site_below(size_t p) const {
   return reference->find_site_below(p);
 }
 
@@ -182,27 +182,27 @@ void inputHaplotype::edit(size_t start_pos, size_t end_pos, string new_string,
   }
 }
 
-alleleValue inputHaplotype::get_allele(size_t j) {
+alleleValue inputHaplotype::get_allele(size_t j) const {
   return alleles[j];
 }
 
-size_t inputHaplotype::get_augmentations(int j) {
+size_t inputHaplotype::get_augmentations(int j) const {
   return augmentations[j + 1];
 }
 
-size_t inputHaplotype::get_site_index(size_t j) {
+size_t inputHaplotype::get_site_index(size_t j) const {
   return j + start_index;
 }
 
-size_t inputHaplotype::get_left_tail() {
+size_t inputHaplotype::get_left_tail() const {
   return left_tail_length;
 }
 
-bool inputHaplotype::has_left_tail() {
+bool inputHaplotype::has_left_tail() const {
   return left_tail_length != 0;
 }
 
-size_t inputHaplotype::get_span_after(size_t i) {
+size_t inputHaplotype::get_span_after(size_t i) const {
   if(i = end_index) {
     return right_tail_length;
   } else {
@@ -210,7 +210,7 @@ size_t inputHaplotype::get_span_after(size_t i) {
   }
 }
 
-bool inputHaplotype::has_span_after(size_t i) {
+bool inputHaplotype::has_span_after(size_t i) const {
   if(i = end_index) {
     return right_tail_length != 0;
   } else {
@@ -218,7 +218,7 @@ bool inputHaplotype::has_span_after(size_t i) {
   }
 }
 
-size_t inputHaplotype::number_of_sites() {
+size_t inputHaplotype::number_of_sites() const {
   if(has_no_sites) {
     return 0;
   } else {

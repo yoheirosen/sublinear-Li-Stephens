@@ -41,26 +41,26 @@ public:
   vector<size_t> span_lengths;
   size_t leading_span_length;
   
-  bool is_site(size_t actual_position);
-  size_t get_site_index(size_t actual_position);
-  size_t get_position(size_t site_index);
+  bool is_site(size_t actual_position) const;
+  size_t get_site_index(size_t actual_position) const;
+  size_t get_position(size_t site_index) const;
   
-  bool has_span_before(size_t site_index);
-  bool has_span_after(size_t site_index);
-  size_t span_length_before(size_t site_index);
-  size_t span_length_after(size_t site_index);
+  bool has_span_before(size_t site_index) const;
+  bool has_span_after(size_t site_index) const;
+  size_t span_length_before(size_t site_index) const;
+  size_t span_length_after(size_t site_index) const;
   
-  bool is_augmentation(alleleValue a, size_t position);
+  bool is_augmentation(alleleValue a, size_t position) const;
   
-  size_t number_of_sites();
-  size_t absolute_length();
+  size_t number_of_sites() const;
+  size_t absolute_length() const;
   
-  alleleValue get_reference_allele_at_site(size_t site_index);
+  alleleValue get_reference_allele_at_site(size_t site_index) const;
   
   // behavior when there is no site above: returns the 1-past-the-end index
-  size_t find_site_above(size_t position);
+  size_t find_site_above(size_t position) const;
   // behavior when there is no site below: returns SIZE_MAX
-  size_t find_site_below(size_t position);
+  size_t find_site_below(size_t position) const;
 };
 
 // converts unexpected input to ref
@@ -83,21 +83,23 @@ public:
             linearReferenceStructure* reference);
   haplotypeCohort(vector<string>& haplotypes, 
             linearReferenceStructure* reference);
+  haplotypeCohort(size_t cohort_size, linearReferenceStructure* reference);
   ~haplotypeCohort();
   
-  size_t size();
+  void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
   
-  vector<size_t>& get_matches(size_t site_index, alleleValue a);
-  vector<size_t> get_non_matches(size_t site_index, alleleValue a);
-  alleleValue allele_at(size_t site_index, size_t haplotype_index);
-  size_t number_matching(size_t site_index, alleleValue a);
-  size_t number_not_matching(size_t site_index, alleleValue a);
-  bool match_is_rare(size_t site_index, alleleValue a);
+  size_t size() const;
   
-  vector<alleleValue>& get_alleles_at_site(size_t site_index);
-  alleleValue non_matching_allele();
+  const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
+  vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;
+  alleleValue allele_at(size_t site_index, size_t haplotype_index) const;
+  size_t number_matching(size_t site_index, alleleValue a) const;
+  size_t number_not_matching(size_t site_index, alleleValue a) const;
+  bool match_is_rare(size_t site_index, alleleValue a) const;
   
-  vector<size_t> get_active_rows(size_t site, alleleValue a);
+  const vector<alleleValue>& get_alleles_at_site(size_t site_index) const;
+  
+  vector<size_t> get_active_rows(size_t site, alleleValue a) const;
 };
 
 #endif

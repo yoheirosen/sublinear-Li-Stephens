@@ -1,5 +1,6 @@
 #include "lh_delay_multiplier.hpp"
 #include "lh_math.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -11,9 +12,16 @@ delayMap::delayMap(size_t rows, size_t start) :
             dM_start(start) {
   current_site = start;
   add_identity_map();
-  slots_by_row = vector<size_t>(rows, 0);
+  // After calling the above; maps_by_slot is a singleton containing the
+  // identity map. updated_to has been set for this slot; count has not
   counts = {rows};
-  dM_start = start;
+  // All rows correspond to this slot
+  slots_by_row = vector<size_t>(rows, 0);
+}
+
+void delayMap::add_identity_map() {
+  add_map(DPUpdateMap(0));
+  return;
 }
 
 delayMap::delayMap(const delayMap &other) {
@@ -48,17 +56,18 @@ void delayMap::hard_clear_all() {
 }
 
 void delayMap::hard_update_all() {
-  vector<size_t> indices;
+  vector<size_t> non_empty_slots;
+  
   for(int i = 0; i < counts.size(); i++) {
     if(counts[i] != 0) {
-      indices.push_back(i);
+      non_empty_slots.push_back(i);
     }
   }
-  update_maps(indices);
+  update_maps(non_empty_slots);
   return;
 }
 
-vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) {
+vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) const {
   vector<bool> seen = vector<bool>(maps_by_site.size(), false);
   vector<size_t> to_return;
   for(int i = 0; i < rows.size(); i++) {
@@ -70,35 +79,65 @@ vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) {
   return to_return;
 }
 
-void delayMap::update_maps(const vector<size_t>& indices) {
+void delayMap::update_maps(const vector<size_t>& slots) {
   size_t least_up_to_date = current_site;
-  for(size_t i = 0; i < indices.size(); i++) {
-    if(updated_to[indices[i]] < least_up_to_date) {
-      least_up_to_date = updated_to[indices[i]];
+  for(size_t i = 0; i < slots.size(); i++) {
+    if(updated_to[slots[i]] < least_up_to_date) {
+      least_up_to_date = updated_to[slots[i]];
     }
   }
-  if(current_site > least_up_to_date) {
-    vector<DPUpdateMap> suffixes;
-    
-    // there is no map for the first site
-    suffixes.push_back(maps_by_site[current_site - 1]);
-
-    size_t number_of_suffixes = current_site - least_up_to_date;
-    for(size_t i = 1; i < number_of_suffixes; i++) {
-      suffixes.push_back(
-                  suffixes.back().compose(maps_by_site[current_site - i - 1]));
+  if(current_site != least_up_to_date) {
+    // mbs[1]
+    vector<DPUpdateMap> suffixes = {maps_by_site[current_site]};
+    for(size_t i = current_site - 1; i > least_up_to_date; i--) {
+      // we are building increasing prefixes of the current_site map; this
+      // requires left-multiplication
+      suffixes.push_back(suffixes.back().compose(maps_by_site[i]));
     }
     
-    for(size_t i = 0; i < indices.size(); i++) {
-      size_t suffix_index = current_site - updated_to[indices[i]] - 1;
-      maps_by_slot[indices[i]] = 
-                suffixes[suffix_index].compose(maps_by_slot[indices[i]]);
-      updated_to[indices[i]] = current_site;
+    for(size_t i = 0; i < slots.size(); i++) {
+      if(updated_to[slots[i]] != current_site) {
+        // j is the slot's index in the suffix-vector
+        size_t j = current_site - updated_to[slots[i]] - 1;
+        maps_by_slot[slots[i]] = suffixes[j].of(maps_by_slot[slots[i]]);
+        updated_to[slots[i]] = current_site;
+      }
     }
   }
   updated_maps = true;
   return;
 }
+
+// void delayMap::update_maps(const vector<size_t>& slots) {
+//   size_t least_up_to_date = current_site;
+//   for(size_t i = 0; i < slots.size(); i++) {
+//     if(updated_to[slots[i]] < least_up_to_date) {
+//       least_up_to_date = updated_to[slots[i]];
+//     }
+//   }
+//   if(current_site > least_up_to_date) {
+//   
+//     vector<DPUpdateMap> suffixes;
+//     
+//     // there is no map for the first site
+//     suffixes.push_back(maps_by_site[current_site - 1]);
+// 
+//     size_t number_of_suffixes = current_site - least_up_to_date;
+//     for(size_t i = 1; i < number_of_suffixes; i++) {
+//       suffixes.push_back(
+//                   suffixes.back().compose(maps_by_site[current_site - i - 1]));
+//     }
+//     
+//     for(size_t i = 0; i < slots.size(); i++) {
+//       size_t suffix_index = current_site - updated_to[slots[i]] - 1;
+//       maps_by_slot[slots[i]] = 
+//                 suffixes[suffix_index].compose(maps_by_slot[slots[i]]);
+//       updated_to[slots[i]] = current_site;
+//     }
+//   }
+//   updated_maps = true;
+//   return;
+// }
 
 void delayMap::increment_site_marker() {
   current_site++;
@@ -108,7 +147,7 @@ void delayMap::increment_site_marker() {
 }
 
 void delayMap::delete_slot(size_t slot) {
-  maps_by_slot[slot] = DPUpdateMap(0,-1);
+  maps_by_slot[slot] = DPUpdateMap(0);
   counts[slot] = 0;
   updated_to[slot] = current_site;
   empty_map_slots.push_back(slot);
@@ -129,11 +168,6 @@ void delayMap::remove_row_from_slot(size_t row) {
   // unassigned row is given max possible slot index + 1 to ensure that
   // accessing it will throw an error
   slots_by_row[row] = slots_by_row.size();
-  return;
-}
-
-void delayMap::add_identity_map() {
-  add_map(0, -1);
   return;
 }
 
@@ -159,28 +193,31 @@ void delayMap::add_map(double coefficient, double constant) {
   return;
 }
 
-double delayMap::get_constant(size_t row) {
+double delayMap::get_constant(size_t row) const {
   return maps_by_slot[slots_by_row[row]].constant;
 }
 
-double delayMap::get_coefficient(size_t row) {
+double delayMap::get_coefficient(size_t row) const {
   return maps_by_slot[slots_by_row[row]].coefficient;
 }
 
-DPUpdateMap delayMap::get_map(size_t row) {
+const DPUpdateMap& delayMap::get_map(size_t row) const {
   return maps_by_slot[slots_by_row[row]];
 }
 
-
-vector<DPUpdateMap> delayMap::get_maps() {
+const vector<DPUpdateMap>& delayMap::get_maps() const {
   return maps_by_slot;
 }
 
-vector<size_t> delayMap::get_map_indices() {
+vector<DPUpdateMap>& delayMap::get_maps() {
+  return maps_by_slot;
+}
+
+const vector<size_t>& delayMap::get_map_indices() const {
   return slots_by_row;
 }
 
-void delayMap::update_map_with_span(DPUpdateMap span_map) {
+void delayMap::update_map_with_span(const DPUpdateMap& span_map) {
   add_map_for_site(span_map);
   return;
 }
@@ -190,7 +227,7 @@ void delayMap::update_map_with_span(double coefficient, double constant) {
   return;
 }
 
-void delayMap::add_map_for_site(DPUpdateMap site_map) {
+void delayMap::add_map_for_site(const DPUpdateMap& site_map) {
   increment_site_marker();
   maps_by_site.push_back(site_map);
   return;
@@ -209,11 +246,11 @@ size_t delayMap::last_update(size_t row) {
   }
 }
 
-vector<DPUpdateMap> delayMap::get_maps_by_site() {
+const vector<DPUpdateMap>& delayMap::get_maps_by_site() const {
   return maps_by_site;
 }
 
-void delayMap::reset_rows(vector<size_t>& rows) {
+void delayMap::reset_rows(const vector<size_t>& rows) {
   for(size_t i = 0; i < rows.size(); i++) {
     remove_row_from_slot(rows[i]);
   }
@@ -223,7 +260,27 @@ void delayMap::reset_rows(vector<size_t>& rows) {
   }
 }
 
-void delayMap::update_map_with_active_rows(vector<size_t>& active_rows) {
+void delayMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
   vector<size_t> slots = rows_to_slots(active_rows);
   update_maps(slots);
+}
+
+size_t delayMap::number_of_slots() const {
+  return counts.size() - empty_map_slots.size();
+}
+
+size_t delayMap::row_updated_to(size_t row) const {
+  return updated_to[slots_by_row[row]];
+}
+
+size_t delayMap::get_current_site() const {
+  return current_site;
+}
+
+size_t delayMap::get_slot(size_t row) const {
+  return slots_by_row[row];
+}
+
+double delayMap::evaluate(size_t row, double value) const {
+  return maps_by_slot[slots_by_row[row]].of(value);
 }

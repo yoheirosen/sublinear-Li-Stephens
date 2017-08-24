@@ -30,8 +30,8 @@ private:
   void build_relative_positions();
 public:
   inputHaplotype(linearReferenceStructure* reference);
-  inputHaplotype(vector<alleleValue> query, vector<size_t> augmentation_count);
-  inputHaplotype(vector<alleleValue> query, vector<size_t> augmentation_count,
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
             linearReferenceStructure *reference, size_t start_pos = 1, 
             size_t length = 0);
             
@@ -45,22 +45,22 @@ public:
   void edit(size_t start_pos, size_t end_pos, string new_string, 
             string old_string, string ref);
   
-  alleleValue get_allele(size_t j);
+  alleleValue get_allele(size_t j) const;
   
-  size_t get_augmentations(int j);
+  size_t get_augmentations(int j) const;
   
-  size_t get_left_tail();
-  bool has_left_tail();
-  size_t get_span_after(size_t i);
-  bool has_span_after(size_t i);
+  size_t get_left_tail() const;
+  bool has_left_tail() const;
+  size_t get_span_after(size_t i) const;
+  bool has_span_after(size_t i) const;
   
   // binary search for site coming before position p. In order to give a
   // meaningful answer, there must be a site below p
-  size_t find_site_below(size_t p);
+  size_t find_site_below(size_t p) const;
   
-  size_t get_site_index(size_t j);
-  bool has_sites();
-  size_t number_of_sites();
+  size_t get_site_index(size_t j) const;
+  bool has_sites() const;
+  size_t number_of_sites() const;
 };
 
 #endif

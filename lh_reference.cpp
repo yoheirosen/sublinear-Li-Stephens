@@ -6,19 +6,19 @@ linearReferenceStructure::~linearReferenceStructure() {
   
 }
 
-bool linearReferenceStructure::is_site(size_t actual_position) {
+bool linearReferenceStructure::is_site(size_t actual_position) const {
   return (position_to_site_index.count(actual_position) == 1);
 }
 
-size_t linearReferenceStructure::get_site_index(size_t actual_position) {
+size_t linearReferenceStructure::get_site_index(size_t actual_position) const {
   return position_to_site_index.at(actual_position);
 }
 
-size_t linearReferenceStructure::get_position(size_t site_index) {
+size_t linearReferenceStructure::get_position(size_t site_index) const {
   return site_index_to_position[site_index];
 }
 
-bool linearReferenceStructure::has_span_before(size_t site_index) {
+bool linearReferenceStructure::has_span_before(size_t site_index) const {
   if(site_index == 0) {
     return (leading_span_length != 0);
   } else {
@@ -26,11 +26,11 @@ bool linearReferenceStructure::has_span_before(size_t site_index) {
   }
 }
 
-bool linearReferenceStructure::has_span_after(size_t site_index) {
+bool linearReferenceStructure::has_span_after(size_t site_index) const {
   return (span_lengths[site_index] != 0);
 }
 
-size_t linearReferenceStructure::span_length_before(size_t site_index) {
+size_t linearReferenceStructure::span_length_before(size_t site_index) const {
   if(site_index == 0) {
     return leading_span_length;
   } else {
@@ -38,15 +38,15 @@ size_t linearReferenceStructure::span_length_before(size_t site_index) {
   }
 }
 
-size_t linearReferenceStructure::span_length_after(size_t site_index) {
+size_t linearReferenceStructure::span_length_after(size_t site_index) const {
   return span_lengths[site_index];
 }
 
-size_t linearReferenceStructure::number_of_sites() {
+size_t linearReferenceStructure::number_of_sites() const {
   return site_index_to_position.size();
 }
 
-size_t linearReferenceStructure::absolute_length() {
+size_t linearReferenceStructure::absolute_length() const {
   return site_index_to_position.back() + span_lengths.back() + 1;
 }
 
@@ -126,11 +126,11 @@ void linearReferenceStructure::calculate_final_span_length(
   span_lengths.push_back(reference_length - previous_position - 1);
 }
 
-alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_index) {
+alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_index) const {
   return site_index_to_reference_allele[site_index];
 }
 
-size_t linearReferenceStructure::find_site_above(size_t position) {
+size_t linearReferenceStructure::find_site_above(size_t position) const {
   if(is_site(position)) {
     return get_site_index(position);
   } else {
@@ -142,7 +142,7 @@ size_t linearReferenceStructure::find_site_above(size_t position) {
   }
 }
 
-size_t linearReferenceStructure::find_site_below(size_t position) {
+size_t linearReferenceStructure::find_site_below(size_t position) const {
   if(is_site(position)) {
     return get_site_index(position);
   } else {
@@ -177,15 +177,15 @@ haplotypeCohort::~haplotypeCohort() {
   
 }
 
-alleleValue haplotypeCohort::allele_at(size_t site_index, size_t haplotype_index) {
+alleleValue haplotypeCohort::allele_at(size_t site_index, size_t haplotype_index) const {
   return haplotype_alleles_by_site_index[haplotype_index][site_index];
 }
 
-size_t haplotypeCohort::number_matching(size_t site_index, alleleValue a) {
+size_t haplotypeCohort::number_matching(size_t site_index, alleleValue a) const {
   return allele_counts_by_site_index[site_index][(int)a];
 }
 
-size_t haplotypeCohort::number_not_matching(size_t site_index, alleleValue a) {
+size_t haplotypeCohort::number_not_matching(size_t site_index, alleleValue a) const {
   return number_of_haplotypes - number_matching(site_index, a);
 }
 
@@ -204,11 +204,11 @@ void haplotypeCohort::populate_allele_counts() {
   }
 }
 
-size_t haplotypeCohort::size() {
+size_t haplotypeCohort::size() const {
   return number_of_haplotypes;
 }
 
-vector<size_t>& haplotypeCohort::get_matches(size_t site_index, alleleValue a) {
+const vector<size_t>& haplotypeCohort::get_matches(size_t site_index, alleleValue a) const {
   size_t allele_rank = (size_t)a;
   return haplotype_indices_by_site_and_allele[site_index][allele_rank];
 }
@@ -235,11 +235,11 @@ haplotypeCohort::haplotypeCohort(vector<vector<alleleValue> >& haplotypes,
   populate_allele_counts();
 }
 
-bool haplotypeCohort::match_is_rare(size_t site_index, alleleValue a) {
+bool haplotypeCohort::match_is_rare(size_t site_index, alleleValue a) const {
   return number_matching(site_index, a) < number_not_matching(site_index, a);
 }
 
-vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a) {
+vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a) const {
   vector<size_t> nonmatchlist;
   size_t allele_rank = (size_t)a;
   for(size_t j = 0; j < 5; j++) {
@@ -255,14 +255,30 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
   return nonmatchlist;
 }
 
-vector<alleleValue>& haplotypeCohort::get_alleles_at_site(size_t site_index) {
+const vector<alleleValue>& haplotypeCohort::get_alleles_at_site(size_t site_index) const {
   return haplotype_alleles_by_site_index[site_index];
 }
 
-vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) {
+vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) const {
   if(match_is_rare(site, a)) {
     return get_matches(site, a);
   } else {
     return get_non_matches(site, a);
+  }
+}
+
+haplotypeCohort::haplotypeCohort(size_t cohort_size, 
+            linearReferenceStructure* reference) : reference(reference) {
+  size_t num_sites = reference->number_of_sites();
+  number_of_haplotypes = cohort_size;
+  haplotype_alleles_by_site_index = vector<vector<alleleValue> >(
+              cohort_size,
+              vector<alleleValue>());
+}
+
+void haplotypeCohort::assign_alleles_at_site(size_t i, 
+            vector<alleleValue> alleles_at_site) {
+  for(size_t j; j < alleles_at_site.size(); j++) {
+    haplotype_alleles_by_site_index[i][j] = alleles_at_site[j];
   }
 }

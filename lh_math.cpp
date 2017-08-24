@@ -22,7 +22,7 @@ double logsum(double a, double b) {
   return a + log1p(exp(b - a));
 }
 
-double log_big_sum(vector<double>& R) {
+double log_big_sum(const vector<double>& R) {
   if(R.size() == 0) {
     return nan("");
   } else if(R.size() == 1) {
@@ -48,7 +48,7 @@ double log_big_sum(vector<double>& R) {
   }
 }
 
-double log_weighted_big_sum(vector<double>& R, vector<size_t>& counts) {
+double log_weighted_big_sum(const vector<double>& R, const vector<size_t>& counts) {
   vector<double> new_R;
   for(size_t i = 0; i < R.size(); i++) {
     new_R.push_back(R[i] + log(counts[i]));

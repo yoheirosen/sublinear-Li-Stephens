@@ -27,16 +27,16 @@ private:
   bool added_span;
   bool updated_maps;
   size_t dM_start;
-  size_t current_site;
-  size_t newest_index;
-  vector<DPUpdateMap> maps_by_site;
+  size_t current_site = 0;
+  size_t newest_index = 0;
+  vector<DPUpdateMap> maps_by_site = {DPUpdateMap(0)};
   // This vector has size |H| and stores which map index the row
   // corresponds to
   vector<size_t> slots_by_row;
   // The following vectors all have equal |slots|
-  vector<size_t> updated_to;
   vector<DPUpdateMap> maps_by_slot;
   vector<size_t> counts;
+  vector<size_t> updated_to;
   // stores which map slots have been emptied so that new map
   // slots can be added in their place
   vector<size_t> empty_map_slots;
@@ -48,11 +48,11 @@ public:
   // steps forward the "current site" position
   void increment_site_marker();
   
-  vector<size_t> rows_to_slots(const vector<size_t>& rows);
+  vector<size_t> rows_to_slots(const vector<size_t>& rows) const;
   
   // takes in a set of slot indices and extends their maps_by_slot
   // time complexity is O(|indices| + n)
-  void update_maps(const vector<size_t>& indices);
+  void update_maps(const vector<size_t>& slots);
   
   // Updates all maps to current position in preparation for taking a
   // "snapshot" of the current state of the DP.
@@ -61,6 +61,7 @@ public:
   // O(|population| + |sites|) space
   void hard_update_all();
   
+  // resets all maps to identity, lying in a single slot
   void hard_clear_all();
   
   // un-associates row from slot and assigns an out-of-bounds slot index
@@ -70,29 +71,41 @@ public:
   void decrement_slot(size_t slot);
   // clears slot and returns it to the list of empty slots
   void delete_slot(size_t slot);
-  void add_identity_map();
+
+  // Adds a new slot containing the given DPUpdateMap
   void add_map(double coefficient, double constant);
   void add_map(DPUpdateMap map);
+  void add_identity_map();
+
+  // Assignes a row to the slot containing the last DPUpdateMap added
   void assign_row_to_newest_index(size_t row);
-  vector<size_t> get_map_indices();
   
-  double get_coefficient(size_t row);  
-  double get_constant(size_t row);
-  DPUpdateMap get_map(size_t row);
+  // get a vector of indices-among-slots of maps assigned to rows
+  const vector<size_t>& get_map_indices() const;
+  double get_coefficient(size_t row) const;  
+  double get_constant(size_t row) const;
+  const DPUpdateMap& get_map(size_t row) const;
+  double evaluate(size_t row, double value) const;
   
-  vector<DPUpdateMap> get_maps();
+  vector<DPUpdateMap>& get_maps();
+  const vector<DPUpdateMap>& get_maps() const;
   
-  vector<DPUpdateMap> get_maps_by_site();
+  const vector<DPUpdateMap>& get_maps_by_site() const;
   
-  void update_map_with_span(DPUpdateMap span_map);
+  void update_map_with_span(const DPUpdateMap& span_map);
   void update_map_with_span(double coefficient, double constant);
-  void add_map_for_site(DPUpdateMap site_map);
+  void add_map_for_site(const DPUpdateMap& site_map);
   void add_map_for_site(double coefficient, double constant);
   
   size_t last_update(size_t row);
   
-  void reset_rows(vector<size_t>& rows);
-  void update_map_with_active_rows(vector<size_t>& active_rows);
+  void reset_rows(const vector<size_t>& rows);
+  void update_map_with_active_rows(const vector<size_t>& active_rows);
+  
+  size_t number_of_slots() const;
+  size_t row_updated_to(size_t row) const;
+  size_t get_current_site() const;
+  size_t get_slot(size_t row) const;
 };
 
 #endif

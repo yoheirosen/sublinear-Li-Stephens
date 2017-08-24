@@ -11,20 +11,27 @@ penaltySet::penaltySet(double rho, double mu, int H) : H(H),
   one_minus_rho = log1p(-exp(rho));
   one_minus_mu = log1p(-exp(mu));
   one_minus_2mu = log1p(-2*exp(mu));
-  ft_of_one = log1p(-2*exp(rho));
-  fs_of_one = logsum(ft_of_one, rho + log_H);
+  alpha_value = log1p(-2*exp(rho));
+  beta_value = logsum(alpha_value, rho + log_H);
 }
 
-DPUpdateMap penaltySet::get_current_map(double last_sum, bool match_is_rare) {
-  double p_recomb_x_S = rho + last_sum;
+DPUpdateMap penaltySet::get_match_map(double last_sum) const {
+  return DPUpdateMap(one_minus_mu + alpha_value, rho + last_sum - alpha_value);
+}
+
+DPUpdateMap penaltySet::get_non_match_map(double last_sum) const {
+  return DPUpdateMap(mu + alpha_value, rho + last_sum - alpha_value);
+}
+
+DPUpdateMap penaltySet::get_current_map(double last_sum, bool match_is_rare) const {
   if(match_is_rare) {
-    return DPUpdateMap(mu + ft_of_one, p_recomb_x_S - ft_of_one);
+    return get_non_match_map(last_sum);
   } else {
-    return DPUpdateMap(one_minus_mu + ft_of_one, p_recomb_x_S - ft_of_one);
+    return get_match_map(last_sum);
   }
 }
 
-double penaltySet::get_minority_map_correction(bool match_is_rare) {
+double penaltySet::get_minority_map_correction(bool match_is_rare) const {
   if(match_is_rare) {
     return one_minus_mu - mu;
   } else {
@@ -32,15 +39,15 @@ double penaltySet::get_minority_map_correction(bool match_is_rare) {
   }
 }
 
-void penaltySet::update_S(double& S, vector<double>& summands, 
+void penaltySet::update_S(double& S, const vector<double>& summands, 
               bool match_is_rare) {
   if(match_is_rare) {
     double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
-    S += fs_of_one + mu;
+    S += beta_value + mu;
     S = logsum(S, correct_to_1_m_2mu + log_big_sum(summands));
   } else {
     double correct_to_1_m_2mu = one_minus_2mu - mu;
-    S += fs_of_one + mu;
+    S += beta_value + one_minus_mu;
     S = logdiff(S, correct_to_1_m_2mu + log_big_sum(summands));
   }
 }
@@ -60,7 +67,6 @@ haplotypeMatrix::haplotypeMatrix(const haplotypeMatrix &other,
 	penalties = other.penalties;
 	last_extended = other.last_extended;
 	last_span_extended = other.last_span_extended;
-  last_site_extended = other.last_site_extended;
 	last_allele = other.last_allele;
 	S = other.S;
 	R = other.R;
@@ -77,23 +83,26 @@ haplotypeMatrix::~haplotypeMatrix() {
 
 void haplotypeMatrix::record_last_extended(alleleValue a) {
   last_extended++;
-  last_site_extended++;
   last_allele = a;
 }
 
-bool haplotypeMatrix::last_extended_is_span() {
+bool haplotypeMatrix::last_extended_is_span() const {
   return (last_extended == last_span_extended);
 }
 
-delayMap haplotypeMatrix::get_map() {
+size_t haplotypeMatrix::get_last_site() const {
+  return last_extended;
+}
+
+delayMap& haplotypeMatrix::get_maps() {
   return map;
 }
 
-void haplotypeMatrix::initialize_probability(inputHaplotype* q) {
+void haplotypeMatrix::initialize_probability(const inputHaplotype* q) {
   if(q->has_sites()) {
     if(q->has_left_tail()) {
       initialize_probability(q->get_site_index(0), q->get_allele(0),
-                q->get_left_tail(), q->get_augmentations(0));
+                q->get_left_tail(), q->get_augmentations(-1));
     } else {
       initialize_probability(q->get_site_index(0), q->get_allele(0));
     }
@@ -103,17 +112,17 @@ void haplotypeMatrix::initialize_probability(inputHaplotype* q) {
   }
 }
 
-void haplotypeMatrix::extend_probability_at_site(inputHaplotype* q, size_t j) {
+void haplotypeMatrix::extend_probability_at_site(const inputHaplotype* q, size_t j) {
   extend_probability_at_site(q->get_site_index(j), q->get_allele(j));
 }
 
-void haplotypeMatrix::extend_probability_at_span_after(inputHaplotype* q, 
+void haplotypeMatrix::extend_probability_at_span_after(const inputHaplotype* q, 
             size_t j) {
   extend_probability_at_span_after(q->get_site_index(j), 
             q->get_augmentations(j));
 }
 
-double haplotypeMatrix::calculate_probability(inputHaplotype* q) {
+double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
   initialize_probability(q);
   for(size_t j = 1; j < q->number_of_sites(); j++) {
     extend_probability_at_site(q, j);
@@ -121,6 +130,7 @@ double haplotypeMatrix::calculate_probability(inputHaplotype* q) {
       extend_probability_at_span_after(q, j);
     }
   }
+  take_snapshot();
   return S;
 }
 
@@ -138,15 +148,15 @@ void haplotypeMatrix::initialize_probability_at_span(size_t length,
               size_t augmentation_count) {
   // There is a uniform 1/|H| probability of starting on any given haplotype.
   // All emission probabilities are the same. So all R-values are the same
-  double fs_of_l = (length - 1) * penalties->fs_of_one;
-  double mutation_factor =
-            (length - augmentation_count) * (penalties->one_minus_mu) +
-            augmentation_count * (penalties->mu);
-  double common_initial_R = mutation_factor + fs_of_l - penalties->log_H;
+  length--;
+  double common_initial_R = 
+            penalties->span_mutation_penalty(length + 1, augmentation_count)
+            + penalties->beta(length) - penalties->log_H;
   for(size_t i = 0; i < R.size(); i++) {
     R[i] = common_initial_R;
   }
-  S = mutation_factor + fs_of_l;
+  S = penalties->span_mutation_penalty(length + 1, augmentation_count)
+            + penalties->beta(length);
   
   last_span_extended = -1;
 }
@@ -177,54 +187,76 @@ void haplotypeMatrix::initialize_probability_at_site(size_t site_index,
   record_last_extended(a);
 }
 
+void haplotypeMatrix::update_subset_of_Rs(const vector<size_t>& indices,
+              bool active_is_match) {
+  double correction = penalties->get_minority_map_correction(active_is_match);
+  for(size_t i = 0; i < indices.size(); i++) {
+    R[indices[i]] = correction + 
+                calculate_R(R[indices[i]], map.get_map(indices[i]));
+  }
+}
+
+void haplotypeMatrix::fast_update_S(const vector<size_t>& indices,
+              bool active_is_match) {
+  vector<double> summands;
+  for(size_t i = 0; i < indices.size(); i++) {
+    summands.push_back(R[indices[i]]);
+  }
+  penalties->update_S(S, summands, active_is_match);
+}
+
 void haplotypeMatrix::extend_probability_at_site(size_t site_index,
             alleleValue a) {
   bool match_is_rare = cohort->match_is_rare(site_index, a);
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
   map.add_map_for_site(current_map);
-  double p_match = penalties->one_minus_mu;
-  double p_nonmatch = penalties->mu;
   if(cohort->number_matching(site_index, a) == 0) {
     // separate case to avoid log-summing "log 0"
-    S = p_nonmatch + S + penalties->fs_of_one;
+    S = penalties->mu + S + penalties->beta_value;
   } else if(cohort->number_not_matching(site_index, a) == 0) {
     // separate case to avoid log-summing "log 0"
-    S = p_match + S + penalties->fs_of_one;
+    S = penalties->one_minus_mu + S + penalties->beta_value;
   } else {
     vector<size_t> active_rows = cohort->get_active_rows(site_index, a);
     map.update_map_with_active_rows(active_rows);
-    double correction = penalties->get_minority_map_correction(match_is_rare);
-    
-    for(size_t i = 0; i < active_rows.size(); i++) {
-      R[active_rows[i]] = correction + 
-                  calculate_R(R[active_rows[i]], map.get_map(active_rows[i]));  
-    }
+    update_subset_of_Rs(active_rows, match_is_rare);
+    fast_update_S(active_rows, match_is_rare);
     map.reset_rows(active_rows);
-    vector<double> summands;
-    for(size_t i = 0; i < active_rows.size(); i++) {
-      summands.push_back(R[active_rows[i]]);
-    }
-    penalties->update_S(S, summands, match_is_rare);
   }
   record_last_extended(a);
   return;
 }
 
+double penaltySet::span_coefficient(size_t l) const {
+  return logdiff(beta(l), alpha(l)) - log_H;
+}
+
+double penaltySet::alpha(size_t l) const {
+  return alpha_value * l;
+}
+
+double penaltySet::beta(size_t l) const {
+  return beta_value * l;
+}
+
+double penaltySet::span_mutation_penalty(size_t l, size_t a) const {
+  return (l - a) * one_minus_mu + a * mu;
+}
+
 void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
             size_t augmentation_count = 0) {
   size_t length = reference->span_length_after(site_index);
-  double lfsl = length * penalties->fs_of_one;
-  double lftl = length * penalties->ft_of_one;
-  double mut_pen = (length - augmentation_count) * penalties->one_minus_mu +
-              augmentation_count * penalties->mu;
-  double RHS = S - penalties->log_H + logdiff(lfsl, lftl);
-  map.update_map_with_span(mut_pen + lftl, RHS - lftl);
-  S = mut_pen + S + lfsl;
-  last_span_extended = last_extended + 1;
+  double beta_l = penalties->beta(length);
+  double alpha_l = penalties->alpha(length);
+  double m = penalties->span_mutation_penalty(length, augmentation_count);
+  map.update_map_with_span(m + alpha_l, 
+            S + penalties->span_coefficient(length) - alpha_l);
+  S = m + S + beta_l;
+  last_span_extended = last_extended;
 }
 
 void haplotypeMatrix::take_snapshot() {
-  if(last_extended > 0) {
+  if(last_extended >= 0) {
     // step forward all delayMap slots which are not up to date
     map.hard_update_all();
     size_t j = last_extended;
@@ -256,16 +288,16 @@ void haplotypeMatrix::take_snapshot() {
   }
 } 
 
-double haplotypeMatrix::prefix_likelihood() {
+double haplotypeMatrix::prefix_likelihood() const {
   return S;
 }
 
-double haplotypeMatrix::partial_likelihood_by_row(size_t row) {
+double haplotypeMatrix::partial_likelihood_by_row(size_t row) const {
   return R[row];
 }
 
-double calculate_R(double oldR, DPUpdateMap map) {
-  return map.evaluate_at(oldR);
+double calculate_R(double oldR, const DPUpdateMap& map) {
+  return map.of(oldR);
 }
 
 double calculate_R(double oldR, double coefficient, double constant) {
