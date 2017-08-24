@@ -37,7 +37,7 @@ struct penaltySet{
   DPUpdateMap get_non_match_map(double last_sum) const;
   DPUpdateMap get_current_map(double last_sum, bool match_is_rare) const;
   double get_minority_map_correction(bool match_is_rare) const;
-  void update_S(double& S, const vector<double>& summands, bool match_is_rare);
+  void update_S(double& S, const vector<double>& summands, bool match_is_rare) const;
 };
 
 // A haplotypeMatrix is the matrix which iteratively calculates haplotype
@@ -48,9 +48,9 @@ struct penaltySet{
 // calculate_probability is called
 struct haplotypeMatrix{
 private:
-  linearReferenceStructure* reference;
-  haplotypeCohort* cohort;
-  penaltySet* penalties;
+  const linearReferenceStructure* reference;
+  const haplotypeCohort* cohort;
+  const penaltySet* penalties;
   delayMap map;
   
   // trackers for the last indices extended. spans are indexed according to
@@ -64,8 +64,8 @@ private:
   void record_last_extended(alleleValue a);
   
 public:
-  haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
-            haplotypeCohort* haplotypes);
+  haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,
+            const haplotypeCohort* haplotypes);
   haplotypeMatrix(const haplotypeMatrix& other, bool copy_map);
   ~haplotypeMatrix();
   

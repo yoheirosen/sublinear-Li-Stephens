@@ -32,10 +32,10 @@ private:
   void add_site(size_t position, alleleValue reference_value);
   void calculate_final_span_length(size_t reference_length);
 public:
-  linearReferenceStructure(vector<string>& haplotypes,
-            string& reference_values);
-  linearReferenceStructure(vector<size_t>& positions, size_t length,
-            vector<alleleValue>& reference_values);
+  linearReferenceStructure(const vector<string>& haplotypes,
+            const string& reference_values);
+  linearReferenceStructure(const vector<size_t>& positions, size_t length,
+            const vector<alleleValue>& reference_values);
   ~linearReferenceStructure();
   
   vector<size_t> span_lengths;
@@ -70,7 +70,7 @@ alleleValue char_to_allele(char c);
 
 struct haplotypeCohort{
 private:
-  linearReferenceStructure* reference;
+  const linearReferenceStructure* reference;
   size_t number_of_haplotypes;
   // dim 1: haplotype, dim 2: allele value at site
   vector<vector<alleleValue> > haplotype_alleles_by_site_index;
@@ -79,11 +79,11 @@ private:
   vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
   void populate_allele_counts();
 public:
-  haplotypeCohort(vector<vector<alleleValue> >& haplotypes,
-            linearReferenceStructure* reference);
-  haplotypeCohort(vector<string>& haplotypes, 
-            linearReferenceStructure* reference);
-  haplotypeCohort(size_t cohort_size, linearReferenceStructure* reference);
+  haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
+            const linearReferenceStructure* reference);
+  haplotypeCohort(const vector<string>& haplotypes, 
+            const linearReferenceStructure* reference);
+  haplotypeCohort(size_t cohort_size, const linearReferenceStructure* reference);
   ~haplotypeCohort();
   
   void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);

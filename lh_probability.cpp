@@ -40,7 +40,7 @@ double penaltySet::get_minority_map_correction(bool match_is_rare) const {
 }
 
 void penaltySet::update_S(double& S, const vector<double>& summands, 
-              bool match_is_rare) {
+              bool match_is_rare) const {
   if(match_is_rare) {
     double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
     S += beta_value + mu;
@@ -52,8 +52,8 @@ void penaltySet::update_S(double& S, const vector<double>& summands,
   }
 }
 
-haplotypeMatrix::haplotypeMatrix(linearReferenceStructure* ref, penaltySet* pen,
-          haplotypeCohort* cohort) :
+haplotypeMatrix::haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,
+          const haplotypeCohort* cohort) :
           reference(ref), cohort(cohort), penalties(pen),
           map(delayMap(cohort->size(), 0)) {
   S = 0;

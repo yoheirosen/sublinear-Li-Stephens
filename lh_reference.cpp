@@ -71,8 +71,8 @@ alleleValue char_to_allele(char c) {
   return char_to_allele(c, gap);
 }
 
-linearReferenceStructure::linearReferenceStructure(vector<string>& haplotypes,
-          string& reference_values) {
+linearReferenceStructure::linearReferenceStructure(const vector<string>& haplotypes,
+          const string& reference_values) {
   size_t number_of_haplotypes = haplotypes.size();
   size_t length_of_haplotypes = haplotypes[0].size();
   for(size_t i = 0; i < length_of_haplotypes; i++) {
@@ -98,8 +98,8 @@ linearReferenceStructure::linearReferenceStructure(vector<string>& haplotypes,
   calculate_final_span_length(length_of_haplotypes);
 }
 
-linearReferenceStructure::linearReferenceStructure(vector<size_t>& positions,
-          size_t length, vector<alleleValue>& reference_values) {
+linearReferenceStructure::linearReferenceStructure(const vector<size_t>& positions,
+          size_t length, const vector<alleleValue>& reference_values) {
   for(size_t i = 0; i < positions.size(); i++) {
     add_site(positions[i], reference_values[i]);
   }
@@ -213,8 +213,8 @@ const vector<size_t>& haplotypeCohort::get_matches(size_t site_index, alleleValu
   return haplotype_indices_by_site_and_allele[site_index][allele_rank];
 }
 
-haplotypeCohort::haplotypeCohort(vector<string>& haplotypes, 
-            linearReferenceStructure* reference) : reference(reference) {
+haplotypeCohort::haplotypeCohort(const vector<string>& haplotypes, 
+            const linearReferenceStructure* reference) : reference(reference) {
   number_of_haplotypes = haplotypes.size();
   size_t num_sites = reference->number_of_sites();
   for(size_t i = 0; i < number_of_haplotypes; i++) {
@@ -228,8 +228,8 @@ haplotypeCohort::haplotypeCohort(vector<string>& haplotypes,
   populate_allele_counts();
 }
 
-haplotypeCohort::haplotypeCohort(vector<vector<alleleValue> >& haplotypes,
-          linearReferenceStructure* reference) : reference(reference),
+haplotypeCohort::haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
+          const linearReferenceStructure* reference) : reference(reference),
           haplotype_alleles_by_site_index(haplotypes) {
   number_of_haplotypes = haplotypes.size();
   populate_allele_counts();
@@ -268,7 +268,7 @@ vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) cons
 }
 
 haplotypeCohort::haplotypeCohort(size_t cohort_size, 
-            linearReferenceStructure* reference) : reference(reference) {
+            const linearReferenceStructure* reference) : reference(reference) {
   size_t num_sites = reference->number_of_sites();
   number_of_haplotypes = cohort_size;
   haplotype_alleles_by_site_index = vector<vector<alleleValue> >(

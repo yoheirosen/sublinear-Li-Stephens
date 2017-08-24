@@ -21,9 +21,9 @@ private:
   alleleAtSite unique_identifying_allele;
   haplotypeStateNode* parent = nullptr;
   vector<haplotypeStateNode*> children;
-    
-  // quickly delete members without preserving ordering
+  
 public:
+  // stores a probability calculation DP state
   haplotypeMatrix* state = nullptr;  
 
   ~haplotypeStateNode();
@@ -32,8 +32,8 @@ public:
   haplotypeStateNode(alleleAtSite unique_identifying_allele, 
             haplotypeStateNode* parent);
   
-  bool is_leaf();
-  bool is_abandoned_stem();
+  bool is_leaf() const;
+  bool is_abandoned_stem() const;
   
   haplotypeStateNode* add_child(alleleAtSite a_at_s);
   haplotypeStateNode* add_child_copying_state(alleleAtSite a_at_s);
@@ -46,7 +46,7 @@ public:
   vector<haplotypeStateNode*> get_ordered_children();
   size_t number_of_children() const;
   haplotypeStateNode* get_parent() const;
-  size_t node_to_child_index(haplotypeStateNode* n);
+  size_t node_to_child_index(const haplotypeStateNode* n) const;
   
   void extend_state_by_site(alleleAtSite a_at_s);
   void extend_state_by_all_alleles(size_t site);
@@ -58,7 +58,7 @@ public:
   void remove_child_from_childvector(haplotypeStateNode* n);
   
   void clear_state();
-  void copy_state_from_node(haplotypeStateNode* other);  
+  void copy_state_from_node(const haplotypeStateNode* other);  
   void compress_state();
   
   double prefix_likelihood() const;

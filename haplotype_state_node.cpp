@@ -34,12 +34,12 @@ haplotypeStateNode::~haplotypeStateNode() {
   }
 }
 
-bool haplotypeStateNode::is_leaf() {
+bool haplotypeStateNode::is_leaf() const {
   return (children.size() == 0);
 }
 
 
-bool haplotypeStateNode::is_abandoned_stem() {
+bool haplotypeStateNode::is_abandoned_stem() const {
   return (is_leaf() && state == nullptr);
 }
 
@@ -107,7 +107,7 @@ haplotypeStateNode* haplotypeStateNode::get_parent() const {
   return parent;
 }
 
-size_t haplotypeStateNode::node_to_child_index(haplotypeStateNode* c) {
+size_t haplotypeStateNode::node_to_child_index(const haplotypeStateNode* c) const {
   for(size_t i = 0; i < children.size(); i++) {
     if(children[i] == c) {
       return i;
@@ -175,7 +175,7 @@ void haplotypeStateNode::clear_state() {
   delete state;
 }
 
-void haplotypeStateNode::copy_state_from_node(haplotypeStateNode* other) {
+void haplotypeStateNode::copy_state_from_node(const haplotypeStateNode* other) {
   clear_state();
   state = new haplotypeMatrix(*(other->state));
 }

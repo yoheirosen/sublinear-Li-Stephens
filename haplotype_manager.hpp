@@ -45,9 +45,9 @@ struct scoredNode{
 
 struct haplotypeManager{
 private:
-  linearReferenceStructure* reference;
-  haplotypeCohort* cohort;
-  penaltySet* penalties;
+  const linearReferenceStructure* reference;
+  const haplotypeCohort* cohort;
+  const penaltySet* penalties;
   
   // Reference-position of beginning of read
   size_t start_position;
@@ -55,10 +55,10 @@ private:
   size_t end_position;
   
   // The full sequence of the reference, indexed by reference-position
-  referenceSequence* reference_sequence;
+  const referenceSequence* reference_sequence;
   // The sequence which the reads consider to be "reference," indexed by offset
   // from the first position of the read-set
-  string* read_reference;
+  string read_reference;
   
   // read-positions of all read sites; maps {a_i} -> N
   vector<size_t> read_site_read_positions;
@@ -91,7 +91,7 @@ private:
   vector<size_t> invariant_penalties_by_ref_site;
   void count_invariant_penalties();
   
-  haplotypeStateTree tree;
+  haplotypeStateTree* tree;
   
   // Stores whether there are reference sites spanned by our read-set. 
   // Check_for_ref_sites is O(log-length) so we want to avoid calling it
@@ -103,43 +103,43 @@ private:
   size_t last_level_built;
 public:
   haplotypeManager(
-          linearReferenceStructure* reference, haplotypeCohort* cohort, 
-                penaltySet* penalties, referenceSequence* reference_sequence,
+          const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
+                const penaltySet* penalties, const referenceSequence* reference_sequence,
           vector<size_t> site_positions_within_read,
-          string* read_reference, size_t start_reference_position);
+          string read_reference, size_t start_reference_position);
   ~haplotypeManager();
   
   // Length in positions (ie base-pairs) of the region
-  size_t length();
+  size_t length() const;
   // Number of read-sites from the read reference query
-  size_t read_sites();
+  size_t read_sites() const;
   // Number of sites which are both read-sites and reference-sites
-  size_t shared_sites();
+  size_t shared_sites() const;
   
   // Converts read-position to ref_position
-  size_t ref_position(size_t p);
+  size_t ref_position(size_t p) const;
   // Converts ref-position to read_position
-  size_t read_position(size_t p);      
+  size_t read_position(size_t p) const;      
   
   // Convert from read site indices to positions            
-  size_t get_read_site_read_position(size_t i);
-  size_t get_read_site_ref_position(size_t i);
+  size_t get_read_site_read_position(size_t i) const;
+  size_t get_read_site_ref_position(size_t i) const;
   
   
-  size_t index_among_shared_sites(size_t i);
-  size_t index_among_read_only_sites(size_t i);
+  size_t index_among_shared_sites(size_t i) const;
+  size_t index_among_read_only_sites(size_t i) const;
   
-  size_t get_shared_site_read_index(size_t j);
-  size_t get_shared_site_ref_index(size_t j);
+  size_t get_shared_site_read_index(size_t j) const;
+  size_t get_shared_site_ref_index(size_t j) const;
 
-  size_t get_ref_site_below_read_site(size_t i);
+  size_t get_ref_site_below_read_site(size_t i) const;
   
-  double invariant_penalty_at_read_site(size_t i);
-  double invariant_penalty_at_ref_site(size_t i);
+  double invariant_penalty_at_read_site(size_t i) const;
+  double invariant_penalty_at_ref_site(size_t i) const;
   
-  bool contains_shared_sites();
-  bool contains_ref_sites();
-  bool contains_read_only_sites();
+  bool contains_shared_sites() const;
+  bool contains_ref_sites() const;
+  bool contains_read_only_sites() const;
   
   // Tree functions
   
@@ -154,7 +154,16 @@ public:
   void extend_final_level(double threshold);
   void build_entire_tree(double threshold);
   
+  // TODO tests
+  haplotypeStateNode* get_child(haplotypeStateNode* node, size_t a);
+  
+  // TODO tests
   scoredNode find_node_by_prefix(string& prefix);
+  
+  // TODO tests
+  size_t levels_built() const;
+  bool all_levels_built() const;
+  haplotypeStateTree* get_tree() const;
 };
 
 

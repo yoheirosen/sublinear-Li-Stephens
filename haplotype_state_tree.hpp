@@ -10,15 +10,15 @@ using namespace std;
 
 struct haplotypeStateTree{
 private:
-  linearReferenceStructure* reference;
-  penaltySet* penalties;
-  haplotypeCohort* cohort;
+  const linearReferenceStructure* reference;
+  const penaltySet* penalties;
+  const haplotypeCohort* cohort;
   vector<size_t> segregating_sites;
   size_t initial_position = SIZE_MAX;
 public:
   haplotypeStateTree();
-  haplotypeStateTree(linearReferenceStructure* ref, penaltySet* pen, 
-              haplotypeCohort* cohort);
+  haplotypeStateTree(const linearReferenceStructure* reference, const penaltySet* penalties, 
+              const haplotypeCohort* cohort);
   ~haplotypeStateTree();
   
   haplotypeStateNode* root;
@@ -37,8 +37,8 @@ public:
   void branch_node_by_alleles_at_site(haplotypeStateNode* n, 
           size_t i, double threshold = 0);
   
-  haplotypeStateNode* alleles_to_state(vector<alleleValue> identifiers);
-  vector<alleleValue> state_to_alleles(haplotypeStateNode* state_node);
+  haplotypeStateNode* alleles_to_state(const vector<alleleValue>& identifiers) const;
+  vector<alleleValue> state_to_alleles(const haplotypeStateNode* state_node) const;
   
   void remove_node(haplotypeStateNode* n);
   void remove_node_and_unshared_ancestors(haplotypeStateNode* n);

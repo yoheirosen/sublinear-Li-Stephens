@@ -6,8 +6,8 @@ haplotypeStateTree::haplotypeStateTree() {
   root = new haplotypeStateNode();
 }
 
-haplotypeStateTree::haplotypeStateTree(linearReferenceStructure* reference, 
-            penaltySet* penalties, haplotypeCohort* cohort) :
+haplotypeStateTree::haplotypeStateTree(const linearReferenceStructure* reference, 
+            const penaltySet* penalties, const haplotypeCohort* cohort) :
             reference(reference), penalties(penalties), cohort(cohort) {
   root = new haplotypeStateNode();
 }
@@ -17,7 +17,7 @@ haplotypeStateTree::~haplotypeStateTree() {
 }
 
 haplotypeStateNode* haplotypeStateTree::alleles_to_state(
-            vector<alleleValue> identifiers) {
+            const vector<alleleValue>& identifiers) const {
   haplotypeStateNode* current_node = root;
   for(size_t i = 0; i < identifiers.size(); i++) {
     if(current_node->is_leaf()) {
@@ -33,14 +33,13 @@ haplotypeStateNode* haplotypeStateTree::alleles_to_state(
 }
 
 vector<alleleValue> haplotypeStateTree::state_to_alleles(
-            haplotypeStateNode* state_node) {
-  haplotypeStateNode* current_node = state_node;
+            const haplotypeStateNode* state_node) const {
+  const haplotypeStateNode* current_node = state_node;
   vector<alleleValue> backwards_allele_vector;
   while(current_node != root) {
     backwards_allele_vector.push_back(current_node->identifying_allele());
     current_node = current_node->get_parent();
   }
-  backwards_allele_vector.push_back(root->identifying_allele());
   vector<alleleValue> to_return;
   size_t upper = backwards_allele_vector.size() - 1;
   for(size_t i = 0; i < backwards_allele_vector.size(); i++) {
