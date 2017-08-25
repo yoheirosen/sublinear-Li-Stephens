@@ -671,13 +671,10 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
                 &cohort);
     haplotypeMatrix matrix_span = haplotypeMatrix(&ref_struct_span, &penalties, 
                 &cohort_span);
-                
+        
     double probability = matrix.calculate_probability(&query);
     double probability_span = matrix_span.calculate_probability(&query_span);
-    
-    cout << matrix.R[0] << " " << matrix_span.R[0] << endl;
-    cout << matrix.R[1] << " " << matrix_span.R[1] << endl;
-    cout << matrix.R[2] << " " << matrix_span.R[2] << endl;
+
     REQUIRE(fabs(matrix.R[0] - matrix_span.R[0]) < eps);
     REQUIRE(fabs(matrix.R[1] - matrix_span.R[1]) < eps); 
     REQUIRE(fabs(matrix.R[2] - matrix_span.R[2]) < eps); 

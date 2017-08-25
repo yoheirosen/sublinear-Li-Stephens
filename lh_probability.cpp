@@ -124,6 +124,9 @@ void haplotypeMatrix::extend_probability_at_span_after(const inputHaplotype* q,
 
 double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
   initialize_probability(q);
+  if(q->has_span_after(0)) {
+    extend_probability_at_span_after(q, 0);
+  }
   for(size_t j = 1; j < q->number_of_sites(); j++) {
     extend_probability_at_site(q, j);
     if(q->has_span_after(j)) {
