@@ -2,31 +2,6 @@
 
 using namespace std;
 
-scoredNode scoredNode::extend_search(char c) {
-  return extend_search(char_to_allele(c));
-}
-
-scoredNode scoredNode::extend_search(alleleValue a) {
-  haplotypeStateNode* result = node->get_child(a);
-  return scoredNode(result);
-}
-
-scoredNode::scoredNode(haplotypeStateNode* node) : node(node) {
-  if(node != nullptr) {
-    if(node->state != nullptr) {
-      *this = scoredNode(node, node->prefix_likelihood());
-    } else {
-      *this = scoredNode(node, 0);
-    }
-  } else {
-    *this = scoredNode(nullptr, 0);
-  }
-}
-
-scoredNode scoredNode::pop_back() {
-  return scoredNode(node->get_parent(), 0);
-}
-
 size_t haplotypeManager::length() const {
   return read_reference.length();
 }
@@ -301,16 +276,17 @@ void haplotypeManager::count_invariant_penalties() {
 
 haplotypeManager::haplotypeManager(
         const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
-              const penaltySet* penalties, const referenceSequence* reference_sequence,
+              const penaltySet* penalties, const char* reference_bases,
         vector<size_t> site_positions_within_read,
-        string read_reference, size_t start_reference_position) : 
+        const char* read_bases, size_t start_reference_position) : 
         
         reference(reference), cohort(cohort), penalties(penalties),
-              reference_sequence(reference_sequence),
         read_site_read_positions(site_positions_within_read),
         read_reference(read_reference), 
               start_position(start_reference_position) {
   
+  read_reference = string(read_bases);
+  reference_sequence = new referenceSequence(reference_bases);
   tree = new haplotypeStateTree(reference, penalties, cohort);
   end_position = start_position + read_reference.size() - 1;
   find_ref_sites_below_read_sites();
@@ -322,7 +298,8 @@ haplotypeManager::haplotypeManager(
 }
 
 haplotypeManager::~haplotypeManager() {
-
+  delete tree;
+  delete reference_sequence;
 }
 
 void haplotypeManager::initialize_tree() {
@@ -478,20 +455,6 @@ void haplotypeManager::build_entire_tree(double threshold) {
   }
 }
 
-scoredNode::scoredNode(haplotypeStateNode* node, double score) : node(node),
-            score(score) {
-              
-}
-
-scoredNode haplotypeManager::find_node_by_prefix(string& prefix) {
-  vector<alleleValue> prefix_alleles;
-  for(size_t i = 0; i < prefix.length(); i++) {
-    prefix_alleles.push_back(char_to_allele(prefix[i]));
-  }
-  haplotypeStateNode* result = tree->alleles_to_state(prefix_alleles);
-  return scoredNode(result);
-}
-
 size_t haplotypeManager::levels_built() const {
   return last_level_built;
 }
@@ -500,6 +463,26 @@ bool haplotypeManager::all_levels_built() const {
   return last_level_built == length();
 }
 
-haplotypeStateTree* haplotypeManager::get_tree() const {
+const haplotypeStateTree* haplotypeManager::get_tree() const {
   return tree;
+}
+
+const linearReferenceStructure* haplotypeManager::get_reference() const {
+  return reference;
+}
+
+const haplotypeCohort* haplotypeManager::get_cohort() const {
+  return cohort;
+}
+
+const penaltySet* haplotypeManager::get_penalties() const {
+  return penalties;
+}
+
+haplotypeStateNode* haplotypeManager::find_node_by_prefix(string& prefix) {
+  vector<alleleValue> prefix_alleles;
+  for(size_t i = 0; i < prefix.length(); i++) {
+    prefix_alleles.push_back(char_to_allele(prefix[i]));
+  }
+  haplotypeStateNode* result = tree->alleles_to_state(prefix_alleles);
 }

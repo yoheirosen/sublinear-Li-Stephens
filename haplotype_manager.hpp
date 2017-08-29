@@ -10,27 +10,6 @@
 
 using namespace std;
 
-// A concise representation of a haplotypeStateTree node; consists of pointer
-// which allows access to the node's relationship as a sequence query to other
-// sequence queries, as well as its probability DP matrix state given that it
-// is being maintained
-struct scoredNode{
-  double score;
-  haplotypeStateNode* node;
-  scoredNode(haplotypeStateNode* node, double score);
-  scoredNode(haplotypeStateNode* node);
-  // Should a child search state exist corresponding to the current node with 
-  // sequence query extended by a single allele, the following methods return 
-  // this node. If no such search state is found in the (trimmed) tree, these
-  // return a null scoredNode 
-  scoredNode extend_search(char c);
-  scoredNode extend_search(alleleValue a);
-  // Returns a node's parent. Equivalent to removing the terminal element from a
-  // sequence query
-  scoredNode pop_back();
-};
-
-
 // There are four indexing schemes:
 // 1. Reference-position
 // 2. Read-position
@@ -104,9 +83,9 @@ private:
 public:
   haplotypeManager(
           const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
-                const penaltySet* penalties, const referenceSequence* reference_sequence,
+                const penaltySet* penalties, const char* reference_bases,
           vector<size_t> site_positions_within_read,
-          string read_reference, size_t start_reference_position);
+          const char* read_reference, size_t start_reference_position);
   ~haplotypeManager();
   
   // Length in positions (ie base-pairs) of the region
@@ -158,12 +137,15 @@ public:
   haplotypeStateNode* get_child(haplotypeStateNode* node, size_t a);
   
   // TODO tests
-  scoredNode find_node_by_prefix(string& prefix);
+  haplotypeStateNode* find_node_by_prefix(string& prefix);
   
   // TODO tests
   size_t levels_built() const;
   bool all_levels_built() const;
-  haplotypeStateTree* get_tree() const;
+  const haplotypeStateTree* get_tree() const;
+  const linearReferenceStructure* get_reference() const;
+  const haplotypeCohort* get_cohort() const;
+  const penaltySet* get_penalties() const;
 };
 
 
