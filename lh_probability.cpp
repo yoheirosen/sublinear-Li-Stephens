@@ -102,13 +102,13 @@ void haplotypeMatrix::initialize_probability(const inputHaplotype* q) {
   if(q->has_sites()) {
     if(q->has_left_tail()) {
       initialize_probability(q->get_site_index(0), q->get_allele(0),
-                q->get_left_tail(), q->get_augmentations(-1));
+                q->get_left_tail(), q->get_mismatchs(-1));
     } else {
       initialize_probability(q->get_site_index(0), q->get_allele(0));
     }
   } else {
     initialize_probability_at_span(q->get_left_tail(), 
-              q->get_augmentations(-1));
+              q->get_mismatchs(-1));
   }
 }
 
@@ -119,7 +119,7 @@ void haplotypeMatrix::extend_probability_at_site(const inputHaplotype* q, size_t
 void haplotypeMatrix::extend_probability_at_span_after(const inputHaplotype* q, 
             size_t j) {
   extend_probability_at_span_after(q->get_site_index(j), 
-            q->get_augmentations(j));
+            q->get_mismatchs(j));
 }
 
 double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
@@ -138,9 +138,9 @@ double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
 }
 
 void haplotypeMatrix::initialize_probability(size_t site_index, alleleValue a,
-            size_t left_tail_length, size_t augmentation_count) {
+            size_t left_tail_length, size_t mismatch_count) {
   if(left_tail_length != 0) {
-    initialize_probability_at_span(left_tail_length, augmentation_count);
+    initialize_probability_at_span(left_tail_length, mismatch_count);
     extend_probability_at_site(site_index, a);
   } else {
     initialize_probability_at_site(site_index, a);
@@ -148,17 +148,17 @@ void haplotypeMatrix::initialize_probability(size_t site_index, alleleValue a,
 }
 
 void haplotypeMatrix::initialize_probability_at_span(size_t length, 
-              size_t augmentation_count) {
+              size_t mismatch_count) {
   // There is a uniform 1/|H| probability of starting on any given haplotype.
   // All emission probabilities are the same. So all R-values are the same
   length--;
   double common_initial_R = 
-            penalties->span_mutation_penalty(length + 1, augmentation_count)
+            penalties->span_mutation_penalty(length + 1, mismatch_count)
             + penalties->beta(length) - penalties->log_H;
   for(size_t i = 0; i < R.size(); i++) {
     R[i] = common_initial_R;
   }
-  S = penalties->span_mutation_penalty(length + 1, augmentation_count)
+  S = penalties->span_mutation_penalty(length + 1, mismatch_count)
             + penalties->beta(length);
   
   last_span_extended = -1;
@@ -212,23 +212,16 @@ void haplotypeMatrix::extend_probability_at_site(size_t site_index,
             alleleValue a) {
   bool match_is_rare = cohort->match_is_rare(site_index, a);
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
-  map.add_map_for_site(current_map);
-  if(cohort->number_matching(site_index, a) == 0) {
-    // separate case to avoid log-summing "log 0"
-    S = penalties->mu + S + penalties->beta_value;
-  } else if(cohort->number_not_matching(site_index, a) == 0) {
-    // separate case to avoid log-summing "log 0"
-    S = penalties->one_minus_mu + S + penalties->beta_value;
-  } else {
-    vector<size_t> active_rows = cohort->get_active_rows(site_index, a);
-    map.update_map_with_active_rows(active_rows);
-    update_subset_of_Rs(active_rows, match_is_rare);
-    fast_update_S(active_rows, match_is_rare);
-    map.reset_rows(active_rows);
-  }
-  record_last_extended(a);
-  return;
+  vector<size_t> active_rows = cohort->get_active_rows(site_index, a);
+  extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
+
+void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
+            size_t mismatch_count = 0) {
+  size_t length = reference->span_length_after(site_index);
+  extend_probability_at_span_after_anonymous(length, mismatch_count);
+}
+
 
 double penaltySet::span_coefficient(size_t l) const {
   return logdiff(beta(l), alpha(l)) - log_H;
@@ -244,18 +237,6 @@ double penaltySet::beta(size_t l) const {
 
 double penaltySet::span_mutation_penalty(size_t l, size_t a) const {
   return (l - a) * one_minus_mu + a * mu;
-}
-
-void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
-            size_t augmentation_count = 0) {
-  size_t length = reference->span_length_after(site_index);
-  double beta_l = penalties->beta(length);
-  double alpha_l = penalties->alpha(length);
-  double m = penalties->span_mutation_penalty(length, augmentation_count);
-  map.update_map_with_span(m + alpha_l, 
-            S + penalties->span_coefficient(length) - alpha_l);
-  S = m + S + beta_l;
-  last_span_extended = last_extended;
 }
 
 void haplotypeMatrix::take_snapshot() {
@@ -305,4 +286,33 @@ double calculate_R(double oldR, const DPUpdateMap& map) {
 
 double calculate_R(double oldR, double coefficient, double constant) {
   return calculate_R(oldR, DPUpdateMap(coefficient, constant));
+}
+
+void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map, 
+            const vector<size_t>& active_rows, bool match_is_rare, 
+            alleleValue a) {
+  map.add_map_for_site(current_map);
+  if(active_rows.size() == 0 && match_is_rare) {
+    // separate case to avoid log-summing "log 0"
+    S = penalties->mu + S + penalties->beta_value;
+  } else if(active_rows.size() == 0 && !match_is_rare) {
+    // separate case to avoid log-summing "log 0"
+    S = penalties->one_minus_mu + S + penalties->beta_value;
+  } else {
+    map.update_map_with_active_rows(active_rows);
+    update_subset_of_Rs(active_rows, match_is_rare);
+    fast_update_S(active_rows, match_is_rare);
+    map.reset_rows(active_rows);
+  }
+  record_last_extended(a);
+  return;
+}
+
+void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t length, 
+            size_t mismatch_count) {
+  double m = penalties->span_mutation_penalty(l, mismatch_count);
+  map.update_map_with_span(m + penalties->alpha(l), 
+              S + penalties->span_coefficient(l) - penalties->alpha(l));
+  S = m + S + penalties->beta(l);
+  last_span_extended = last_extended;
 }

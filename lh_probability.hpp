@@ -79,15 +79,21 @@ public:
   void extend_probability_at_site(const inputHaplotype* q, size_t j);
   void extend_probability_at_span_after(const inputHaplotype* q, size_t j);
   
+  void extend_probability_at_site(const DPUpdateMap& current_map, 
+              const vector<size_t>& active_rows, bool match_is_rare, 
+              alleleValue a);
+  void extend_probability_at_span_after_anonymous(size_t l,
+              size_t mismatch_count);
+  
   double calculate_probability(const inputHaplotype* q);
   
   void initialize_probability(size_t site_index, alleleValue a,
-              size_t left_tail_length = 0, size_t augmentation_count = 0);
-  void initialize_probability_at_span(size_t length, size_t augmentation_count);
+              size_t left_tail_length = 0, size_t mismatch_count = 0);
+  void initialize_probability_at_span(size_t length, size_t mismatch_count);
   void initialize_probability_at_site(size_t site_index, alleleValue a);
   void extend_probability_at_site(size_t site_index, alleleValue a);
   void extend_probability_at_span_after(size_t site_index, 
-              size_t augmentation_count);            
+              size_t mismatch_count);            
   
   void update_subset_of_Rs(const vector<size_t>& indices, bool active_is_match);
   void fast_update_S(const vector<size_t>& indices, bool active_is_match);
