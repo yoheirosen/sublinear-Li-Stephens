@@ -3,6 +3,9 @@
 
 #include "haplotype_state_node.hpp"
 #include "lh_probability.hpp"
+#include "lh_reference.hpp"
+
+using namespace std;
 
 // A concise representation of a haplotypeStateTree node; consists of pointer
 // which allows access to the node's relationship as a sequence query to other
@@ -10,11 +13,10 @@
 // is being maintained
 struct scoredNode{
 private:
-  double score;
-  haplotypeStateNode* node;
+  const haplotypeStateNode* node;
+  double local_probability = 0;
 public:
-  scoredNode(haplotypeStateNode* node, double score);
-  scoredNode(haplotypeStateNode* node);
+  scoredNode(const haplotypeStateNode* node);
   // Should a child search state exist corresponding to the current node with 
   // sequence query extended by a single allele, the following methods return 
   // this node. If no such search state is found in the (trimmed) tree, these
@@ -25,8 +27,15 @@ public:
   // sequence query
   scoredNode step_back();
   
+  double set_local_probability(const penaltySet* penalties);
+  
   double get_score() const;
-  haplotypeStateNode* get_node() const;
+  double get_local_probability() const;
+  alleleValue get_allele() const;
+  
+  size_t number_of_children() const;
+  const haplotypeStateNode* get_node() const;
+  scoredNode get_child(size_t i) const;
 };
 
 #endif

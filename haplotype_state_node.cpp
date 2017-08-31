@@ -150,7 +150,7 @@ alleleValue haplotypeStateNode::get_allele() const {
   return allele;
 }
 
-double haplotypeStateNode::max_prefix_likelihood(penaltySet* penalties) const {
+double haplotypeStateNode::max_prefix_likelihood(const penaltySet* penalties) const {
   if(is_root()) {
     return 0;
   } else {

@@ -18,6 +18,9 @@ private:
 public:
   // stores a probability calculation DP state
   haplotypeMatrix* state = nullptr;  
+  // const haplotypeMatrix* get_state() const;
+  // void set_state(haplotypeMatrix* state);
+  // void replace_site(haplotypeMatrix* state);
 
   ~haplotypeStateNode();
   haplotypeStateNode();
@@ -56,7 +59,7 @@ public:
   void compress_state();
   
   double prefix_likelihood() const;
-  double max_prefix_likelihood(penaltySet* penalties) const;
+  double max_prefix_likelihood(const penaltySet* penalties) const;
   
   alleleValue get_allele() const;
 };
