@@ -50,46 +50,6 @@ size_t linearReferenceStructure::absolute_length() const {
   return site_index_to_position.back() + span_lengths.back() + 1;
 }
 
-char allele_to_char(alleleValue a) {
-  switch(a) {
-    case A:
-      return 'A';
-    case C:
-      return 'C';
-    case T:
-      return 'T';
-    case G:
-      return 'G';
-    case gap:
-      return '-';
-  }
-}
-
-alleleValue char_to_allele(char c, alleleValue ref) {
-  switch (c) {
-    case 'A':
-      return A;
-    case 'C':
-      return C;
-    case 'T':
-      return T;
-    case 'G':
-      return G;
-    case '-':
-      return gap;
-    default:
-      return ref;
-  }
-}
-
-alleleValue char_to_allele(char c) {
-  return char_to_allele(c, gap);
-}
-
-alleleValue str_to_allele(const string& s) {
-  return char_to_allele(s[0]);
-}
-
 linearReferenceStructure::linearReferenceStructure(
             const vector<string>& haplotypes,
             const string& reference_values) {

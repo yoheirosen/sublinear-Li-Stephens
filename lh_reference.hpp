@@ -11,17 +11,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <iostream>
+#include "allele.hpp"
 
 using namespace std;
-
-typedef enum alleleValue{
-  A,
-  C,
-  T,
-  G,
-  gap
-} alleleValue;
 
 struct linearReferenceStructure{
 private:
@@ -65,12 +57,7 @@ public:
   size_t find_site_below(size_t position) const;
 };
 
-char allele_to_char(alleleValue a);
-// converts unexpected input to ref
-alleleValue char_to_allele(char c, alleleValue ref);
-// does not handle unexpected input
-alleleValue char_to_allele(char c);
-alleleValue str_to_allele(string& s);
+
 
 struct haplotypeCohort{
 private:
