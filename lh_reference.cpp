@@ -71,8 +71,9 @@ alleleValue char_to_allele(char c) {
   return char_to_allele(c, gap);
 }
 
-linearReferenceStructure::linearReferenceStructure(const vector<string>& haplotypes,
-          const string& reference_values) {
+linearReferenceStructure::linearReferenceStructure(
+            const vector<string>& haplotypes,
+            const string& reference_values) {
   size_t number_of_haplotypes = haplotypes.size();
   size_t length_of_haplotypes = haplotypes[0].size();
   for(size_t i = 0; i < length_of_haplotypes; i++) {
@@ -98,13 +99,26 @@ linearReferenceStructure::linearReferenceStructure(const vector<string>& haploty
   calculate_final_span_length(length_of_haplotypes);
 }
 
-linearReferenceStructure::linearReferenceStructure(const vector<size_t>& positions,
-          size_t length, const vector<alleleValue>& reference_values) {
+linearReferenceStructure::linearReferenceStructure(
+            const vector<size_t>& positions,
+            size_t length, const vector<alleleValue>& reference_values) {
   for(size_t i = 0; i < positions.size(); i++) {
     add_site(positions[i], reference_values[i]);
   }
   calculate_final_span_length(length);
 }
+
+linearReferenceStructure::linearReferenceStructure(
+            const vector<size_t>& positions,
+            const string& reference_sequence) {
+  alleleValue allele;
+  for(size_t i = 0; i < positions.size(); i++) {
+    allele = char_to_allele(reference_sequence[positions[i]]);
+    add_site(positions[i], allele);
+  }
+  calculate_final_span_length(reference_sequence.length());
+}
+
 
 void linearReferenceStructure::add_site(size_t position, 
             alleleValue reference_value) {

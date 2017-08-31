@@ -36,6 +36,8 @@ public:
             const string& reference_values);
   linearReferenceStructure(const vector<size_t>& positions, size_t length,
             const vector<alleleValue>& reference_values);
+  linearReferenceStructure(const vector<size_t>& positions,
+            const string& reference_sequence);
   ~linearReferenceStructure();
   
   vector<size_t> span_lengths;
