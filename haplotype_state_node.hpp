@@ -6,21 +6,14 @@
 
 using namespace std;
 
-struct alleleAtSite{
-  size_t site_index;
-  alleleValue allele;
-  alleleAtSite(size_t site, alleleValue allele);
-  alleleAtSite();
-};
-
 struct haplotypeStateNode{
 private:
   // tracks the last reference position
-  size_t tail_length = 0;
-  size_t suppressed_sites = 0;
-  alleleAtSite unique_identifying_allele;
+  alleleValue allele;
   haplotypeStateNode* parent = nullptr;
   vector<haplotypeStateNode*> children;
+  
+  double S;
   
 public:
   // stores a probability calculation DP state
@@ -28,29 +21,30 @@ public:
 
   ~haplotypeStateNode();
   haplotypeStateNode();
-  haplotypeStateNode(alleleAtSite unique_identifying_allele);
-  haplotypeStateNode(alleleAtSite unique_identifying_allele, 
-            haplotypeStateNode* parent);
+  haplotypeStateNode(alleleValue allele);
+  haplotypeStateNode(alleleValue allele, haplotypeStateNode* parent);
   
+  bool is_root() const;
   bool is_leaf() const;
   bool is_abandoned_stem() const;
   
-  haplotypeStateNode* add_child(alleleAtSite a_at_s);
-  haplotypeStateNode* add_child_copying_state(alleleAtSite a_at_s);
+  // adds a new child with allele marker a, and empty probability state
+  haplotypeStateNode* add_child(alleleValue a);
+  // adds a new child with probability state copied from this one; this state
+  // is not yet extended to the new child's site
+  haplotypeStateNode* add_child_copying_state(alleleValue a);
+
   void set_parent(haplotypeStateNode* n);
   
-  haplotypeStateNode* get_child(alleleAtSite a_at_s) const;
   haplotypeStateNode* get_child(alleleValue a) const;
   haplotypeStateNode* get_child(size_t index) const;
+  size_t node_to_child_index(const haplotypeStateNode* n) const;
+
   vector<haplotypeStateNode*> get_unordered_children() const;
   vector<haplotypeStateNode*> get_ordered_children();
+
   size_t number_of_children() const;
   haplotypeStateNode* get_parent() const;
-  size_t node_to_child_index(const haplotypeStateNode* n) const;
-  
-  void extend_state_by_site(alleleAtSite a_at_s);
-  void extend_state_by_all_alleles(size_t site);
-  void extend_by_alleles_over_threshold(size_t site, double threshold);
   
   void remove_child(haplotypeStateNode* c);
   void remove_child(alleleValue a);
@@ -62,10 +56,9 @@ public:
   void compress_state();
   
   double prefix_likelihood() const;
+  double max_prefix_likelihood(penaltySet* penalties) const;
   
-  size_t get_end_site_index() const;  
-  alleleValue identifying_allele() const;
-  size_t identifying_site_index() const;
+  alleleValue get_allele() const;
 };
 
 bool operator< (const haplotypeStateNode& n1, const haplotypeStateNode& n2);
