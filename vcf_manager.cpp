@@ -1,20 +1,20 @@
 #include "vcf_manager.hpp"
 #include <string>
 
-vcfManager::vcfManager(const string& vcf_path, 
-                       const string& reference_sequence) {
+vcfManager::vcfManager(string& vcf_path, 
+                       string& reference_sequence) {
   build_reference(vcf_path, reference_sequence);
 }
 
-vcfManager::vcfManager(const char* vcf_path,
-                       const char* reference_sequence) {
-  const string path_string = string(vcf_path);
-  const string ref_string = string(reference_sequence);
+vcfManager::vcfManager(char* vcf_path,
+                       char* reference_sequence) {
+  string path_string = string(vcf_path);
+  string ref_string = string(reference_sequence);
   build_reference(path_string, ref_string);
 }
 
-void vcfManager::build_reference(const string& vcf_path, 
-                            const string& reference_sequence) {
+void vcfManager::build_reference(string& vcf_path, 
+                            string& reference_sequence) {
   vcflib::VariantCallFile variant_file;
     
   variant_file.open(vcf_path);
@@ -31,7 +31,7 @@ void vcfManager::build_reference(const string& vcf_path,
     
     reference = new linearReferenceStructure(site_positions, reference_sequence);
 
-    var = Variant(variant_file);
+    var = vcflib::Variant(variant_file);
     alleleValue allele;
     size_t current_site = 0;
     
