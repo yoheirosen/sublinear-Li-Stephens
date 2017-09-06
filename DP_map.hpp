@@ -1,7 +1,7 @@
 #ifndef LH_DP_STATE_MAP
 #define LH_DP_STATE_MAP
 
-#include "lh_math.hpp"
+#include "math.hpp"
 
 struct DPUpdateMap{
 private:

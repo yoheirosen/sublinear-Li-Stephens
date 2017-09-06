@@ -1,7 +1,7 @@
 #ifndef HAPLOTYPE_STATE_NODE_H
 #define HAPLOTYPE_STATE_NODE_H
 
-#include "lh_probability.hpp"
+#include "probability.hpp"
 #include <unordered_set>
 
 using namespace std;

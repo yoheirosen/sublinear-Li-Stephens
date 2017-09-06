@@ -2,7 +2,7 @@
 #define DELAY_MULTIPLIER_H
 
 #include <vector>
-#include "lh_DP_map.hpp"
+#include "DP_map.hpp"
 
 using namespace std;
 

@@ -1,9 +1,9 @@
 #ifndef EXTENSION_SET_H
 #define EXTENSION_SET_H
 
-#include "lh_reference.hpp"
-#include "lh_DP_map.hpp"
-#include "lh_probability.hpp"
+#include "reference.hpp"
+#include "DP_map.hpp"
+#include "probability.hpp"
 #include "penalty_set.hpp"
 #include <vector>
 

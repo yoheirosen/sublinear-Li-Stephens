@@ -1,7 +1,7 @@
 #ifndef HAPLOTYPE_MANAGER_H
 #define HAPLOTYPE_MANAGER_H
 
-#include "lh_reference.hpp"
+#include "reference.hpp"
 #include "haplotype_state_node.hpp"
 #include "haplotype_state_tree.hpp"
 #include "reference_sequence.hpp"

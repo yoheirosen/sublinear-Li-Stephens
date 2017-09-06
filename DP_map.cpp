@@ -1,5 +1,5 @@
-#include "lh_math.hpp"
-#include "lh_DP_map.hpp"
+#include "math.hpp"
+#include "DP_map.hpp"
 
 DPUpdateMap::DPUpdateMap() {}
 

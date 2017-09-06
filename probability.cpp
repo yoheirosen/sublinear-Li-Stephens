@@ -1,5 +1,5 @@
 #include <cmath>
-#include "lh_probability.hpp"
+#include "probability.hpp"
 
 haplotypeMatrix::haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,
           const haplotypeCohort* cohort) :

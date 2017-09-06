@@ -1,6 +1,6 @@
 #include <cmath>
 #include <vector>
-#include "lh_math.hpp"
+#include "math.hpp"
 
 using namespace std;
 

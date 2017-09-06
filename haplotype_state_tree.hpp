@@ -1,8 +1,8 @@
 #ifndef HAPLOTYPE_STATE_TREE_H
 #define HAPLOTYPE_STATE_TREE_H
 
-#include "lh_probability.hpp"
-#include "lh_delay_multiplier.hpp"
+#include "probability.hpp"
+#include "delay_multiplier.hpp"
 #include "haplotype_state_node.hpp"
 #include <unordered_set>
 

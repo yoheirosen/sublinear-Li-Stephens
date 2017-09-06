@@ -1,4 +1,4 @@
-#include "lh_input_haplotype.hpp"
+#include "input_haplotype.hpp"
 
 using namespace std;
 

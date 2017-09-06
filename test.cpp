@@ -1,11 +1,11 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cmath>
-#include "lh_math.hpp"
-#include "lh_reference.hpp"
-#include "lh_probability.hpp"
-#include "lh_input_haplotype.hpp"
-#include "lh_delay_multiplier.hpp"
+#include "math.hpp"
+#include "reference.hpp"
+#include "probability.hpp"
+#include "input_haplotype.hpp"
+#include "delay_multiplier.hpp"
 #include "catch.hpp"
 #include <iostream>
 

@@ -2,8 +2,8 @@
 #define SCORED_NODE_H
 
 #include "haplotype_state_node.hpp"
-#include "lh_probability.hpp"
-#include "lh_reference.hpp"
+#include "probability.hpp"
+#include "reference.hpp"
 
 using namespace std;
 

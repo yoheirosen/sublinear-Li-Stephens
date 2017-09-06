@@ -1,11 +1,11 @@
 #ifndef LINEAR_HAPLO_PROBABILITY_H
 #define LINEAR_HAPLO_PROBABILITY_H
 
-#include "lh_math.hpp"
-#include "lh_reference.hpp"
-#include "lh_input_haplotype.hpp"
-#include "lh_DP_map.hpp"
-#include "lh_delay_multiplier.hpp"
+#include "math.hpp"
+#include "reference.hpp"
+#include "input_haplotype.hpp"
+#include "DP_map.hpp"
+#include "delay_multiplier.hpp"
 #include "penalty_set.hpp"
 
 using namespace std;

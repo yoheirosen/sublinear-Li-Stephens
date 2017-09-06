@@ -1,5 +1,5 @@
-#include "lh_delay_multiplier.hpp"
-#include "lh_math.hpp"
+#include "delay_multiplier.hpp"
+#include "math.hpp"
 #include <iostream>
 
 using namespace std;

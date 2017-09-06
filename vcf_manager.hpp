@@ -2,7 +2,7 @@
 #define HAPLOTYPE_VCF_MANAGER_H
 
 #include "Variant.h"
-#include "lh_reference.hpp"
+#include "reference.hpp"
 
 using namespace std;
 
