@@ -82,10 +82,13 @@ private:
   size_t last_level_built;
 public:
   haplotypeManager(
-          const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
-                const penaltySet* penalties, const char* reference_bases,
+          const linearReferenceStructure* reference, 
+          const haplotypeCohort* cohort, 
+          const penaltySet* penalties, 
+          const char* reference_bases,
           vector<size_t> site_positions_within_read,
-          const char* read_reference, size_t start_reference_position);
+          const char* read_reference, 
+          size_t start_reference_position);
   ~haplotypeManager();
   
   // Length in positions (ie base-pairs) of the region
@@ -104,12 +107,14 @@ public:
   size_t get_read_site_read_position(size_t i) const;
   size_t get_read_site_ref_position(size_t i) const;
   
-  
   size_t index_among_shared_sites(size_t i) const;
   size_t index_among_read_only_sites(size_t i) const;
   
   size_t get_shared_site_read_index(size_t j) const;
   size_t get_shared_site_ref_index(size_t j) const;
+
+  size_t get_shared_site_ref_position(size_t j) const;
+  size_t get_ref_site_ref_position(size_t j) const;
 
   size_t get_ref_site_below_read_site(size_t i) const;
   
@@ -120,25 +125,6 @@ public:
   bool contains_ref_sites() const;
   bool contains_read_only_sites() const;
   
-  // Tree functions
-  
-  // initializes haplotypeStateTree *tree; extends it to the positions before
-  // the first shared site and returns the prefix likelihood up to this point
-  void initialize_tree();
-  
-  void build_first_level(double threshold);
-  void build_next_level(double threshold);
-  void fill_in_level(double threshold, size_t start_site,
-          size_t upper_bound_site); 
-  void extend_final_level(double threshold);
-  void build_entire_tree(double threshold);
-  
-  // TODO tests
-  haplotypeStateNode* get_child(haplotypeStateNode* node, size_t a);
-  
-  // TODO tests
-  haplotypeStateNode* find_node_by_prefix(string& prefix);
-  
   // TODO tests
   size_t levels_built() const;
   bool all_levels_built() const;
@@ -146,6 +132,30 @@ public:
   const linearReferenceStructure* get_reference() const;
   const haplotypeCohort* get_cohort() const;
   const penaltySet* get_penalties() const;
+  
+  // Tree functions
+  
+  void start_with_active_site(size_t i);
+  void start_with_inactive_site(size_t i, alleleValue a);
+  void start_with_span(size_t length);
+  // do not call on the first site instead of start_with_span(). It will not
+  // correctly initialize, nor will it handle the case that the initial span is
+  // truncated relative to the reference
+  void fill_in_span_before(haplotypeStateNode* n, size_t i);
+  void extend_node_by_allele_at_site(haplotypeStateNode* n, 
+          size_t i, alleleValue a);
+  void branch_node_by_alleles_at_site(haplotypeStateNode* n, 
+          size_t i);
+  
+  // initializes haplotypeStateTree *tree; extends it to the positions before
+  // the first shared site and returns the prefix likelihood up to this point
+  void initialize_tree();
+  
+  void build_next_level(double threshold);
+  void fill_in_level(double threshold, size_t start_site,
+          size_t upper_bound_site); 
+  void extend_final_level(double threshold);
+  void build_entire_tree(double threshold);
 };
 
 

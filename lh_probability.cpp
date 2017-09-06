@@ -257,6 +257,14 @@ void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map,
   return;
 }
 
+void haplotypeMatrix::extend_probability_at_site(
+            const vector<size_t>& active_rows, bool match_is_rare, 
+            alleleValue a) {
+  DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
+  extend_probability_at_site(current_map, active_rows, match_is_rare, a);
+}
+
+
 void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l, 
             size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);

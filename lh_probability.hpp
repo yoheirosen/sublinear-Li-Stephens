@@ -52,6 +52,8 @@ public:
   void extend_probability_at_site(const DPUpdateMap& current_map, 
               const vector<size_t>& active_rows, bool match_is_rare, 
               alleleValue a);
+  void extend_probability_at_site(const vector<size_t>& active_rows, 
+              bool match_is_rare, alleleValue a);
   void extend_probability_at_span_after_anonymous(size_t l,
               size_t mismatch_count);
   

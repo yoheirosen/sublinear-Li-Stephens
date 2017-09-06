@@ -1,6 +1,35 @@
 #include "haplotype_manager.hpp"
+#include "set_of_extensions.hpp"
 
 using namespace std;
+
+haplotypeManager::haplotypeManager(
+        const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
+              const penaltySet* penalties, const char* reference_bases,
+        vector<size_t> site_positions_within_read,
+        const char* read_bases, size_t start_reference_position) : 
+        
+        reference(reference), cohort(cohort), penalties(penalties),
+        read_site_read_positions(site_positions_within_read),
+        read_reference(read_reference), 
+              start_position(start_reference_position) {
+  
+  read_reference = string(read_bases);
+  reference_sequence = new referenceSequence(reference_bases);
+  tree = new haplotypeStateTree(reference, penalties, cohort);
+  end_position = start_position + read_reference.size() - 1;
+  find_ref_sites_below_read_sites();
+  find_shared_sites();
+  check_for_ref_sites();
+  build_subsequence_indices();
+  count_invariant_penalties();
+  find_ref_only_sites_and_alleles();
+}
+
+haplotypeManager::~haplotypeManager() {
+  delete tree;
+  delete reference_sequence;
+}
 
 size_t haplotypeManager::length() const {
   return read_reference.length();
@@ -123,9 +152,28 @@ bool haplotypeManager::contains_read_only_sites() const {
   return (shared_site_read_indices.size() != read_site_read_positions.size());
 }
 
-void haplotypeManager::check_for_ref_sites() {
-  ref_sites = (reference->find_site_above(start_position) != 
-          reference->find_site_above(end_position));
+size_t haplotypeManager::levels_built() const {
+  return last_level_built;
+}
+
+bool haplotypeManager::all_levels_built() const {
+  return last_level_built == length();
+}
+
+const haplotypeStateTree* haplotypeManager::get_tree() const {
+  return tree;
+}
+
+const linearReferenceStructure* haplotypeManager::get_reference() const {
+  return reference;
+}
+
+const haplotypeCohort* haplotypeManager::get_cohort() const {
+  return cohort;
+}
+
+const penaltySet* haplotypeManager::get_penalties() const {
+  return penalties;
 }
 
 void haplotypeManager::find_ref_only_sites_and_alleles() {
@@ -274,89 +322,68 @@ void haplotypeManager::count_invariant_penalties() {
   }
 }
 
-haplotypeManager::haplotypeManager(
-        const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
-              const penaltySet* penalties, const char* reference_bases,
-        vector<size_t> site_positions_within_read,
-        const char* read_bases, size_t start_reference_position) : 
-        
-        reference(reference), cohort(cohort), penalties(penalties),
-        read_site_read_positions(site_positions_within_read),
-        read_reference(read_reference), 
-              start_position(start_reference_position) {
-  
-  read_reference = string(read_bases);
-  reference_sequence = new referenceSequence(reference_bases);
-  tree = new haplotypeStateTree(reference, penalties, cohort);
-  end_position = start_position + read_reference.size() - 1;
-  find_ref_sites_below_read_sites();
-  find_shared_sites();
-  check_for_ref_sites();
-  build_subsequence_indices();
-  count_invariant_penalties();
-  find_ref_only_sites_and_alleles();
+void haplotypeManager::check_for_ref_sites() {
+  ref_sites = (reference->find_site_above(start_position) != 
+          reference->find_site_above(end_position));
 }
 
-haplotypeManager::~haplotypeManager() {
-  delete tree;
-  delete reference_sequence;
+size_t haplotypeManager::get_shared_site_ref_position(size_t j) const {
+  return ref_position(get_shared_site_ref_index(0));
+}
+
+size_t haplotypeManager::get_ref_site_ref_position(size_t j) const {
+  return reference->get_position(ref_sites_in_initial_span[0].site_index);
 }
 
 void haplotypeManager::initialize_tree() {
   if(!contains_ref_sites()) {
     // there are zero reference sites in all of the read. Clearly no shared 
     // sites either
-    
+
     // initialize tree which consists in its entirety of a single root node
     // whose state is given by a site-less span of length length()
-    
-    size_t augmentations = invariant_penalties_by_read_site[0];
     size_t read_length = length();
-    tree->start_with_span(read_length);
+    start_with_span(read_length);
   } else {
-    if(reference->get_position(get_shared_site_ref_index(0)) ==
-            start_position) {
-      return;
-    } else {
-      if(ref_sites_in_initial_span.size() == 0) {
-        // it's just a regular span
-        tree->start_with_span(
-                reference->get_position(get_shared_site_ref_index(0)) -
-                start_position);
-      } else {
-        // there are some ref sites in here
-        if(reference->get_position(ref_sites_in_initial_span[0].site_index) ==
-                start_position) {
-          tree->start_with_inactive_site(
-                  ref_sites_in_initial_span[0].site_index,
-                  ref_sites_in_initial_span[0].allele);
-        } else {
-          size_t left_span_length =
-                  reference->get_position(
-                          ref_sites_in_initial_span[0].site_index) -
-                  start_position;
-          tree->start_with_span(left_span_length);
-          tree->extend_node_by_allele_at_site(tree->root,
-                  ref_sites_in_initial_span[0].site_index,
-                  ref_sites_in_initial_span[0].allele);
-        }
-        for(size_t i = 1; i < ref_sites_in_initial_span.size(); i++) {
-          tree->extend_node_by_allele_at_site(tree->root,
-                  ref_sites_in_initial_span[i].site_index,
-                  ref_sites_in_initial_span[i].allele);
-        }
+    if(shared_sites() != 0) {
+      if(get_shared_site_ref_position(0) == start_position) {
+        // start_position is a shared site
+        start_with_active_site(get_shared_site_ref_index(0));
+        nodes_at_last_level_built = tree->root->get_unordered_children();
+        return;
       }
     }
-  }
-}
-
-void haplotypeManager::build_first_level(double threshold) {
-  initialize_tree();
-  if(shared_sites() > 0) {
-    tree->branch_node_by_alleles_at_site(tree->root,
-            get_shared_site_ref_index(0), threshold);
-    nodes_at_last_level_built = tree->root->get_unordered_children();
-    last_level_built = 0;
+    if(ref_sites_in_initial_span.size() == 0) {
+      // it's just a regular span from the point of view of the reference
+      size_t initial_span_length = 
+                get_shared_site_ref_position(0) == start_position;
+      start_with_span(initial_span_length);
+    } else {
+      // there are some ref sites in here
+      if(get_ref_site_ref_position(0) == start_position) {
+        start_with_inactive_site(ref_sites_in_initial_span[0].site_index,
+                                 ref_sites_in_initial_span[0].allele);
+      } else {
+        size_t initial_span_length = 
+                  get_ref_site_ref_position(0) - start_position;
+        start_with_span(initial_span_length);
+        extend_node_by_allele_at_site(tree->root,
+                                      ref_sites_in_initial_span[0].site_index,
+                                      ref_sites_in_initial_span[0].allele);
+      }
+      
+      for(size_t i = 1; i < ref_sites_in_initial_span.size(); i++) {
+        extend_node_by_allele_at_site(tree->root,
+                                      ref_sites_in_initial_span[i].site_index,
+                                      ref_sites_in_initial_span[i].allele);
+      }
+      
+      if(shared_sites() != 0) {
+        branch_node_by_alleles_at_site(tree->root, 
+                                       get_shared_site_ref_index(0));
+      }
+      nodes_at_last_level_built = tree->root->get_unordered_children();
+    }
   }
 }
 
@@ -377,9 +404,8 @@ void haplotypeManager::build_next_level(double threshold) {
     for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
       haplotypeStateNode* n = nodes_at_last_level_built[i];
       if(n != nullptr) {
-        tree->branch_node_by_alleles_at_site(n, 
-                  get_shared_site_ref_index(last_level_built + 1), 
-                          current_threshold);
+        branch_node_by_alleles_at_site(n, 
+                  get_shared_site_ref_index(last_level_built + 1));
         if(n->number_of_children() == 0) {
           tree->remove_node_and_unshared_ancestors(n);
         } else {
@@ -409,7 +435,7 @@ void haplotypeManager::fill_in_level(double threshold,
         alleleValue a =
                 (ref_sites_after_shared_sites[last_level_built + 1][
                 j - get_shared_site_ref_index(last_level_built) - 1]).allele;
-        tree->extend_node_by_allele_at_site(n, j, a);
+        extend_node_by_allele_at_site(n, j, a);
         if(n->prefix_likelihood() + invariant_penalty_at_ref_site(j)
                 < threshold) {
           tree->remove_node_and_unshared_ancestors(n);
@@ -446,7 +472,7 @@ void haplotypeManager::extend_final_level(double threshold) {
 }
 
 void haplotypeManager::build_entire_tree(double threshold) {
-  build_first_level(threshold);
+  initialize_tree();
   for(size_t i = 1; i < shared_sites(); i++) {
     build_next_level(threshold);
   }
@@ -455,34 +481,63 @@ void haplotypeManager::build_entire_tree(double threshold) {
   }
 }
 
-size_t haplotypeManager::levels_built() const {
-  return last_level_built;
-}
-
-bool haplotypeManager::all_levels_built() const {
-  return last_level_built == length();
-}
-
-const haplotypeStateTree* haplotypeManager::get_tree() const {
-  return tree;
-}
-
-const linearReferenceStructure* haplotypeManager::get_reference() const {
-  return reference;
-}
-
-const haplotypeCohort* haplotypeManager::get_cohort() const {
-  return cohort;
-}
-
-const penaltySet* haplotypeManager::get_penalties() const {
-  return penalties;
-}
-
-haplotypeStateNode* haplotypeManager::find_node_by_prefix(string& prefix) {
-  vector<alleleValue> prefix_alleles;
-  for(size_t i = 0; i < prefix.length(); i++) {
-    prefix_alleles.push_back(char_to_allele(prefix[i]));
+void haplotypeManager::start_with_active_site(size_t i) {
+  alleleValue a;
+  for(size_t j = 0; j < 5; j++) {
+    a = (alleleValue)j;
+    haplotypeStateNode* new_branch = tree->root->add_child(a);
+    // start_sites.push_back(new_branch);
+    new_branch->state = new haplotypeMatrix(reference, penalties, cohort);
+    new_branch->state->initialize_probability_at_site(i, a);
   }
-  haplotypeStateNode* result = tree->alleles_to_state(prefix_alleles);
 }
+
+void haplotypeManager::start_with_inactive_site(size_t i, alleleValue a) {
+  tree->root->state = new haplotypeMatrix(reference, penalties, cohort);
+  tree->root->state->initialize_probability_at_site(i, a);
+}
+
+void haplotypeManager::start_with_span(size_t length) {
+  tree->root->state = new haplotypeMatrix(reference, penalties, cohort);
+  tree->root->state->initialize_probability_at_span(length, 0);
+}
+
+void haplotypeManager::fill_in_span_before(haplotypeStateNode* n, size_t i) {
+  if(!(n->state->last_extended_is_span()) && reference->has_span_before(i)) {
+    n->state->extend_probability_at_span_after(i-1, 0);
+  }
+}
+
+void haplotypeManager::extend_node_by_allele_at_site(haplotypeStateNode* n, 
+        size_t i, alleleValue a) {
+  fill_in_span_before(n, i);
+  n->state->extend_probability_at_site(i, a);
+}
+
+void haplotypeManager::branch_node_by_alleles_at_site(haplotypeStateNode* n, 
+        size_t i) {
+  fill_in_span_before(n, i);
+  alleleValue a;
+  for(size_t j = 0; j < 5; j++) {
+    a = (alleleValue)j;
+    haplotypeStateNode* new_branch = n->add_child_copying_state(a);
+    new_branch->state->extend_probability_at_site(i, a);
+  }
+  n->clear_state();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

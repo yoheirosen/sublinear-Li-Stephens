@@ -1,14 +1,16 @@
+#ifdef __cplusplus
 #include "haplotype_manager.hpp"
 #include "lh_reference.hpp"
 #include "lh_probability.hpp"
 #include "reference_sequence.hpp"
 #include "vcf_manager.hpp"
+#else
+typedef struct haplotypeManager haplotypeManager;
+typedef struct haplotypeStateNode haplotypeStateNode;
+typedef struct penaltySet penaltySet;
+#endif
 
 using namespace std;
-
-typedef struct haplotypeManager haplotypeManager;
-typedef struct haplotypeNode haplotypeNode;
-typedef struct scoredNode scoredNode;
 
 extern "C" haplotypeManager* haplotypeManager_build(
             char* reference_sequence,
@@ -33,49 +35,47 @@ extern "C" haplotypeManager* haplotypeManager_build(
                                    reference_sequence,
                                    read_sites,
                                    read_DP_sequence, 
-                                   reference_offset_of_read_DP);
+                                   read_DP_ref_start);
   hap_manager->build_entire_tree(threshold);
   return hap_manager;
 }
 
-extern "C" scoredNode* haplotypeManager_get_next_options(
+extern "C" void haplotypeManager_get_next_options(
             haplotypeManager* hap_manager,
-            scoredNode* n) {
+            haplotypeStateNode* n, haplotypeStateNode** option_array) {
   size_t number_of_children = n->number_of_children();
   vector<haplotypeStateNode*> children = n->get_unordered_children();
-  scoredNode to_return[number_of_children];
   for(size_t i = 0; i < number_of_children; i++) {
-    to_return[i] = scoredNode(children[i])
-    if(local_probability == 0) {
-      to_return[i].set_local_probability(penalties);
-    }  
+    option_array[i] = children[i];
   }
-  return to_return;
+  for(size_t i = number_of_children; i < 5; i++) {
+    option_array[i] = nullptr;
+  }
 }
 
-extern "C" double scoredNode_local_probability(scoredNode* n) {
-  return n->get_local_probability();
+extern "C" double scoredNode_local_probability(haplotypeStateNode* n, penaltySet* penalties) {
+  return n->prefix_likelihood() - n->max_prefix_likelihood(penalties);
 }
 
-extern "C" double scoredNode_total_probability(scoredNode* n) {
-  return n->get_score();
+extern "C" double haplotypeStateNode_total_probability(haplotypeStateNode* n) {
+  return n->prefix_likelihood();
 }
 
-extern "C" char scoredNode_allele(scoredNode* n) {
+extern "C" char haplotypeStateNode_allele(haplotypeStateNode* n) {
   return allele_to_char(n->get_allele());
 }
 
 extern "C" void haplotypeManager_delete(haplotypeManager* to_delete) {
-  delete to_delete->reference;
-  delete to_delete->cohort;
-  delete to_delete->penalties;
+  delete to_delete->get_reference();
+  delete to_delete->get_cohort();
+  delete to_delete->get_penalties();
   delete to_delete;
 }
 
-extern "C" scoredNode* haplotypeManager_get_root_node(haplotypeManager* hap_manager) {
-  return scoredNode(hap_manager->get_tree()->root);
+extern "C" haplotypeStateNode* haplotypeManager_get_root_node(haplotypeManager* hap_manager) {
+  return hap_manager->get_tree()->root;
 }
 
-extern "C" scoredNode* scoredNode_get_parent(scoredNode* n) {
-  return n->step_back();
+extern "C" haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n) {
+  return n->get_parent();
 }

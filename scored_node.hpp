@@ -16,6 +16,7 @@ private:
   const haplotypeStateNode* node;
   double local_probability = 0;
 public:
+  scoredNode();
   scoredNode(const haplotypeStateNode* node);
   // Should a child search state exist corresponding to the current node with 
   // sequence query extended by a single allele, the following methods return 
