@@ -1,78 +1,91 @@
-SRC_DIR:=src
-TEST_SRC_DIR:=src/test
-BIN_DIR:=bin
-OBJ_DIR:=obj
-TEST_OBJ_DIR:=obj/test
+CWD:=$(shell pwd)
+
+SRC_DIR:=$(CWD)/src
+TEST_SRC_DIR:=$(CWD)/src/test
+BIN_DIR:=$(CWD)/bin
+OBJ_DIR:=$(CWD)/obj
+TEST_OBJ_DIR:=$(CWD)/obj/test
 
 CXX:=g++
 CXXFLAGS:=-std=c++11
 
-CWD:=$(shell pwd)
+INCLUDE_FLAGS:= -I$(SRC_DIR) -I$(TEST_SRC_DIR)
 
 PROBABILITY_DEPS := $(SRC_DIR)/probability.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/input_haplotype.hpp $(SRC_DIR)/penalty_set.hpp $(SRC_DIR)/delay_multiplier.hpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp
 
-VCF_DEPS := -I deps/vcflib/include -I deps/vcflib/tabixpp/htslib -Ldeps/vcflib/lib -Ldeps/vcflib/tabixpp/htslib -lvcflib -lhts -lz -lpthread -lm
+VCF_DEPS := -I$(CWD)/deps/vcflib/include -I$(CWD)/deps/vcflib/tabixpp/htslib -L$(CWD)/deps/vcflib/lib -lvcflib -lhts -lz -lpthread -lm
 
-CORE_OBJ := math.o reference.o probability.o input_haplotype.o delay_multiplier.o DP_map.o penalty_set.o allele.o
-TREE_OBJ := haplotype_state_node.o haplotype_state_tree.o haplotype_manager.o vcf_manager.o scored_node.o set_of_extensions.o reference_sequence.o
+CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/input_haplotype.o $(OBJ_DIR)/delay_multiplier.o $(OBJ_DIR)/DP_map.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/allele.o
 
-speed : speed.o $(CORE_OBJ)
-	$(CXX) $(CXXFLAGS) speed.o $(CORE_OBJ) -o speed
+TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/vcf_manager.o $(OBJ_DIR)/scored_node.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-tests : test.o $(CORE_OBJ)
-	$(CXX) $(CXXFLAGS) test.o $(CORE_OBJ) -o tests
+all : deps speed tests tree_tests
 
-tree_tests: tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
-	$(CXX) $(CXXFLAGS) tree_tests.o $(CORE_OBJ) $(TREE_OBJ) -o tree_tests
+deps:
+	git submodule update --init --recursive && cd $(CWD)/deps/vcflib/tabixpp/htslib/ && autoheader && autoconf && ./configure && make && make install && cd $(CWD)/deps/vcflib && make && cd $(CWD)
+
+speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o speed
+
+tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) -o tests
+
+clean:
+	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o
+
+tree_tests: $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ) -o tree_tests
 
 $(OBJ_DIR)/allele.o : $(SRC_DIR)/allele.cpp $(SRC_DIR)/allele.hpp
-	$(CXX) $(CXXFLAGS) -c allele.cpp
-
-$(OBJ_DIR)/haplotype_manager.o : $(SRC_DIR)/haplotype_manager.cpp $(SRC_DIR)/haplotype_manager.hpp
-	$(CXX) $(CXXFLAGS) -c haplotype_manager.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/allele.cpp -o $(OBJ_DIR)/allele.o
 
 $(OBJ_DIR)/haplotype_state_node.o : $(SRC_DIR)/haplotype_state_node.cpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c haplotype_state_node.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/haplotype_state_node.cpp -o $(OBJ_DIR)/haplotype_state_node.o
 
 $(OBJ_DIR)/haplotype_state_tree.o : $(SRC_DIR)/haplotype_state_tree.cpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c haplotype_state_tree.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/haplotype_state_tree.cpp -o $(OBJ_DIR)/haplotype_state_tree.o
 
 $(OBJ_DIR)/haplotype_manager.o : $(SRC_DIR)/haplotype_manager.cpp $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c haplotype_manager.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/haplotype_manager.cpp -o $(OBJ_DIR)/haplotype_manager.o
 
 $(OBJ_DIR)/delay_multiplier.o : $(SRC_DIR)/delay_multiplier.cpp $(SRC_DIR)/delay_multiplier.hpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp
-	$(CXX) $(CXXFLAGS) -c delay_multiplier.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/delay_multiplier.cpp -o $(OBJ_DIR)/delay_multiplier.o
 
 $(OBJ_DIR)/DP_map.o : $(SRC_DIR)/DP_map.cpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp
-	$(CXX) $(CXXFLAGS) -c DP_map.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/DP_map.cpp -o $(OBJ_DIR)/DP_map.o
 
 $(OBJ_DIR)/input_haplotype.o : $(SRC_DIR)/input_haplotype.cpp $(SRC_DIR)/input_haplotype.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp
-	$(CXX) $(CXXFLAGS) -c input_haplotype.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/input_haplotype.cpp -o $(OBJ_DIR)/input_haplotype.o
 
 $(OBJ_DIR)/math.o : $(SRC_DIR)/math.cpp $(SRC_DIR)/math.hpp
-	$(CXX) $(CXXFLAGS) -c math.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/math.cpp -o $(OBJ_DIR)/math.o
 
 $(OBJ_DIR)/probability.o : $(SRC_DIR)/probability.cpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c probability.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/probability.cpp -o $(OBJ_DIR)/probability.o
 
 $(OBJ_DIR)/penalty_set.o : $(SRC_DIR)/penalty_set.cpp $(SRC_DIR)/penalty_set.hpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp
-	$(CXX) $(CXXFLAGS) -c penalty_set.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/penalty_set.cpp -o $(OBJ_DIR)/penalty_set.o
 
 $(OBJ_DIR)/reference.o : $(SRC_DIR)/reference.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp
-	$(CXX) $(CXXFLAGS) -c reference.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/reference.cpp -o $(OBJ_DIR)/reference.o
 
 $(OBJ_DIR)/reference_sequence.o : $(SRC_DIR)/reference_sequence.cpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp
-	$(CXX) $(CXXFLAGS) -c reference_sequence.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/reference_sequence.cpp -o $(OBJ_DIR)/reference_sequence.o
 
 $(OBJ_DIR)/scored_node.o : $(SRC_DIR)/scored_node.cpp $(SRC_DIR)/scored_node.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c scored_node.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/scored_node.cpp -o $(OBJ_DIR)/scored_node.o
 
 $(OBJ_DIR)/set_of_extensions.o : $(SRC_DIR)/set_of_extensions.cpp $(SRC_DIR)/set_of_extensions.hpp  $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) -c set_of_extensions.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/set_of_extensions.cpp -o $(OBJ_DIR)/set_of_extensions.o
 
 $(OBJ_DIR)/vcf_manager.o : $(SRC_DIR)/vcf_manager.cpp $(SRC_DIR)/vcf_manager.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp
-	$(CXX) $(CXXFLAGS) $(VCF_DEPS) -c vcf_manager.cpp
+	$(CXX) $(CXXFLAGS) $(VCF_DEPS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/vcf_manager.cpp -o $(OBJ_DIR)/vcf_manager.o
 
-$(TEST_OBJ_DIR)/test.o : $(TEST_SRC_DIR)/test.cpp
+$(TEST_OBJ_DIR)/test.o : $(TEST_SRC_DIR)/test.cpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(TEST_SRC_DIR)/test.cpp -o $(TEST_OBJ_DIR)/test.o
 
-$(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp
+$(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(VCF_DEPS) -c $(TEST_SRC_DIR)/tree_tests.cpp -o $(TEST_OBJ_DIR)/tree_tests.o
+
+$(TEST_OBJ_DIR)/speed.o : $(TEST_SRC_DIR)/speed.cpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(TEST_SRC_DIR)/speed.cpp -o $(TEST_OBJ_DIR)/speed.o
