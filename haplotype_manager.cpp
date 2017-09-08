@@ -349,7 +349,7 @@ void haplotypeManager::initialize_tree() {
       if(get_shared_site_ref_position(0) == start_position) {
         // start_position is a shared site
         start_with_active_site(get_shared_site_ref_index(0));
-        nodes_at_last_level_built = tree->root->get_unordered_children();
+        current_leaves = tree->root->get_unordered_children();
         return;
       }
     }
@@ -367,50 +367,64 @@ void haplotypeManager::initialize_tree() {
         size_t initial_span_length = 
                   get_ref_site_ref_position(0) - start_position;
         start_with_span(initial_span_length);
-        extend_node_by_allele_at_site(tree->root,
+        extend_node_at_site(tree->root,
                                       ref_sites_in_initial_span[0].site_index,
                                       ref_sites_in_initial_span[0].allele);
       }
       
       for(size_t i = 1; i < ref_sites_in_initial_span.size(); i++) {
-        extend_node_by_allele_at_site(tree->root,
+        extend_node_at_site(tree->root,
                                       ref_sites_in_initial_span[i].site_index,
                                       ref_sites_in_initial_span[i].allele);
       }
       
       if(shared_sites() != 0) {
-        branch_node_by_alleles_at_site(tree->root, 
+        branch_node(tree->root, 
                                        get_shared_site_ref_index(0));
       }
-      nodes_at_last_level_built = tree->root->get_unordered_children();
+      current_leaves = tree->root->get_unordered_children();
     }
   }
 }
 
 void haplotypeManager::build_next_level(double threshold) {
   if(last_level_built >= shared_sites() - 1) {
+    // no more levels to build
     return;
   } else {
-    // step all states forward
-    // TODO: confirm this things meets neccessary gurantees
-    fill_in_level(threshold, get_shared_site_ref_index(last_level_built) + 1,
-            get_shared_site_ref_index(last_level_built + 1));
-    // TODO reserve memory for this massive thing! And be smarter with copying
-    vector<haplotypeStateNode*> temp;
-    double current_threshold = threshold
-            - invariant_penalty_at_read_site(
-                      get_shared_site_read_index(
-                                last_level_built + 1));
-    for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
-      haplotypeStateNode* n = nodes_at_last_level_built[i];
+    size_t one_site_past_last_shared =    
+              get_shared_site_ref_index(last_level_built) + 1;
+    size_t current_site = get_shared_site_ref_index(last_level_built + 1);
+    if(one_site_past_last_shared != current_site) {
+      // extend all sites to current shared site
+      fill_in_level(threshold, one_site_past_last_shared, current_site);
+    }
+    // copy past (smaller) vector to make space for new (larger) vector
+    vector<haplotypeStateNode*> last_leaves = current_leaves;
+    current_leaves.clear();
+    for(size_t i = 0; i < last_leaves.size(); i++) {
+      haplotypeStateNode* n = last_leaves[i];
+      // we may have deleted leaves from the previous level if they were found
+      // to score below the threshold during the extension over the intervening
+      // "spans." Need to check for this
       if(n != nullptr) {
-        branch_node_by_alleles_at_site(n, 
-                  get_shared_site_ref_index(last_level_built + 1));
+        branch_node(n, current_site);
+        vector<size_t> to_delete;
+        if(threshold != 0) {
+          for(size_t j = 0; j < 5; j++) {
+            if(n->get_unordered_children()[j]->prefix_likelihood() < threshold) {
+              to_delete.push_back(j);
+            }
+          }
+          for(size_t j = to_delete.size() - 1; j >= 0; j--) {
+            n->remove_child(to_delete[j]);
+          }
+        }
         if(n->number_of_children() == 0) {
           tree->remove_node_and_unshared_ancestors(n);
         } else {
           for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
-            temp.push_back(n->get_unordered_children()[j]);
+            current_leaves.push_back(n->get_unordered_children()[j]);
           }
         }
       }
@@ -419,35 +433,36 @@ void haplotypeManager::build_next_level(double threshold) {
   }
 }
 
+// TODO pre-estimate killed nodes
+// make sure you account for read-ref mismatches
 void haplotypeManager::fill_in_level(double threshold,
         size_t start_site, size_t upper_bound_site) {
+
+  size_t one_site_past_last_shared =    
+            get_shared_site_ref_index(last_level_built) + 1;
+  size_t current_site = get_shared_site_ref_index(last_level_built + 1);
+  size_t p;
+  alleleValue consensus_read_allele;
   double highest_failure = 0;
-  for(size_t i = 0; i < nodes_at_last_level_built.size(); i++) {
-    haplotypeStateNode* n = nodes_at_last_level_built[i];
-    double starting_level = n->prefix_likelihood();
-    if(starting_level < highest_failure - penalties->rho
-            && highest_failure != 0) {
-      tree->remove_node_and_unshared_ancestors(n);
-      nodes_at_last_level_built[i] = nullptr;
+  haplotypeStateNode* n;
+  
+  for(size_t j = start_site; j < upper_bound_site; j++) {
+    p = read_position(j);
+    consensus_read_allele = char_to_allele(read_reference[p]);
+    if(threshold != 0) {
+      for(size_t i = 0; i < current_leaves.size(); i++) {
+        n = current_leaves[i];
+        extend_node_at_site(n, j, consensus_read_allele);
+      }
     } else {
-      // TODO: pre-computation bounds per-allele
-      for(size_t j = start_site; j < upper_bound_site; j++) {
-        alleleValue a =
-                (ref_sites_after_shared_sites[last_level_built + 1][
-                j - get_shared_site_ref_index(last_level_built) - 1]).allele;
-        extend_node_by_allele_at_site(n, j, a);
-        if(n->prefix_likelihood() + invariant_penalty_at_ref_site(j)
-                < threshold) {
-          tree->remove_node_and_unshared_ancestors(n);
-          nodes_at_last_level_built[i] = nullptr;
-          if(highest_failure == 0) {
-            highest_failure = starting_level;
-          } else {
-            if(starting_level > highest_failure) {
-              highest_failure = starting_level;
-            }
-          }
-          break;
+      for(size_t i = 0; i < current_leaves.size(); i++) {
+        if(current_leaves[i] != nullptr) {
+          n = current_leaves[i];
+          extend_node_at_site(n, j, consensus_read_allele);
+          if(n->prefix_likelihood() < threshold) {
+            current_leaves[i] = nullptr;
+            tree->remove_node_and_unshared_ancestors(n);
+          }            
         }
       }
     }
@@ -455,17 +470,26 @@ void haplotypeManager::fill_in_level(double threshold,
 }
 
 void haplotypeManager::extend_final_level(double threshold) {
-  fill_in_level(threshold,
-          get_shared_site_ref_index(shared_sites() - 1),
-          ref_sites_after_shared_sites.back().back().site_index + 1);
-  vector<haplotypeStateNode*> temp = nodes_at_last_level_built;
-  nodes_at_last_level_built.clear();
-  size_t terminal_span = end_position;
-  if(terminal_span != 0) {
+  if(ref_sites_after_shared_sites.back().size() != 0) {
+    size_t one_site_past_last_shared =    
+              get_shared_site_ref_index(shared_sites() - 1) + 1;
+    size_t current_site =
+              ref_sites_after_shared_sites.back().back().site_index + 1;
+    fill_in_level(threshold, one_site_past_last_shared, current_site);
+  }
+  vector<haplotypeStateNode*> temp = current_leaves;
+  current_leaves.clear();
+  size_t terminal_span = end_position - 
+            get_shared_site_ref_position(shared_sites() - 1);
+  if(terminal_span > 0) {
     for(size_t i = 0; i < temp.size(); i++) {
       haplotypeStateNode* n = temp[i];
       if(n != nullptr) {
-        // TODO: variable length final span function
+        if(n->prefix_likelihood() < threshold) {
+          tree->remove_node_and_unshared_ancestors(n);
+        } else {
+          current_leaves.push_back(n);
+        }
       }
     }
   }
@@ -508,13 +532,13 @@ void haplotypeManager::fill_in_span_before(haplotypeStateNode* n, size_t i) {
   }
 }
 
-void haplotypeManager::extend_node_by_allele_at_site(haplotypeStateNode* n, 
+void haplotypeManager::extend_node_at_site(haplotypeStateNode* n, 
         size_t i, alleleValue a) {
   fill_in_span_before(n, i);
   n->state->extend_probability_at_site(i, a);
 }
 
-void haplotypeManager::branch_node_by_alleles_at_site(haplotypeStateNode* n, 
+void haplotypeManager::branch_node(haplotypeStateNode* n, 
         size_t i) {
   fill_in_span_before(n, i);
   alleleValue a;

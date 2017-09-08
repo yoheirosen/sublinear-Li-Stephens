@@ -51,6 +51,7 @@ public:
   
   void remove_child(haplotypeStateNode* c);
   void remove_child(alleleValue a);
+  void remove_child(size_t index);
   void remove_child_from_childvector(size_t index);
   void remove_child_from_childvector(haplotypeStateNode* n);
   

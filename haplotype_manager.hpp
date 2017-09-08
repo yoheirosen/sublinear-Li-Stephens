@@ -78,7 +78,7 @@ private:
   void check_for_ref_sites();
   
   // Vector of pointers to nodes keep track of leaves of tree to be extended
-  vector<haplotypeStateNode*> nodes_at_last_level_built;
+  vector<haplotypeStateNode*> current_leaves;
   size_t last_level_built;
 public:
   haplotypeManager(
@@ -142,10 +142,8 @@ public:
   // correctly initialize, nor will it handle the case that the initial span is
   // truncated relative to the reference
   void fill_in_span_before(haplotypeStateNode* n, size_t i);
-  void extend_node_by_allele_at_site(haplotypeStateNode* n, 
-          size_t i, alleleValue a);
-  void branch_node_by_alleles_at_site(haplotypeStateNode* n, 
-          size_t i);
+  void extend_node_at_site(haplotypeStateNode* n, size_t i, alleleValue a);
+  void branch_node(haplotypeStateNode* n, size_t i);
   
   // initializes haplotypeStateTree *tree; extends it to the positions before
   // the first shared site and returns the prefix likelihood up to this point

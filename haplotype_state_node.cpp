@@ -95,19 +95,23 @@ haplotypeStateNode* haplotypeStateNode::get_parent() const {
 
 void haplotypeStateNode::remove_child(haplotypeStateNode* c) {
   size_t i = node_to_child_index(c);
-  delete children[i];
-  remove_child_from_childvector(i);      
+  remove_child(i);    
   return;
 }
 
 void haplotypeStateNode::remove_child(alleleValue a) {
   for(size_t i = 0; i < children.size(); i++) {
     if(children[i]->get_allele() == a) {
-      delete children[i];
-      remove_child_from_childvector(i);
+      remove_child(i);
       return;
     }
   }
+}
+
+void haplotypeStateNode::remove_child(size_t index) {
+  delete children[index];
+  remove_child_from_childvector(index);      
+  return;
 }
 
 void haplotypeStateNode::remove_child_from_childvector(size_t index) {
