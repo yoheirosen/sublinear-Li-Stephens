@@ -25,16 +25,16 @@ deps:
 	git submodule update --init --recursive && cd $(CWD)/deps/vcflib/tabixpp/htslib/ && autoheader && autoconf && ./configure && make && make install && cd $(CWD)/deps/vcflib && make && cd $(CWD)
 
 speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o speed
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o $(BIN_DIR)/speed
 
 tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) -o tests
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) -o $(BIN_DIR)/tests
+
+tree_tests: $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ) $(VCF_DEPS) -o $(BIN_DIR)/tree_tests
 
 clean:
 	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o
-
-tree_tests: $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ) $(VCF_DEPS) -o tree_tests
 
 $(OBJ_DIR)/allele.o : $(SRC_DIR)/allele.cpp $(SRC_DIR)/allele.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/allele.cpp -o $(OBJ_DIR)/allele.o
