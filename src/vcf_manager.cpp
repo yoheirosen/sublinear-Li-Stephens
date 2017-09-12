@@ -1,4 +1,5 @@
 #include "vcf_manager.hpp"
+#include "allele.hpp"
 #include <string>
 
 vcfManager::vcfManager(string& vcf_path, 
@@ -57,7 +58,7 @@ void vcfManager::build_reference(string& vcf_path,
             if(all_value == 0) {
               allele = reference->get_reference_allele_at_site(current_site);
             } else {
-              allele = str_to_allele(var.alleles[all_value]);
+              allele = char_to_allele((var.alleles[all_value])[0]);
             }
           }
           haplotypes[current_site][sample*2 + phase_offset] = allele;

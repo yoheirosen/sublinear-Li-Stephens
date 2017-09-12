@@ -36,7 +36,7 @@ alleleValue char_to_allele(char c) {
   return char_to_allele(c, gap);
 }
 
-alleleValue str_to_allele(const string& s) {
+alleleValue str_to_allele(string& s) {
   return char_to_allele(s[0]);
 }
 

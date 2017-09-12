@@ -1,3 +1,6 @@
+#ifndef ALLELE_H
+#define ALLELE_H
+
 #include <string>
 
 using namespace std;
@@ -23,3 +26,5 @@ struct alleleAtSite{
   alleleAtSite(size_t site, alleleValue allele);
   alleleAtSite();
 };
+
+#endif
