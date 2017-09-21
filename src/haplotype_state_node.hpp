@@ -24,6 +24,7 @@ public:
 
   ~haplotypeStateNode();
   haplotypeStateNode();
+  haplotypeStateNode(const haplotypeStateNode& other);
   haplotypeStateNode(alleleValue allele);
   haplotypeStateNode(alleleValue allele, haplotypeStateNode* parent);
   

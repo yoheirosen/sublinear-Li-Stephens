@@ -16,7 +16,6 @@ haplotypeStateTree::~haplotypeStateTree() {
   delete root;
 }
 
-// TODO test []
 void haplotypeStateTree::remove_node(haplotypeStateNode* n) {
   if(n == root) {
     delete root;
@@ -27,7 +26,6 @@ void haplotypeStateTree::remove_node(haplotypeStateNode* n) {
   }
 }
 
-// TODO test []
 void haplotypeStateTree::remove_node_and_unshared_ancestors(
             haplotypeStateNode* n) {
   if(n == root) {
@@ -60,24 +58,21 @@ void haplotypeStateTree::remove_unlikely_children(haplotypeStateNode* n,
   }
 }
 
-// TODO test []
 haplotypeStateNode* haplotypeStateTree::alleles_to_state(
             const vector<alleleValue>& identifiers) const {
   haplotypeStateNode* current_node = root;
   for(size_t i = 0; i < identifiers.size(); i++) {
     if(current_node->is_leaf()) {
-      current_node == nullptr;
-      break;
-    }
-    current_node = current_node->get_child(identifiers[i]);
-    if(current_node == nullptr) {
-      break;
+      if(i != identifiers.size() - 1) {
+        current_node == nullptr;
+      }
+    } else {
+      current_node = current_node->get_child(identifiers[i]);
     }
   }
   return current_node;
 }
 
-// TODO test []
 vector<alleleValue> haplotypeStateTree::state_to_alleles(
             const haplotypeStateNode* state_node) const {
   const haplotypeStateNode* current_node = state_node;

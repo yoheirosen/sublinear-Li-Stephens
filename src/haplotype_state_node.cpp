@@ -25,6 +25,14 @@ haplotypeStateNode::~haplotypeStateNode() {
   }
 }
 
+haplotypeStateNode::haplotypeStateNode(const haplotypeStateNode& other) {
+  S = other.S;
+  allele = other.allele;
+  parent = other.parent;
+  children = {};
+  state = new haplotypeMatrix(*state);
+}
+
 bool haplotypeStateNode::is_root() const {
   return parent == nullptr;
 }

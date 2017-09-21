@@ -7,6 +7,7 @@
 #include "reference_sequence.hpp"
 #include <vector>
 #include <string>
+#include <iostream>
 
 using namespace std;
 
@@ -34,7 +35,7 @@ private:
   size_t end_position;
   
   // The full sequence of the reference, indexed by reference-position
-  const referenceSequence* reference_sequence;
+  referenceSequence reference_sequence;
   // The sequence which the reads consider to be "reference," indexed by offset
   // from the first position of the read-set
   string read_reference;
@@ -79,7 +80,7 @@ private:
   
   // Vector of pointers to nodes keep track of leaves of tree to be extended
   vector<haplotypeStateNode*> current_leaves;
-  size_t last_level_built;
+  size_t last_level_built = SIZE_MAX;
 public:
   haplotypeManager(
           const linearReferenceStructure* reference, 
@@ -107,13 +108,13 @@ public:
   size_t get_read_site_read_position(size_t i) const;
   size_t get_read_site_ref_position(size_t i) const;
   
-  size_t index_among_shared_sites(size_t i) const;
-  size_t index_among_read_only_sites(size_t i) const;
-  
-  size_t get_shared_site_read_index(size_t j) const;
-  size_t get_shared_site_ref_index(size_t j) const;
+  size_t read_index_to_shared_index(size_t i) const;
+  size_t read_index_to_read_only_index(size_t i) const;
+  size_t shared_index_to_read_index(size_t j) const;
+  size_t shared_index_to_ref_index(size_t j) const;
 
   size_t get_shared_site_ref_position(size_t j) const;
+  size_t get_shared_site_read_position(size_t j) const;
   size_t get_ref_site_ref_position(size_t j) const;
 
   size_t get_ref_site_below_read_site(size_t i) const;
@@ -124,6 +125,16 @@ public:
   bool contains_shared_sites() const;
   bool contains_ref_sites() const;
   bool contains_read_only_sites() const;
+  
+  size_t final_ref_site() const;
+  
+  size_t final_ref_site_read_position() const;
+  size_t final_read_site_read_index() const;
+  size_t final_read_site_read_position() const;
+  size_t final_shared_site_read_index() const;
+  size_t final_shared_site_read_position() const;
+  size_t final_shared_site_ref_index() const;
+  size_t final_span_after_last_ref_site() const;
   
   // TODO tests
   size_t levels_built() const;
@@ -154,6 +165,10 @@ public:
           size_t upper_bound_site); 
   void extend_final_level(double threshold);
   void build_entire_tree(double threshold);
+  
+  vector<haplotypeStateNode*> get_current_leaves() const;
+  
+  void print_tree();
 };
 
 

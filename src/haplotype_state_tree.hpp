@@ -13,9 +13,7 @@ private:
   const linearReferenceStructure* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
-  
-  // sites at which the tree branches
-  vector<size_t> segregating_sites;
+
   // reference position at which the first tree-node starts
   size_t initial_position = SIZE_MAX;
   
