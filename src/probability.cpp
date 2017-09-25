@@ -133,9 +133,15 @@ void haplotypeMatrix::initialize_probability_at_site(size_t site_index,
     R[non_matches[i]] = nonmatch_initial_value;
   }
 
-  S = -penalties->log_H + 
-              logsum(log(matches.size()) + penalties->one_minus_mu,
-                     log(non_matches.size()) + penalties->mu);
+  if(matches.size() == 0) {
+    S = penalties->mu;
+  } else if(non_matches.size() == 0) {
+    S = penalties->one_minus_mu;
+  } else {  
+    S = -penalties->log_H + 
+                logsum(log(matches.size()) + penalties->one_minus_mu,
+                       log(non_matches.size()) + penalties->mu);
+  }
   record_last_extended(a);
 }
 
@@ -169,23 +175,6 @@ void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
             size_t mismatch_count = 0) {
   size_t length = reference->span_length_after(site_index);
   extend_probability_at_span_after_anonymous(length, mismatch_count);
-}
-
-
-double penaltySet::span_coefficient(size_t l) const {
-  return logdiff(beta(l), alpha(l)) - log_H;
-}
-
-double penaltySet::alpha(size_t l) const {
-  return alpha_value * l;
-}
-
-double penaltySet::beta(size_t l) const {
-  return beta_value * l;
-}
-
-double penaltySet::span_mutation_penalty(size_t l, size_t a) const {
-  return (l - a) * one_minus_mu + a * mu;
 }
 
 void haplotypeMatrix::take_snapshot() {

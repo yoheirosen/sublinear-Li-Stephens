@@ -12,7 +12,7 @@ penaltySet::penaltySet(double rho, double mu, int H) : H(H),
   one_minus_mu = log1p(-exp(mu));
   one_minus_2mu = log1p(-2*exp(mu));
   alpha_value = log1p(-2*exp(rho));
-  beta_value = logsum(alpha_value, rho + log_H);
+  beta_value = logdiff(alpha_value, rho + log_H);
 }
 
 DPUpdateMap penaltySet::get_match_map(double last_sum) const {
@@ -50,4 +50,20 @@ void penaltySet::update_S(double& S, const vector<double>& summands,
     S += beta_value + one_minus_mu;
     S = logdiff(S, correct_to_1_m_2mu + log_big_sum(summands));
   }
+}
+
+double penaltySet::span_coefficient(size_t l) const {
+  return logdiff(beta(l), alpha(l)) - log_H;
+}
+
+double penaltySet::alpha(size_t l) const {
+  return alpha_value * l;
+}
+
+double penaltySet::beta(size_t l) const {
+  return beta_value * l;
+}
+
+double penaltySet::span_mutation_penalty(size_t l, size_t a) const {
+  return (l - a) * one_minus_mu + a * mu;
 }
