@@ -425,7 +425,6 @@ void haplotypeManager::initialize_tree() {
         start_with_inactive_site(first_ref, first_ref_allele);
       } else {
         size_t initial_span_length = first_ref_pos - start_position;
-        // cout << initial_span_length << " initial span" << endl; // OK
         start_with_span(initial_span_length);
         extend_node_at_site(tree->root, first_ref, first_ref_allele);
       }
@@ -479,18 +478,13 @@ void haplotypeManager::build_next_level(double threshold) {
           if(!(n->is_marked_for_deletion())) {
             if(n->prefix_likelihood() >= threshold) {
               branch_node(n, current_site);
-              cout << "branching" << endl;
               for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
                 haplotypeStateNode* n_child = n->get_unordered_children()[j];
                 if(n_child->prefix_likelihood() > threshold) {
                   current_leaves.push_back(n_child);
                 }
               }
-            } else {
-              cout << "failed " << n->prefix_likelihood() << endl;
             }
-          } else {
-            cout << "failed " << n->prefix_likelihood() << endl;
           }
         }
       }
@@ -514,6 +508,7 @@ void haplotypeManager::fill_in_level(double threshold,
   for(size_t j = start_site; j < upper_bound_site; j++) {
     p = read_position(j);
     consensus_read_allele = char_to_allele(read_reference[p]);
+    rowSet current_rowSet = get_cohort()->get_active_rowSet(j, consensus_read_allele);
     if(threshold != 0) {
       for(size_t i = 0; i < current_leaves.size(); i++) {
         if(current_leaves[i]->prefix_likelihood() < threshold) {
@@ -551,7 +546,6 @@ void haplotypeManager::extend_final_level(double threshold) {
           if(n->prefix_likelihood() < threshold) {
             n->mark_for_deletion();
           } else {
-            cout << "adding" << endl;
             current_leaves.push_back(n);
           }
         } else {
@@ -616,9 +610,9 @@ void haplotypeManager::extend_node_at_site(haplotypeStateNode* n,
         size_t i, alleleValue a) {
   fill_in_span_before(n, i);
   // TODO need row_set to pass tests... is currently producing wrong maps
-  // rowSet row_set = cohort->get_active_rowSet(i, a);
-  // n->state->extend_probability_at_site(row_set, cohort->match_is_rare(i, a), a);
-  n->state->extend_probability_at_site(i, a);
+  rowSet row_set = cohort->get_active_rowSet(i, a);
+  n->state->extend_probability_at_site(row_set, cohort->match_is_rare(i, a), a);
+  // n->state->extend_probability_at_site(i, a);
 }
 
 void haplotypeManager::branch_node(haplotypeStateNode* n, 
@@ -682,4 +676,32 @@ void haplotypeManager::print_tree() {
     level_depth++;
   }
   cout << total_nodes << " total nodes" << endl;
+}
+
+void haplotypeManager::branch_node(haplotypeStateNode* n, size_t i, vector<rowSet*> rows) {
+  fill_in_span_before(n, i);
+  alleleValue a;
+  for(size_t j = 0; j < 5; j++) {
+    a = (alleleValue)j;
+    haplotypeStateNode* new_branch = n->add_child_copying_state(a);
+    new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
+  }
+  n->clear_state();
+}
+
+
+vector<rowSet*> haplotypeManager::get_rowSets_at_site(size_t current_site) const {
+	vector<rowSet*> to_return;
+  for(size_t i = 0; i < 5; i++) {
+    rowSet* to_add = new rowSet;
+    *to_add = get_cohort()->get_active_rowSet(current_site, (alleleValue)i);
+    to_return.push_back(to_add);
+  }
+  return to_return;
+}
+
+void haplotypeManager::clear_rowSet_vector(vector<rowSet*> row_sets) {
+  for(size_t i = 0; i < 5; i++) {
+    delete row_sets[i];
+  }
 }
