@@ -154,7 +154,25 @@ void haplotypeMatrix::update_subset_of_Rs(const vector<size_t>& indices,
   }
 }
 
+void haplotypeMatrix::update_subset_of_Rs(const rowSet& indices,
+              bool active_is_match) {
+  double correction = penalties->get_minority_map_correction(active_is_match);
+  for(size_t i = 0; i < indices.size(); i++) {
+    R[indices[i]] = correction + 
+                calculate_R(R[indices[i]], map.get_map(indices[i]));
+  }
+}
+
 void haplotypeMatrix::fast_update_S(const vector<size_t>& indices,
+              bool active_is_match) {
+  vector<double> summands;
+  for(size_t i = 0; i < indices.size(); i++) {
+    summands.push_back(R[indices[i]]);
+  }
+  penalties->update_S(S, summands, active_is_match);
+}
+
+void haplotypeMatrix::fast_update_S(const rowSet& indices,
               bool active_is_match) {
   vector<double> summands;
   for(size_t i = 0; i < indices.size(); i++) {
@@ -246,6 +264,27 @@ void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map,
   return;
 }
 
+void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map, 
+            const rowSet& active_rows, bool match_is_rare, 
+            alleleValue a) {
+  map.add_map_for_site(current_map);
+  if(active_rows.size() == 0 && match_is_rare) {
+    // separate case to avoid log-summing "log 0"
+    S = penalties->mu + S + penalties->beta_value;
+  } else if(active_rows.size() == 0 && !match_is_rare) {
+    // separate case to avoid log-summing "log 0"
+    S = penalties->one_minus_mu + S + penalties->beta_value;
+  } else {
+    map.update_map_with_active_rows(active_rows);
+    update_subset_of_Rs(active_rows, match_is_rare);
+    fast_update_S(active_rows, match_is_rare);
+    map.reset_rows(active_rows);
+  }
+  record_last_extended(a);
+  return;
+}
+
+
 void haplotypeMatrix::extend_probability_at_site(
             const vector<size_t>& active_rows, bool match_is_rare, 
             alleleValue a) {
@@ -253,6 +292,12 @@ void haplotypeMatrix::extend_probability_at_site(
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
+void haplotypeMatrix::extend_probability_at_site(
+            const rowSet& active_rows, bool match_is_rare, 
+            alleleValue a) {
+  DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
+  extend_probability_at_site(current_map, active_rows, match_is_rare, a);
+}
 
 void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l, 
             size_t mismatch_count) {

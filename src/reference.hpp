@@ -12,6 +12,7 @@
 #include <vector>
 #include <unordered_map>
 #include "allele.hpp"
+#include "row_set.hpp"
 
 using namespace std;
 
@@ -57,8 +58,6 @@ public:
   size_t find_site_below(size_t position) const;
 };
 
-
-
 struct haplotypeCohort{
 private:
   const linearReferenceStructure* reference;
@@ -91,6 +90,7 @@ public:
   const vector<alleleValue>& get_alleles_at_site(size_t site_index) const;
   
   vector<size_t> get_active_rows(size_t site, alleleValue a) const;
+  rowSet get_active_rowSet(size_t site, alleleValue a) const;
 };
 
 #endif

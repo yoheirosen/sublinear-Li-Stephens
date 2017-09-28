@@ -80,6 +80,14 @@ public:
   
   bool last_extended_is_span() const;
   size_t get_last_site() const;
+  
+  void extend_probability_at_site(const DPUpdateMap& current_map, 
+              const rowSet& active_rows, bool match_is_rare, 
+              alleleValue a);
+  void extend_probability_at_site(const rowSet& active_rows, 
+              bool match_is_rare, alleleValue a);
+  void update_subset_of_Rs(const rowSet& indices, bool active_is_match);
+  void fast_update_S(const rowSet& indices, bool active_is_match);
 };
 
 double calculate_R(double oldR, const DPUpdateMap& map);

@@ -449,6 +449,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     REQUIRE(n->prefix_likelihood() == root_state.S);
 
     hap_manager.build_entire_tree(0);
+    hap_manager.print_tree();
     n = hap_manager.get_tree()->alleles_to_state(twoAs);
     REQUIRE(n->prefix_likelihood() == twoAs_state.S);
     n = hap_manager.get_tree()->alleles_to_state(twoTs);
@@ -457,6 +458,136 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     REQUIRE(n->prefix_likelihood() == twoTs_state.S);
     n = hap_manager.get_tree()->alleles_to_state(AT);
     REQUIRE(n->prefix_likelihood() == AT_state.S);
+  }
+  
+  SECTION( "Haplotype manager performs correct calculations with pruning but below active") {
+    string ref_refstring = "AAAAAAAAAAAAAAAAAAAA";
+    string read_refstring = "AAAAAAAAAAAAAAAAAA";
+    vector<size_t> ref_sites = {1,3,4,8,13,19};
+    vector<size_t> read_sites = {3,5,6,13,17};
+    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    vector<vector<alleleValue> > haplotypes = {
+     {A, A, A, A, A, A},
+     {C, T, A, A, A, A},
+     {A, C, T, A, A, A},
+     {A, A, C, T, A, A},
+     {A, A, A, C, T, A},
+     {A, A, A, A, C, T}
+    };
+    haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
+    penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
+    
+    haplotypeMatrix twoAs_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix twoTs_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix twoGs_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix AT_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix root_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    
+    twoAs_state.initialize_probability_at_span(1, 0);
+    twoAs_state.extend_probability_at_site(1, A);
+    twoAs_state.extend_probability_at_site(2, A);
+    twoAs_state.extend_probability_at_span_after((size_t)2, 0);
+    twoAs_state.extend_probability_at_site(3, A);
+    twoAs_state.extend_probability_at_span_after((size_t)3, 0);
+    twoAs_state.extend_probability_at_site(4, A);
+    twoAs_state.extend_probability_at_span_after((size_t)4, 0);
+    twoAs_state.extend_probability_at_site(5, A);
+    
+    twoTs_state.initialize_probability_at_span(1, 0);
+    twoTs_state.extend_probability_at_site(1, A);
+    twoTs_state.extend_probability_at_site(2, A);
+    twoTs_state.extend_probability_at_span_after((size_t)2, 0);
+    twoTs_state.extend_probability_at_site(3, T);
+    twoTs_state.extend_probability_at_span_after((size_t)3, 0);
+    twoTs_state.extend_probability_at_site(4, A);
+    twoTs_state.extend_probability_at_span_after((size_t)4, 0);
+    twoTs_state.extend_probability_at_site(5, T);
+    
+    twoGs_state.initialize_probability_at_span(1, 0);
+    twoGs_state.extend_probability_at_site(1, A);
+    twoGs_state.extend_probability_at_site(2, A);
+    twoGs_state.extend_probability_at_span_after((size_t)2, 0);
+    twoGs_state.extend_probability_at_site(3, G);
+    twoGs_state.extend_probability_at_span_after((size_t)3, 0);
+    twoGs_state.extend_probability_at_site(4, A);
+    twoGs_state.extend_probability_at_span_after((size_t)4, 0);
+    twoGs_state.extend_probability_at_site(5, G);
+    
+    AT_state.initialize_probability_at_span(1, 0);
+    AT_state.extend_probability_at_site(1, A);
+    AT_state.extend_probability_at_site(2, A);
+    AT_state.extend_probability_at_span_after((size_t)2, 0);
+    AT_state.extend_probability_at_site(3, A);
+    AT_state.extend_probability_at_span_after((size_t)3, 0);
+    AT_state.extend_probability_at_site(4, A);
+    AT_state.extend_probability_at_span_after((size_t)4, 0);
+    AT_state.extend_probability_at_site(5, T);
+    
+    root_state.initialize_probability_at_span(1, 0);
+    root_state.extend_probability_at_site(1, A);
+    root_state.extend_probability_at_site(2, A);
+    root_state.extend_probability_at_span_after((size_t)2, 0);
+  
+    vector<alleleValue> twoAs = {A, A};
+    vector<alleleValue> twoTs = {T, T};
+    vector<alleleValue> twoGs = {G, G};
+    vector<alleleValue> AT = {A, T};
+  
+    haplotypeStateNode* n;
+    
+    haplotypeManager hap_manager = haplotypeManager(
+                &reference, 
+                &cohort, 
+                &penalties, 
+                ref_refstring.c_str(),
+                read_sites, 
+                read_refstring.c_str(),
+                2);
+                
+    hap_manager.build_entire_tree(-50);
+    hap_manager.print_tree();
+    n = hap_manager.get_tree()->alleles_to_state(twoAs);
+    REQUIRE(n->prefix_likelihood() == twoAs_state.S);
+    n = hap_manager.get_tree()->alleles_to_state(twoTs);
+    REQUIRE(n->prefix_likelihood() == twoTs_state.S);
+    n = hap_manager.get_tree()->alleles_to_state(twoTs);
+    REQUIRE(n->prefix_likelihood() == twoTs_state.S);
+    n = hap_manager.get_tree()->alleles_to_state(AT);
+    REQUIRE(n->prefix_likelihood() == AT_state.S);
+    REQUIRE(hap_manager.get_current_leaves().size() == 25);
+  }
+  
+  SECTION( "Haplotype manager performs correct calculations with pruning but below active") {
+    string ref_refstring = "AAAAAAAAAAAAAAAAAAAA";
+    string read_refstring = "AAAAAAAAAAAAAAAAAA";
+    vector<size_t> ref_sites = {1,3,4,8,13,19};
+    vector<size_t> read_sites = {3,5,6,13,17};
+    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    vector<vector<alleleValue> > haplotypes = {
+     {A, A, A, A, A, A},
+     {C, T, A, A, A, A},
+     {A, C, T, A, A, A},
+     {A, A, C, T, A, A},
+     {A, A, A, C, T, A},
+     {A, A, A, A, C, T}
+    };
+    haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
+    penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
+    
+    haplotypeStateNode* n;
+    
+    haplotypeManager hap_manager = haplotypeManager(
+      &reference, 
+      &cohort, 
+      &penalties, 
+      ref_refstring.c_str(),
+      read_sites, 
+      read_refstring.c_str(),
+      2);
+      
+    hap_manager.build_entire_tree(-20);
+    hap_manager.print_tree();
+    REQUIRE(hap_manager.get_current_leaves().size() == 19);
   }
   
   /*

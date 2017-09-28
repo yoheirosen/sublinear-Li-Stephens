@@ -170,6 +170,15 @@ double haplotypeStateNode::max_prefix_likelihood(const penaltySet* penalties) co
   }
 }
 
+void haplotypeStateNode::mark_for_deletion() {
+  clear_state();
+  S = 1;
+}
+
+bool haplotypeStateNode::is_marked_for_deletion() const {
+  return (S == 1);
+}
+
 
 bool operator< (const haplotypeStateNode& n1, const haplotypeStateNode& n2) {
   return(n1.prefix_likelihood() < n2.prefix_likelihood());

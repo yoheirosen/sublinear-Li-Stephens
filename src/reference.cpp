@@ -275,3 +275,23 @@ void haplotypeCohort::assign_alleles_at_site(size_t i,
     haplotype_alleles_by_site_index[i][j] = alleles_at_site[j];
   }
 }
+
+rowSet haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
+  vector<const vector<size_t>* > row_vectors;
+  vector<alleleValue> alleles;
+  if(match_is_rare(site, a)) {
+    row_vectors = {&(haplotype_indices_by_site_and_allele[site][(size_t)a])};
+    alleles = {a};
+    return rowSet(row_vectors, alleles);
+  } else {
+    alleleValue b;
+    for(size_t i = 0; i < 5; i++) {
+      b = (alleleValue)i;
+      if(b != a) {
+        alleles.push_back(b);
+        row_vectors.push_back(&(haplotype_indices_by_site_and_allele[site][i]));
+      }
+    }
+    return rowSet(row_vectors, alleles);
+  }
+}

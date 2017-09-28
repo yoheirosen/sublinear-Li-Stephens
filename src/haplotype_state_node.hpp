@@ -60,6 +60,9 @@ public:
   void copy_state_from_node(const haplotypeStateNode* other);  
   void compress_state();
   
+  void mark_for_deletion();
+  bool is_marked_for_deletion() const;
+  
   double prefix_likelihood() const;
   double max_prefix_likelihood(const penaltySet* penalties) const;
   

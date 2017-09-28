@@ -1,3 +1,4 @@
+#include "row_set.hpp"
 #include "delay_multiplier.hpp"
 #include "math.hpp"
 #include <iostream>
@@ -68,6 +69,18 @@ void delayMap::hard_update_all() {
 }
 
 vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) const {
+  vector<bool> seen = vector<bool>(maps_by_site.size(), false);
+  vector<size_t> to_return;
+  for(int i = 0; i < rows.size(); i++) {
+    if(!(seen[slots_by_row[rows[i]]])) {
+      to_return.push_back(slots_by_row[rows[i]]);
+    }
+    seen[slots_by_row[rows[i]]] = true;
+  }
+  return to_return;
+}
+
+vector<size_t> delayMap::rows_to_slots(const rowSet& rows) const {
   vector<bool> seen = vector<bool>(maps_by_site.size(), false);
   vector<size_t> to_return;
   for(int i = 0; i < rows.size(); i++) {
@@ -260,7 +273,23 @@ void delayMap::reset_rows(const vector<size_t>& rows) {
   }
 }
 
+void delayMap::reset_rows(const rowSet& rows) {
+  for(size_t i = 0; i < rows.size(); i++) {
+    remove_row_from_slot(rows[i]);
+  }
+  add_identity_map();
+  for(size_t i = 0; i < rows.size(); i++) {
+    assign_row_to_newest_index(rows[i]);
+  }
+}
+
 void delayMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
+  vector<size_t> slots = rows_to_slots(active_rows);
+  update_maps(slots);
+}
+
+
+void delayMap::update_map_with_active_rows(const rowSet& active_rows) {
   vector<size_t> slots = rows_to_slots(active_rows);
   update_maps(slots);
 }

@@ -3,6 +3,8 @@
 
 #include <vector>
 #include "DP_map.hpp"
+// TODO factor out rowSet
+#include "row_set.hpp"
 
 using namespace std;
 
@@ -49,6 +51,9 @@ public:
   void increment_site_marker();
   
   vector<size_t> rows_to_slots(const vector<size_t>& rows) const;
+  
+  // TODO 1
+  vector<size_t> rows_to_slots(const rowSet& rows) const;
   
   // takes in a set of slot indices and extends their maps_by_slot
   // time complexity is O(|indices| + n)
@@ -102,6 +107,10 @@ public:
   void reset_rows(const vector<size_t>& rows);
   void update_map_with_active_rows(const vector<size_t>& active_rows);
   
+  // TODO 1
+  void reset_rows(const rowSet& rows);
+  void update_map_with_active_rows(const rowSet& active_rows);
+    
   size_t number_of_slots() const;
   size_t row_updated_to(size_t row) const;
   size_t get_current_site() const;

@@ -18,6 +18,7 @@ haplotypeManager::haplotypeManager(
   read_reference = string(read_bases);
   tree = new haplotypeStateTree(reference, penalties, cohort);
   end_position = start_position + read_reference.size() - 1;
+  // TODO: handle case that read is not contained within reference
   find_ref_sites_below_read_sites();
   find_shared_sites();
   check_for_ref_sites();
@@ -395,6 +396,7 @@ void haplotypeManager::initialize_tree() {
     start_with_span(read_length);
     current_leaves = {tree->root};
   } else {
+    // CASE 1: the first shared site is the first position in the read
     if(shared_sites() != 0) {
       if(get_shared_site_ref_position(0) == start_position) {
         // start_position is a shared site
@@ -403,6 +405,8 @@ void haplotypeManager::initialize_tree() {
         return;
       }
     }
+    // CASE 2: there exists sequence in the beginning of the read which is not a
+    // shared site
     if(ref_sites_in_initial_span.size() == 0) {
       // it's just a regular span from the point of view of the reference
       size_t initial_span_length = 
@@ -456,19 +460,38 @@ void haplotypeManager::build_next_level(double threshold) {
       // extend all sites to current shared site
       fill_in_level(threshold, one_site_past_last_shared, current_site);
     }
-    // control scope to avoid double-delete
+    // control scope to avoid double-delete. TODO make sure this is necessary or that there's not another problem?
     {
       // copy past (smaller) vector to make space for new (larger) vector
       vector<haplotypeStateNode*> last_leaves = current_leaves;
       current_leaves.clear();
       for(size_t i = 0; i < last_leaves.size(); i++) {
         haplotypeStateNode* n = last_leaves[i];
-        // we may have deleted leaves from the previous level if they were found
-        // to score below the threshold during the extension over the intervening
-        // "spans." Need to check for this
-        branch_node(n, current_site);
-        for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
-          current_leaves.push_back(n->get_unordered_children()[j]);
+        if(threshold == 0) {
+          // we may have deleted leaves from the previous level if they were found
+          // to score below the threshold during the extension over the intervening
+          // "spans." Need to check for this
+          branch_node(n, current_site);
+          for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
+            current_leaves.push_back(n->get_unordered_children()[j]);
+          }
+        } else {
+          if(!(n->is_marked_for_deletion())) {
+            if(n->prefix_likelihood() >= threshold) {
+              branch_node(n, current_site);
+              cout << "branching" << endl;
+              for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
+                haplotypeStateNode* n_child = n->get_unordered_children()[j];
+                if(n_child->prefix_likelihood() > threshold) {
+                  current_leaves.push_back(n_child);
+                }
+              }
+            } else {
+              cout << "failed " << n->prefix_likelihood() << endl;
+            }
+          } else {
+            cout << "failed " << n->prefix_likelihood() << endl;
+          }
         }
       }
     }
@@ -492,10 +515,12 @@ void haplotypeManager::fill_in_level(double threshold,
     p = read_position(j);
     consensus_read_allele = char_to_allele(read_reference[p]);
     if(threshold != 0) {
-      //TODO
       for(size_t i = 0; i < current_leaves.size(); i++) {
-        if(current_leaves[i]->prefix_likelihood() < 0) {
-          
+        if(current_leaves[i]->prefix_likelihood() < threshold) {
+          current_leaves[i]->mark_for_deletion();
+        } else if(!current_leaves[i]->is_marked_for_deletion()) {
+          n = current_leaves[i];
+          extend_node_at_site(n, j, consensus_read_allele);
         }
       }
     } else {
@@ -513,22 +538,38 @@ void haplotypeManager::extend_final_level(double threshold) {
     size_t past_last_ref = final_ref_site() + 1;
     fill_in_level(threshold, past_last_shared, past_last_ref);
   }
-  vector<haplotypeStateNode*> temp = current_leaves;
-  current_leaves.clear();
-  haplotypeStateNode* n;
+  
   if(final_span_after_last_ref_site() > 0) {
-    for(size_t i = 0; i < temp.size(); i++) {
-      n = temp[i];
-      if(n != nullptr) {
+    vector<haplotypeStateNode*> last_leaves = current_leaves;
+    current_leaves.clear();
+    haplotypeStateNode* n;
+    for(size_t i = 0; i < last_leaves.size(); i++) {
+      n = last_leaves[i];
+      if((!n->is_marked_for_deletion())) {
         n->state->extend_probability_at_span_after_anonymous(final_span_after_last_ref_site(), 0);
         if(threshold != 0) {
-          if(n->state->prefix_likelihood() < threshold) {
-            tree->remove_node_and_unshared_ancestors(n);
+          if(n->prefix_likelihood() < threshold) {
+            n->mark_for_deletion();
           } else {
+            cout << "adding" << endl;
             current_leaves.push_back(n);
           }
         } else {
           current_leaves.push_back(n);
+        }
+      }
+    }
+  } else {
+    if(threshold != 0) {
+      vector<haplotypeStateNode*> last_leaves = current_leaves;
+      current_leaves.clear();
+      haplotypeStateNode* n;
+      for(size_t i = 0; i < last_leaves.size(); i++) {
+        n = last_leaves[i];
+        if(n->prefix_likelihood() >= threshold) {
+          current_leaves.push_back(n);
+        } else {
+          n->mark_for_deletion();
         }
       }
     }
@@ -550,7 +591,6 @@ void haplotypeManager::start_with_active_site(size_t i) {
   for(size_t j = 0; j < 5; j++) {
     a = (alleleValue)j;
     haplotypeStateNode* new_branch = tree->root->add_child(a);
-    // start_sites.push_back(new_branch);
     new_branch->state = new haplotypeMatrix(reference, penalties, cohort);
     new_branch->state->initialize_probability_at_site(i, a);
   }
@@ -575,6 +615,9 @@ void haplotypeManager::fill_in_span_before(haplotypeStateNode* n, size_t i) {
 void haplotypeManager::extend_node_at_site(haplotypeStateNode* n, 
         size_t i, alleleValue a) {
   fill_in_span_before(n, i);
+  // TODO need row_set to pass tests... is currently producing wrong maps
+  // rowSet row_set = cohort->get_active_rowSet(i, a);
+  // n->state->extend_probability_at_site(row_set, cohort->match_is_rare(i, a), a);
   n->state->extend_probability_at_site(i, a);
 }
 
