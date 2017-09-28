@@ -170,6 +170,9 @@ public:
   void branch_node(haplotypeStateNode* n, size_t i, vector<rowSet*> rows);
   void clear_rowSet_vector(vector<rowSet*> row_sets);
   
+  void extend_node_at_site(haplotypeStateNode* n, 
+          size_t i, alleleValue a, const rowSet& row_set);
+  
   vector<haplotypeStateNode*> get_current_leaves() const;
   
   void print_tree();

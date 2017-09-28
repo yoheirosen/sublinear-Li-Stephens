@@ -464,20 +464,21 @@ void haplotypeManager::build_next_level(double threshold) {
       // copy past (smaller) vector to make space for new (larger) vector
       vector<haplotypeStateNode*> last_leaves = current_leaves;
       current_leaves.clear();
+      vector<rowSet*> current_rows = get_rowSets_at_site(current_site);
       for(size_t i = 0; i < last_leaves.size(); i++) {
         haplotypeStateNode* n = last_leaves[i];
         if(threshold == 0) {
           // we may have deleted leaves from the previous level if they were found
           // to score below the threshold during the extension over the intervening
           // "spans." Need to check for this
-          branch_node(n, current_site);
+          branch_node(n, current_site, current_rows);
           for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
             current_leaves.push_back(n->get_unordered_children()[j]);
           }
         } else {
           if(!(n->is_marked_for_deletion())) {
             if(n->prefix_likelihood() >= threshold) {
-              branch_node(n, current_site);
+              branch_node(n, current_site, current_rows);
               for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
                 haplotypeStateNode* n_child = n->get_unordered_children()[j];
                 if(n_child->prefix_likelihood() > threshold) {
@@ -515,13 +516,13 @@ void haplotypeManager::fill_in_level(double threshold,
           current_leaves[i]->mark_for_deletion();
         } else if(!current_leaves[i]->is_marked_for_deletion()) {
           n = current_leaves[i];
-          extend_node_at_site(n, j, consensus_read_allele);
+          extend_node_at_site(n, j, consensus_read_allele, current_rowSet);
         }
       }
     } else {
       for(size_t i = 0; i < current_leaves.size(); i++) {
         n = current_leaves[i];
-        extend_node_at_site(n, j, consensus_read_allele);
+        extend_node_at_site(n, j, consensus_read_allele, current_rowSet);
       }
     }
   }
@@ -609,10 +610,13 @@ void haplotypeManager::fill_in_span_before(haplotypeStateNode* n, size_t i) {
 void haplotypeManager::extend_node_at_site(haplotypeStateNode* n, 
         size_t i, alleleValue a) {
   fill_in_span_before(n, i);
-  // TODO need row_set to pass tests... is currently producing wrong maps
-  rowSet row_set = cohort->get_active_rowSet(i, a);
+  n->state->extend_probability_at_site(i, a);
+}
+
+void haplotypeManager::extend_node_at_site(haplotypeStateNode* n, 
+        size_t i, alleleValue a, const rowSet& row_set) {
+  fill_in_span_before(n, i);
   n->state->extend_probability_at_site(row_set, cohort->match_is_rare(i, a), a);
-  // n->state->extend_probability_at_site(i, a);
 }
 
 void haplotypeManager::branch_node(haplotypeStateNode* n, 
