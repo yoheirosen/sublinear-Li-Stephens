@@ -3,7 +3,6 @@
 #include "reference.hpp"
 #include "probability.hpp"
 #include "reference_sequence.hpp"
-#include "vcf_manager.hpp"
 
 using namespace std;
 #else
@@ -14,6 +13,10 @@ typedef struct penaltySet penaltySet;
 
 haplotypeManager* haplotypeManager_build(
             char* reference_sequence,
+            size_t number_of_ref_sites,
+            size_t* positions_of_ref_sites,
+            size_t number_of_haplotypes,
+            char** alleles_by_site_and_haplotype,
             char* population_vcf_path,
             double mutation_penalty, 
             double recombination_penalty,
@@ -80,33 +83,36 @@ haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n);
 //    - length of subinterval
 //    - density of ref sites
 //    - cohort size - average counts of non-major alleles across ref sites
-extern "C" haplotypeManager* haplotypeManager_build(
-            char* reference_sequence,
-            char* population_vcf_path,
-            double mutation_penalty, 
-            double recombination_penalty,
-            size_t read_DP_ref_start,
-            size_t read_DP_site_count,
-            size_t* read_DP_site_offsets,
-            char* read_DP_sequence, 
-            double threshold) {
-  vcfManager vcf_manager(population_vcf_path, reference_sequence);
-  penaltySet* penalties = new penaltySet(recombination_penalty, 
-                                         mutation_penalty, 
-                                         vcf_manager.num_phases);
-  vector<size_t> read_sites(read_DP_site_offsets,
-                            read_DP_site_offsets + read_DP_site_count);
-  haplotypeManager* hap_manager = 
-              new haplotypeManager(vcf_manager.reference, 
-                                   vcf_manager.cohort, 
-                                   penalties, 
-                                   reference_sequence,
-                                   read_sites,
-                                   read_DP_sequence, 
-                                   read_DP_ref_start);
-  hap_manager->build_entire_tree(threshold);
-  return hap_manager;
-}
+// extern "C" haplotypeManager* haplotypeManager_build(
+//             char* reference_sequence,
+//             size_t number_of_ref_sites,
+//             size_t* positions_of_ref_sites,
+//             size_t number_of_haplotypes,
+//             char** alleles_by_site_and_haplotype,
+//             double mutation_penalty, 
+//             double recombination_penalty,
+//             size_t read_DP_ref_start,
+//             size_t read_DP_site_count,
+//             size_t* read_DP_site_offsets,
+//             char* read_DP_sequence, 
+//             double threshold) {
+//   // TODO switch to direct read-in to cohort
+//   penaltySet* penalties = new penaltySet(recombination_penalty, 
+//                                          mutation_penalty, 
+//                                          vcf_manager.num_phases);
+//   vector<size_t> read_sites(read_DP_site_offsets,
+//                             read_DP_site_offsets + read_DP_site_count);
+//   haplotypeManager* hap_manager = 
+//               new haplotypeManager(vcf_manager.reference, 
+//                                    vcf_manager.cohort, 
+//                                    penalties, 
+//                                    reference_sequence,
+//                                    read_sites,
+//                                    read_DP_sequence, 
+//                                    read_DP_ref_start);
+//   hap_manager->build_entire_tree(threshold);
+//   return hap_manager;
+// }
 
 // takes in an array of haplotypeStateNode*s of size 5. Indexed A-C-T-G-gap. 
 // to this, it writes
