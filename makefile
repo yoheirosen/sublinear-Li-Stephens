@@ -19,7 +19,7 @@ CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(
 
 TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/vcf_manager.o $(OBJ_DIR)/scored_node.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-all : deps speed tests tree_tests
+all : deps speed tests tree_tests interface
 
 deps:
 	git submodule update --init --recursive && cd $(CWD)/deps/vcflib/tabixpp/htslib/ && autoheader && autoconf && ./configure && make && make install && cd $(CWD)/deps/vcflib && make && cd $(CWD)
@@ -30,14 +30,19 @@ speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
 tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) -o $(BIN_DIR)/tests
 
-tree_tests: $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
+tree_tests : $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ) $(VCF_DEPS) -o $(BIN_DIR)/tree_tests
+
+interface : $(OBJ_DIR)/interface.o
 
 clean:
 	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o
 
 $(OBJ_DIR)/allele.o : $(SRC_DIR)/allele.cpp $(SRC_DIR)/allele.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/allele.cpp -o $(OBJ_DIR)/allele.o
+
+$(OBJ_DIR)/interface.o : $(SRC_DIR)/interface.h $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(SRC_DIR)/vcf_manager.hpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(VCF_DEPS) -c $(SRC_DIR)/interface.h -o $(OBJ_DIR)/interface.o
 
 $(OBJ_DIR)/haplotype_state_node.o : $(SRC_DIR)/haplotype_state_node.cpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/haplotype_state_node.cpp -o $(OBJ_DIR)/haplotype_state_node.o
