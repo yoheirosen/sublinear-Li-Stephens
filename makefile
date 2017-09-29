@@ -22,7 +22,7 @@ TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o 
 all : deps speed speed_tree tests tree_tests interface
 
 deps:
-	git submodule update --init --recursive && cd $(CWD)/deps/vcflib/tabixpp/htslib/ && autoheader && autoconf && ./configure && make && make install && cd $(CWD)/deps/vcflib && make && cd $(CWD)
+	git submodule update --init --recursive && cd $(CWD)/deps/vcflib/tabixpp/htslib/ && autoheader && autoconf && ./configure && make && make install && cd $(CWD)/deps/vcflib && make && cd $(CWD) && mkdir obj && mkdir obj/test
 
 speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o $(BIN_DIR)/speed
