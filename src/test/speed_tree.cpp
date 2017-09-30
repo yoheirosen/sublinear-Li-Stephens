@@ -4,12 +4,12 @@
 #include "haplotype_manager.hpp"
 
 int main() {
-  double alt_allele_frequency = 0.;
+  double alt_allele_frequency = 0.01;
   double shared_site_frequency = 0.1;
-  size_t number_of_sites = 100;
+  size_t number_of_sites = 10000;
   size_t number_of_haplotypes = 1000;
   
-  double cutoff = -13;
+  double cutoff = -27;
   
   default_random_engine generator;
   bernoulli_distribution bernoulli_alt_allele(alt_allele_frequency);
@@ -23,7 +23,9 @@ int main() {
   string ref_alleles = string(number_of_sites, 'A');
   string read_alleles = string(number_of_sites, 'A');
   
-  for(size_t i = 0; i < shared_sites.size(); i++) {
+  cout << "starting" << endl;
+  
+  for(size_t i = 0; i < number_of_sites; i++) {
     ref_sites.push_back(i);
     if(bernoulli_ref_is_shared(generator)) {
       shared_sites.push_back(i);
@@ -34,6 +36,8 @@ int main() {
       }
     }
   }
+  
+  cout << "generated ref and read ref" << endl;
   
   vector<vector<alleleValue> > cohort_alleles;
   for(int i = 0; i < number_of_haplotypes; i++) {
@@ -47,6 +51,8 @@ int main() {
     cohort_alleles.push_back(haplotype_alleles);
   }
   
+  cout << "generated cohort alleles" << endl;
+  
   linearReferenceStructure reference(ref_sites, ref_alleles);
   haplotypeCohort cohort(cohort_alleles, &reference);
   penaltySet penalties(-6, -9, number_of_haplotypes);
@@ -58,7 +64,9 @@ int main() {
     shared_sites,
     read_alleles.c_str(), 
     0);
-
+  
+  cout << "structures built" << endl;
+  
   auto begin = chrono::high_resolution_clock::now();
   
   hap_manager.build_entire_tree(cutoff);
@@ -68,6 +76,6 @@ int main() {
   // hap_manager.print();
   
   auto ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-  cout << "sites\t" << number_of_sites << "\t cutoff \t" << cutoff << "\t time \t" << ms << endl;
+  cout << "sites\t" << number_of_sites << "\tshared\t" << shared_sites.size() << "\t cutoff \t" << cutoff << "\tterminal leaves\t" << hap_manager.get_current_leaves().size() << "\t time \t" << ms << "\tms"<< endl;
   return 0;
 }
