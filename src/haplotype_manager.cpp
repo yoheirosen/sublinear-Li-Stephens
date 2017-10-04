@@ -672,7 +672,11 @@ void haplotypeManager::print_tree() {
       for(size_t j = 0; j < state_ID.size(); j++) {
         cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
       }
-      cout << " : " << this_level[i]->prefix_likelihood() << endl;
+      if(this_level[i]->is_marked_for_deletion()) {
+        cout << " : pruned" << endl;
+      } else {
+        cout << " : " << this_level[i]->prefix_likelihood() << endl;
+      }
       if(this_level[i]->number_of_children() != 0) {
         temp_for_children = this_level[i]->get_unordered_children();
         for(size_t j = 0; j < temp_for_children.size(); j++) {
