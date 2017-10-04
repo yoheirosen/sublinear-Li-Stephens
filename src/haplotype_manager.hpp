@@ -167,7 +167,7 @@ public:
   void build_entire_tree(double threshold);
   
   vector<rowSet*> get_rowSets_at_site(size_t current_site) const;
-  void branch_node(haplotypeStateNode* n, size_t i, vector<rowSet*> rows);
+  void branch_node(haplotypeStateNode* n, size_t i, const vector<rowSet*>& rows, double threshold = 0);
   void clear_rowSet_vector(vector<rowSet*> row_sets);
   
   void extend_node_at_site(haplotypeStateNode* n, 
@@ -176,6 +176,9 @@ public:
   vector<haplotypeStateNode*> get_current_leaves() const;
   
   void print_tree();
+  
+  bool will_hit_threshold(haplotypeStateNode* n, 
+              double threshold, size_t site_index, alleleValue a) const;
 };
 
 

@@ -21,17 +21,17 @@ private:
   const linearReferenceStructure* reference;
   const haplotypeCohort* cohort;
   const penaltySet* penalties;
+  // TODO (10/3/17) streamline memory use here
   delayMap map;
   
-  // trackers for the last indices extended. spans are indexed according to
-  // the site preceding them, except for index -1, the span before site 0
+    // trackers for the last indices extended
   // -1 : nothing extended; i : index i last extended
   int last_extended = -1;
-  // -2 : nothing extended; indexing as above
+  // -2 : nothing extended; -1 : before-first-site span extended; i : span after
+  // index i extended
   int last_span_extended = -2;
-  
   alleleValue last_allele;
-  void record_last_extended(alleleValue a);
+    void record_last_extended(alleleValue a);
   
 public:
   haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,

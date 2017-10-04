@@ -184,7 +184,7 @@ void delayMap::remove_row_from_slot(size_t row) {
   return;
 }
 
-void delayMap::add_map(DPUpdateMap map) {
+void delayMap::add_map(const DPUpdateMap& map) {
   if(empty_map_slots.size() == 0) {
     newest_index = maps_by_slot.size();
     maps_by_slot.push_back(map);

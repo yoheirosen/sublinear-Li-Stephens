@@ -54,6 +54,7 @@ haplotypeStateNode* haplotypeStateNode::add_child(alleleValue a) {
 
 haplotypeStateNode* haplotypeStateNode::add_child_copying_state(
             alleleValue a) {
+  // this->state->take_snapshot();
   haplotypeStateNode* new_child = add_child(a);
   new_child->copy_state_from_node(this);
   return new_child;
@@ -84,7 +85,7 @@ size_t haplotypeStateNode::node_to_child_index(const haplotypeStateNode* c) cons
   }
 }
 
-vector<haplotypeStateNode*> haplotypeStateNode::get_unordered_children() const {
+const vector<haplotypeStateNode*>& haplotypeStateNode::get_unordered_children() const {
   return children;
 }
 

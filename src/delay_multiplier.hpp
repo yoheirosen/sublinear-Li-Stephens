@@ -52,7 +52,6 @@ public:
   
   vector<size_t> rows_to_slots(const vector<size_t>& rows) const;
   
-  // TODO 1
   vector<size_t> rows_to_slots(const rowSet& rows) const;
   
   // takes in a set of slot indices and extends their maps_by_slot
@@ -79,7 +78,7 @@ public:
 
   // Adds a new slot containing the given DPUpdateMap
   void add_map(double coefficient, double constant);
-  void add_map(DPUpdateMap map);
+  void add_map(const DPUpdateMap& map);
   void add_identity_map();
 
   // Assignes a row to the slot containing the last DPUpdateMap added
@@ -107,7 +106,6 @@ public:
   void reset_rows(const vector<size_t>& rows);
   void update_map_with_active_rows(const vector<size_t>& active_rows);
   
-  // TODO 1
   void reset_rows(const rowSet& rows);
   void update_map_with_active_rows(const rowSet& active_rows);
     

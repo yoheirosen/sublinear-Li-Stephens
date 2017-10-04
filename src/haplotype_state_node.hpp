@@ -44,7 +44,7 @@ public:
   haplotypeStateNode* get_child(size_t index) const;
   size_t node_to_child_index(const haplotypeStateNode* n) const;
 
-  vector<haplotypeStateNode*> get_unordered_children() const;
+  const vector<haplotypeStateNode*>& get_unordered_children() const;
   vector<haplotypeStateNode*> get_ordered_children();
 
   size_t number_of_children() const;

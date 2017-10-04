@@ -12,9 +12,9 @@ using namespace std;
 struct rowSet{
 private:
   size_t elements;
-  size_t unique_alleles;
+  size_t allele_count;
   // the least index, within this struct, of the 1st element of each row_vector
-  vector<size_t> boundaries = {0};
+  vector<size_t> lower_bounds = {0};
   vector<const vector<size_t>* > row_vectors;
   vector<alleleValue> included_alleles;
 public:

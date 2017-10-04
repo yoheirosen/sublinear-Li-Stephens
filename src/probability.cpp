@@ -6,7 +6,7 @@ haplotypeMatrix::haplotypeMatrix(const linearReferenceStructure* ref, const pena
           reference(ref), cohort(cohort), penalties(pen),
           map(delayMap(cohort->size(), 0)) {
   S = 0;
-  R = vector<double>(cohort->size(),0);
+  R = vector<double>(cohort->size(), 0);
 }
 
 haplotypeMatrix::haplotypeMatrix(const haplotypeMatrix &other, 
@@ -283,7 +283,6 @@ void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map,
   record_last_extended(a);
   return;
 }
-
 
 void haplotypeMatrix::extend_probability_at_site(
             const vector<size_t>& active_rows, bool match_is_rare, 
