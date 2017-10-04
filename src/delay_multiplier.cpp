@@ -271,6 +271,16 @@ void delayMap::reset_rows(const vector<size_t>& rows) {
   for(size_t i = 0; i < rows.size(); i++) {
     assign_row_to_newest_index(rows[i]);
   }
+  // maps_by_slot = vector<DPUpdateMap>(maps_by_slot.size(), DPUpdateMap(0));
+  // counts = vector<size_t>(counts.size(), 0);
+  // updated_to = vector<size_t>(updated_to.size(), current_site);
+  // empty_map_slots = vector<size_t>(counts.size(), 0);
+  // for(size_t i = 0; i < empty_map_slots.size(); i++) {
+  //   empty_map_slots[i] = i;
+  // }
+  // add_identity_map();
+  // slots_by_row = vector<size_t>(slots_by_row.size(), newest_index);
+  // counts[newest_index] = slots_by_row.size();
 }
 
 void delayMap::reset_rows(const rowSet& rows) {
@@ -281,6 +291,16 @@ void delayMap::reset_rows(const rowSet& rows) {
   for(size_t i = 0; i < rows.size(); i++) {
     assign_row_to_newest_index(rows[i]);
   }
+  // maps_by_slot = vector<DPUpdateMap>(maps_by_slot.size(), DPUpdateMap(0));
+  // counts = vector<size_t>(counts.size(), 0);
+  // updated_to = vector<size_t>(updated_to.size(), current_site);
+  // empty_map_slots = vector<size_t>(counts.size(), 0);
+  // for(size_t i = 0; i < empty_map_slots.size(); i++) {
+  //   empty_map_slots[i] = i;
+  // }
+  // add_identity_map();
+  // slots_by_row = vector<size_t>(slots_by_row.size(), newest_index);
+  // counts[newest_index] = slots_by_row.size();
 }
 
 void delayMap::update_map_with_active_rows(const vector<size_t>& active_rows) {

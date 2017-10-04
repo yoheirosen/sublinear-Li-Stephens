@@ -489,6 +489,7 @@ void haplotypeManager::build_next_level(double threshold) {
           }
         }
       }
+      // clear_rowSet_vector(current_rows);
     }
     last_level_built++;
   }
@@ -662,6 +663,8 @@ void haplotypeManager::print_tree() {
         size_t bdd_1 = get_shared_site_read_position(level_depth - 1) + 1;
         size_t len = get_shared_site_read_position(level_depth) - bdd_1;
         level_prefix.push_back(read_reference.substr(bdd_1, len));
+      } else {
+        level_prefix.push_back("");
       }
     }
     for(size_t i = 0; i < this_level.size(); i++) {   

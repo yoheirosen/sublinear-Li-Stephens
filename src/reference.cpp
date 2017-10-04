@@ -288,8 +288,10 @@ rowSet haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
     for(size_t i = 0; i < 5; i++) {
       b = (alleleValue)i;
       if(b != a) {
-        alleles.push_back(b);
-        row_vectors.push_back(&(haplotype_indices_by_site_and_allele[site][i]));
+        if(haplotype_indices_by_site_and_allele[site][i].size() != 0) {
+          alleles.push_back(b);
+          row_vectors.push_back(&(haplotype_indices_by_site_and_allele[site][i]));
+        }
       }
     }
     return rowSet(row_vectors, alleles);

@@ -165,18 +165,18 @@ void haplotypeMatrix::update_subset_of_Rs(const rowSet& indices,
 
 void haplotypeMatrix::fast_update_S(const vector<size_t>& indices,
               bool active_is_match) {
-  vector<double> summands;
+  vector<double> summands = vector<double>(indices.size(), 0);
   for(size_t i = 0; i < indices.size(); i++) {
-    summands.push_back(R[indices[i]]);
+    summands[i] = R[indices[i]];
   }
   penalties->update_S(S, summands, active_is_match);
 }
 
 void haplotypeMatrix::fast_update_S(const rowSet& indices,
               bool active_is_match) {
-  vector<double> summands;
+  vector<double> summands = vector<double>(indices.size(), 0);
   for(size_t i = 0; i < indices.size(); i++) {
-    summands.push_back(R[indices[i]]);
+    summands[i] = R[indices[i]];
   }
   penalties->update_S(S, summands, active_is_match);
 }

@@ -25,7 +25,7 @@ TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
   linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
-  SECTION( "accessors give correct values" ) {
+  SECTION( "linearReferenceStructure accessor correctness" ) {
     REQUIRE(ref_struct.number_of_sites() == 3);
     REQUIRE(ref_struct.is_site(0) == false);
     REQUIRE(ref_struct.is_site(1) == true);
@@ -42,7 +42,7 @@ TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
     REQUIRE(ref_struct.span_length_after(2) == 1);
     REQUIRE(ref_struct.absolute_length() == 7);
   }
-  SECTION( "build-from-strings gives same result as direct construction" ) {
+  SECTION( "build-from-strings finds all sites" ) {
     vector<string> haplotypes = {
       "GCTTA-A",
       "GATT-CA"
@@ -70,7 +70,7 @@ TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
   }
 }
 
-TEST_CASE( "haplotypeCohort accessors", "[cohort]") {
+TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
   linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -88,21 +88,31 @@ TEST_CASE( "haplotypeCohort accessors", "[cohort]") {
     REQUIRE(cohort.match_is_rare(1,A) == false);
     REQUIRE(cohort.match_is_rare(2,A) == false);
   }
-  SECTION( "Can extract the set of less-common alleles" ) {
+  SECTION( "Can extract the set of less-common alleles (as vector)" ) {
     vector<size_t> active_at_0 = cohort.get_active_rows(0, A);
     vector<size_t> active_at_1 = cohort.get_active_rows(1, A);
     vector<size_t> active_at_2 = cohort.get_active_rows(2, A);
     REQUIRE(active_at_0.size() == 1);
     REQUIRE(active_at_1.size() == 0);
     REQUIRE(active_at_2.size() == 2);
-    
+    REQUIRE(active_at_0[0] == 0);
+    REQUIRE(active_at_2[0] == 2);
+    REQUIRE(active_at_2[1] == 3);
+  }
+  SECTION( "Can extract the set of less-common alleles (as rowSet)" ) {
+    rowSet active_at_0 = cohort.get_active_rowSet(0, A);
+    rowSet active_at_1 = cohort.get_active_rowSet(1, A);
+    rowSet active_at_2 = cohort.get_active_rowSet(2, A);
+    REQUIRE(active_at_0.size() == 1);
+    REQUIRE(active_at_1.size() == 0);
+    REQUIRE(active_at_2.size() == 2);
     REQUIRE(active_at_0[0] == 0);
     REQUIRE(active_at_2[0] == 2);
     REQUIRE(active_at_2[1] == 3);
   }
 }
 
-TEST_CASE( "haplotypeCohort construction", "[cohort]") {
+TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
   linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
@@ -272,8 +282,24 @@ TEST_CASE( "inputHaplotype", "[haplotype]" ) {
   }
 }
 
+TEST_CASE( "penaltySet math", "[math]" ) {
+  double eps = 0.0000001;
+  penaltySet penalties = penaltySet(-6, -9, 2);
+  SECTION( "log-sum-exp implementation" ) {
+    vector<double> R = {-1, -2, -3, -4};
+    double naive_sum = logsum(logsum(-1, -2), logsum(-3, -4));
+    double log_sum_exp = log_big_sum(R);
+    REQUIRE(fabs(naive_sum - log_sum_exp) < eps);
+    // repeated values
+    R = {-1, -1, -2, -2};
+    naive_sum = logsum(logsum(-1, -1), logsum(-2, -2));
+    log_sum_exp = log_big_sum(R);
+    REQUIRE(fabs(naive_sum - log_sum_exp) < eps);
+  }
+}
+
+
 TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
-  // We need our penaltySet to work correctly for any likelihood calculations to
   double eps = 0.0000001;
   
   SECTION( "Partial likelihoods at an initial site" ) {
@@ -350,7 +376,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
                 &cohort_AT);
     double R0A = log(0.25) + penalties.one_minus_mu;
     double R0T = log(0.25) + penalties.mu;
-    double S0 = log(0.5);
+    double S0 = log(0.5) + logsum(penalties.mu, penalties.one_minus_mu);
     double ftR0A = penalties.alpha_value + R0A;
     double ftR0T = penalties.alpha_value + R0T;
     double pS = penalties.rho + S0;
@@ -497,8 +523,8 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double expected_R2_for_0_mismatch_haplotype = 5*mu_c + 5*beta + mu - log(3);
     double expected_R0_for_1_mismatch_haplotype = 5*mu_c + mu + 5*beta - log(3);
     double expected_R2_for_1_mismatch_haplotype = 4*mu_c + 2*mu + 5*beta - log(3);
-    double expected_probability_for_0_mismatch_haplotype = 5*mu_c + 5*beta + logdiff(log(2), mu) - log(3);
-    double expected_probability_for_1_mismatch_haplotype = 4*mu_c + mu + 5*beta + logdiff(log(2), mu) - log(3);
+    double expected_probability_for_0_mismatch_haplotype = 5*mu_c + 5*beta + logdiff(log(2), log(7) + mu) - log(3);
+    double expected_probability_for_1_mismatch_haplotype = 4*mu_c + mu + 5*beta + logdiff(log(2), log(7) + mu) - log(3);
     
     matrix_0_aug.initialize_probability(&query_0_aug);
     matrix_0_aug.take_snapshot();
@@ -518,7 +544,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double mu = penalties.mu;
     double rho = penalties.rho;
     double alpha = penalties.alpha_value;
-    double l2_mu = logdiff(log(2), mu);
+    double l2_mu = logdiff(log(2), log(7) + mu);
     
     string ref_seq = "AAAAA";
     vector<string> haplotypes = {
@@ -947,8 +973,9 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
     REQUIRE(matrix.get_maps().get_map(0).is_identity());
     REQUIRE(matrix.get_maps().get_map(1).is_identity());
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+    // work done at 2; match is rare
     matrix.extend_probability_at_site(&query, 1);
-    S = logdiff(log(2), mu) - log(3);
+    S = logdiff(log(2), log(7) + mu) - log(3);
     DPUpdateMap I = DPUpdateMap(0);
     DPUpdateMap m1 = penalties.get_non_match_map(S);
     REQUIRE(fabs(matrix.get_maps().get_map(0).constant - m1.constant) < eps);
@@ -956,9 +983,9 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
     REQUIRE(fabs(matrix.get_maps().get_map(1).constant - m1.constant) < eps);
     REQUIRE(fabs(matrix.get_maps().get_map(1).coefficient - m1.coefficient) < eps);
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+    // work done at 1; non-match is rare
     matrix.extend_probability_at_site(&query, 2);
-    S = logsum(alpha - log(3) + logsum(mu, 2*mu_c),
-                rho + S + log1p(exp(mu)));
+    S = logsum(mu + S, mu2 + logsum(alpha + mu_c - log(3), rho + S));
     DPUpdateMap M2 = penalties.get_match_map(S);
     REQUIRE(fabs(matrix.get_maps().get_map(0).constant - (M2.of(m1)).constant) < eps);
     REQUIRE(fabs(matrix.get_maps().get_map(0).coefficient - (M2.of(m1)).coefficient) < eps);

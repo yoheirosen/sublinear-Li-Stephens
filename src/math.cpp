@@ -30,18 +30,16 @@ double log_big_sum(const vector<double>& R) {
   } else {
     double max_summand = R[0];
     size_t max_index = 0;
-    vector<double> summands;
     for(size_t i = 0; i < R.size(); i++){
-      summands.push_back(R[i]);
-      if(summands.back() > max_summand) {
-        max_summand = summands.back();
+      if(R[i] > max_summand) {
+        max_summand = R[i];
         max_index = i;
       }
     }
     double sum = 0;
-    for(size_t i = 0; i < summands.size(); i++) {
+    for(size_t i = 0; i < R.size(); i++) {
       if(i != max_index) {
-        sum += exp(summands[i]-max_summand);
+        sum += exp(R[i] - max_summand);
       }
     }
     return max_summand + log1p(sum);

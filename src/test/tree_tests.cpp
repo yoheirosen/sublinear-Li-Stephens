@@ -36,48 +36,6 @@ TEST_CASE( "Node construction and destruction works as intended", "[node]") {
   REQUIRE(n1->number_of_children() == 0);
 }
 
-TEST_CASE( "Pruning functions work", "[tree]" ) {
-  linearReferenceStructure reference = build_ref("AAAA", {0,1,2,3});
-  vector<vector<alleleValue> > haplotypes = {
-    {A, A, A, A},
-    {A, T, A, A},
-    {A, A, T, A},
-    {A, A, A, T},
-    {A, A, A, A}
-  };
-  haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
-  penaltySet penalties = penaltySet(-6, -9, 3);
-  
-  string ref_string = "AAAA";
-  string read_string = "AAAA";
-  vector<size_t> read_sites = {0,1,2,3};
-  
-  SECTION( "Elementary pruning function can trim off whole branches" ) {
-    haplotypeStateTree hsTree = haplotypeStateTree(&reference, &penalties, 
-                &cohort);
-    haplotypeStateNode* n;
-    n = hsTree.root->add_child(A);
-    n = n->add_child(C);
-    n = n->add_child(T);
-    n = n->add_child(G);
-    REQUIRE(hsTree.root->number_of_children() == 1);
-    hsTree.remove_node_and_unshared_ancestors(n);
-    REQUIRE(hsTree.root->number_of_children() == 0);
-  }
-  
-  SECTION( "haplotypeManager puning funcions perform correct prunings" ) {
-  haplotypeManager hap_manager = haplotypeManager(
-            &reference,
-            &cohort,
-            &penalties,
-            ref_string.c_str(),
-            read_sites,
-            read_string.c_str(),
-            0);
-    REQUIRE(true); 
-  }
-}
-
 TEST_CASE( "Tree navigation works as intended", "[tree][navigation]" ) {
   linearReferenceStructure reference = build_ref("AAA", {0,1,2});
   vector<vector<alleleValue> > haplotypes = {
@@ -114,7 +72,6 @@ TEST_CASE( "Tree navigation works as intended", "[tree][navigation]" ) {
   REQUIRE(test2 == n);
 }
 
-
 TEST_CASE( "Tree interfaces with probability DP state matrices", "[tree][DP]") {
   linearReferenceStructure reference = build_ref("AAAA", {0,1,2,3});
   vector<vector<alleleValue> > haplotypes = {
@@ -150,7 +107,6 @@ TEST_CASE( "Tree interfaces with probability DP state matrices", "[tree][DP]") {
   }
 }
 
-
 TEST_CASE( "Haplotype Manager can translate positions and identify and translate sites" , "[manager][indices] ") {
   string ref_refstring = "AAAAAAAAAAAAAAAAAAAA";
   string read_refstring = "AAAAAAAAAAAAAAAAAA";
@@ -174,35 +130,31 @@ TEST_CASE( "Haplotype Manager can translate positions and identify and translate
               read_sites, 
               read_ref_cstring,
               2);
-  SECTION( "Haplotype Manager can recognize its basic attributes" ) {
-    REQUIRE(hap_manager.length() == 18);
-    REQUIRE(hap_manager.read_sites() == 5);
-    REQUIRE(hap_manager.shared_sites() == 2);
-  }
-  SECTION( "Haplotype manager can translate positions" ) {
-    REQUIRE(hap_manager.ref_position(4) == 6);
-    REQUIRE(hap_manager.read_position(3) == 1);
-    
-    REQUIRE(hap_manager.get_read_site_ref_position(0) == 5);
-    REQUIRE(hap_manager.get_read_site_read_position(1) == 5);
-    REQUIRE(hap_manager.get_read_site_ref_position(1) == 7);
-    REQUIRE(hap_manager.read_index_to_shared_index(4) == 1);
-    REQUIRE(hap_manager.read_index_to_read_only_index(3) == 2);
-    REQUIRE(hap_manager.final_read_site_read_index() == 4);
-    REQUIRE(hap_manager.final_read_site_read_position() == 17);
-    REQUIRE(hap_manager.get_ref_site_below_read_site(2) == 3);
-    REQUIRE(hap_manager.get_ref_site_below_read_site(3) == 4);
-    
-    REQUIRE(hap_manager.get_ref_site_ref_position(2) == 4);
-    REQUIRE(hap_manager.final_ref_site() == 5);
-    REQUIRE(hap_manager.final_ref_site_read_position() == 17);
-    
-    REQUIRE(hap_manager.shared_index_to_read_index(1) == 4);
-    REQUIRE(hap_manager.shared_index_to_ref_index(1) == 5);
-    REQUIRE(hap_manager.get_shared_site_ref_position(0) == 8);
-    REQUIRE(hap_manager.get_shared_site_read_position(0) == 6);
-    REQUIRE(hap_manager.get_shared_site_read_position(1) == 17);
-  }
+  REQUIRE(hap_manager.length() == 18);
+  REQUIRE(hap_manager.read_sites() == 5);
+  REQUIRE(hap_manager.shared_sites() == 2);
+  REQUIRE(hap_manager.ref_position(4) == 6);
+  REQUIRE(hap_manager.read_position(3) == 1);
+  
+  REQUIRE(hap_manager.get_read_site_ref_position(0) == 5);
+  REQUIRE(hap_manager.get_read_site_read_position(1) == 5);
+  REQUIRE(hap_manager.get_read_site_ref_position(1) == 7);
+  REQUIRE(hap_manager.read_index_to_shared_index(4) == 1);
+  REQUIRE(hap_manager.read_index_to_read_only_index(3) == 2);
+  REQUIRE(hap_manager.final_read_site_read_index() == 4);
+  REQUIRE(hap_manager.final_read_site_read_position() == 17);
+  REQUIRE(hap_manager.get_ref_site_below_read_site(2) == 3);
+  REQUIRE(hap_manager.get_ref_site_below_read_site(3) == 4);
+  
+  REQUIRE(hap_manager.get_ref_site_ref_position(2) == 4);
+  REQUIRE(hap_manager.final_ref_site() == 5);
+  REQUIRE(hap_manager.final_ref_site_read_position() == 17);
+  
+  REQUIRE(hap_manager.shared_index_to_read_index(1) == 4);
+  REQUIRE(hap_manager.shared_index_to_ref_index(1) == 5);
+  REQUIRE(hap_manager.get_shared_site_ref_position(0) == 8);
+  REQUIRE(hap_manager.get_shared_site_read_position(0) == 6);
+  REQUIRE(hap_manager.get_shared_site_read_position(1) == 17);
 }
 
 TEST_CASE( "Haplotype manager correctly handles tree-of-states", "[manager][tree]" ) {
@@ -254,6 +206,53 @@ TEST_CASE( "Haplotype manager correctly handles tree-of-states", "[manager][tree
   }
 }
 
+TEST_CASE( "Rowset extraction", "[rowset]" ) {
+  string ref_refstring = "AAAAAAA";
+  string read_refstring = "AAAAAAA";
+  vector<size_t> ref_sites = {0, 2, 5};
+  vector<size_t> read_sites = {0, 2, 5};
+  
+  linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+  vector<vector<alleleValue> > haplotypes = {
+    {A, A, A},
+    {A, A, A},
+    {A, T, A},
+    {A, A, T},
+    {A, G, C}
+  };
+  haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
+  penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
+  haplotypeManager hap_manager = haplotypeManager(
+              &reference, 
+              &cohort, 
+              &penalties, 
+              ref_refstring.c_str(),
+              read_sites, 
+              read_refstring.c_str(),
+              0);
+  vector<rowSet*> rows_0 = hap_manager.get_rowSets_at_site(0);
+  vector<rowSet*> rows_1 = hap_manager.get_rowSets_at_site(1);
+  vector<rowSet*> rows_2 = hap_manager.get_rowSets_at_site(2);
+  REQUIRE(rows_0.size() == 5);
+  REQUIRE(rows_0[0]->size() + rows_0[1]->size() + rows_0[2]->size()
+                            + rows_0[3]->size() + rows_0[4]->size() == 0);
+  REQUIRE(rows_1[1]->size() + rows_1[4]->size() == 0);
+  REQUIRE(rows_1[0]->size() == 2);
+  REQUIRE(rows_1[2]->size() == 1);
+  REQUIRE(rows_2[3]->size() + rows_2[4]->size() == 0);
+  REQUIRE(rows_2[0]->size() == 2);
+  REQUIRE(rows_2[1]->size() == 1);
+  rowSet reader = *(rows_1[0]); // ie rowSet for A
+  REQUIRE(reader[0] == 2);
+  REQUIRE(reader[1] == 4);
+  reader = *(rows_2[0]); // ie rowSet for A
+  REQUIRE(reader[0] == 4);
+  REQUIRE(reader[1] == 3);
+  reader = *(rows_2[1]); // ie rowSet for C
+  REQUIRE(reader[0] == 4);
+}
+
+
 TEST_CASE( "Haplotype manager performs correct calculations in the presence of unshared sites", "[manager]" ) {
   SECTION( "All sites shared" ) {
     string ref_refstring = "AAAAAAA";
@@ -273,10 +272,12 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
     
     haplotypeMatrix AAA_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix ATG_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix ACG_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    haplotypeMatrix TGA_state = haplotypeMatrix(&reference, &penalties, &cohort);
     haplotypeMatrix TCG_state = haplotypeMatrix(&reference, &penalties, &cohort);
     vector<alleleValue> AAA = {A, A, A};
-    vector<alleleValue> ATG = {A, T, G};
+    vector<alleleValue> ACG = {A, C, G};
+    vector<alleleValue> TGA = {T, G, A};
     vector<alleleValue> TCG = {T, C, G};
     
     AAA_state.initialize_probability_at_site(0, A);
@@ -285,12 +286,21 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     AAA_state.extend_probability_at_span_after((size_t)1, 0);
     AAA_state.extend_probability_at_site(2, A);
     AAA_state.extend_probability_at_span_after((size_t)2, 0);
-    ATG_state.initialize_probability_at_site(0, A);
-    ATG_state.extend_probability_at_span_after((size_t)0, 0);
-    ATG_state.extend_probability_at_site(1, T);
-    ATG_state.extend_probability_at_span_after((size_t)1, 0);
-    ATG_state.extend_probability_at_site(2, G);
-    ATG_state.extend_probability_at_span_after((size_t)2, 0);
+    
+    ACG_state.initialize_probability_at_site(0, A);
+    ACG_state.extend_probability_at_span_after((size_t)0, 0);
+    ACG_state.extend_probability_at_site(1, C);
+    ACG_state.extend_probability_at_span_after((size_t)1, 0);
+    ACG_state.extend_probability_at_site(2, G);
+    ACG_state.extend_probability_at_span_after((size_t)2, 0);
+    
+    TGA_state.initialize_probability_at_site(0, T);
+    TGA_state.extend_probability_at_span_after((size_t)0, 0);
+    TGA_state.extend_probability_at_site(1, G);
+    TGA_state.extend_probability_at_span_after((size_t)1, 0);
+    TGA_state.extend_probability_at_site(2, A);
+    TGA_state.extend_probability_at_span_after((size_t)2, 0);
+    
     TCG_state.initialize_probability_at_site(0, T);
     TCG_state.extend_probability_at_span_after((size_t)0, 0);
     TCG_state.extend_probability_at_site(1, C);
@@ -312,10 +322,12 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     haplotypeStateNode* n;
     n = hap_manager.get_tree()->alleles_to_state(AAA);
     REQUIRE(n->prefix_likelihood() == AAA_state.S);
-    n = hap_manager.get_tree()->alleles_to_state(ATG);
-    REQUIRE(n->prefix_likelihood() == ATG_state.S);
+    n = hap_manager.get_tree()->alleles_to_state(ACG);
+    REQUIRE(n->prefix_likelihood() == ACG_state.S);
     n = hap_manager.get_tree()->alleles_to_state(TCG);
     REQUIRE(n->prefix_likelihood() == TCG_state.S);
+    n = hap_manager.get_tree()->alleles_to_state(TGA);
+    REQUIRE(n->prefix_likelihood() == TGA_state.S);
   }
   
   SECTION( "No sites" ) {
@@ -448,7 +460,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     REQUIRE(n->prefix_likelihood() == root_state.S);
 
     hap_manager.build_entire_tree(0);
-    hap_manager.print_tree();
+    // hap_manager.print_tree();
     n = hap_manager.get_tree()->alleles_to_state(twoAs);
     REQUIRE(n->prefix_likelihood() == twoAs_state.S);
     n = hap_manager.get_tree()->alleles_to_state(twoTs);
@@ -544,7 +556,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
                 2);
                 
     hap_manager.build_entire_tree(-50);
-    hap_manager.print_tree();
+    // hap_manager.print_tree();
     n = hap_manager.get_tree()->alleles_to_state(twoAs);
     REQUIRE(n->prefix_likelihood() == twoAs_state.S);
     n = hap_manager.get_tree()->alleles_to_state(twoTs);
@@ -584,8 +596,8 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
       read_refstring.c_str(),
       2);
       
-    hap_manager.build_entire_tree(-20);
-    hap_manager.print_tree();
+    hap_manager.build_entire_tree(-19);
+    // hap_manager.print_tree();
     REQUIRE(hap_manager.get_current_leaves().size() == 19);
   }
 }

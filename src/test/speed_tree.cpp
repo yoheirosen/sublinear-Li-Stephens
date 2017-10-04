@@ -9,7 +9,7 @@ int main() {
   size_t number_of_sites = 10000;
   size_t number_of_haplotypes = 1000;
   
-  double cutoff = -27;
+  double cutoff = -13;
   
   default_random_engine generator;
   bernoulli_distribution bernoulli_alt_allele(alt_allele_frequency);
