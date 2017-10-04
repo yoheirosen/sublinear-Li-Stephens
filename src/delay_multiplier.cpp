@@ -100,13 +100,18 @@ void delayMap::update_maps(const vector<size_t>& slots) {
     }
   }
   if(current_site != least_up_to_date) {
-    // mbs[1]
-    vector<DPUpdateMap> suffixes = {maps_by_site[current_site]};
-    for(size_t i = current_site - 1; i > least_up_to_date; i--) {
+    size_t suffixes_size = current_site - least_up_to_date;
+    vector<DPUpdateMap> suffixes = 
+              vector<DPUpdateMap>(suffixes_size, DPUpdateMap());
+    suffixes[0] = maps_by_site[current_site];
+    // for(size_t i = current_site - 1; i > least_up_to_date; i--) {
       // we are building increasing prefixes of the current_site map; this
       // requires left-multiplication
-      suffixes.push_back(suffixes.back().compose(maps_by_site[i]));
-    }
+      // suffixes.push_back(suffixes.back().compose(maps_by_site[i]));
+    // }
+    for(size_t i = 1; i < suffixes_size; i++) {
+      suffixes[i] = suffixes[i-1].compose(maps_by_site[current_site - i]);
+    }    
     
     for(size_t i = 0; i < slots.size(); i++) {
       if(updated_to[slots[i]] != current_site) {
