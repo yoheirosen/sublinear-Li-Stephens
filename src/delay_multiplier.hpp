@@ -113,6 +113,9 @@ public:
   size_t row_updated_to(size_t row) const;
   size_t get_current_site() const;
   size_t get_slot(size_t row) const;
+  
+  void update_maps(const vector<bool>& slotmask);
+  vector<bool> rows_to_slotmask(const rowSet& rows) const;
 };
 
 #endif

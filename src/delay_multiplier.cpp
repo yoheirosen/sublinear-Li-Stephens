@@ -91,18 +91,49 @@ vector<size_t> delayMap::rows_to_slots(const rowSet& rows) const {
   }
   return to_return;
 }
-// 
-// vector<bool> delayMap::rows_to_slotmask(const rowSet& rows) const {
-//   vector<bool> seen = vector<bool>(maps_by_site.size(), false);
-//   vector<size_t> to_return;
-//   for(int i = 0; i < rows.size(); i++) {
-//     if(!(seen[slots_by_row[rows[i]]])) {
-//       to_return.push_back(slots_by_row[rows[i]]);
-//     }
-//     seen[slots_by_row[rows[i]]] = true;
-//   }
-//   return to_return;
-// }
+
+vector<bool> delayMap::rows_to_slotmask(const rowSet& rows) const {
+  vector<bool> to_return = vector<bool>(maps_by_slot.size(), false);
+  for(int i = 0; i < rows.size(); i++) {
+    to_return[slots_by_row[rows[i]]] = true;
+  }
+  return to_return;
+}
+
+void delayMap::update_maps(const vector<bool>& slotmask) {
+  size_t least_up_to_date = current_site;
+  for(size_t i = 0; i < maps_by_slot.size(); i++) {
+    if(slotmask[i]) {
+      if(updated_to[i] < least_up_to_date) {
+        least_up_to_date = updated_to[i];
+      }
+    }
+  }
+  if(current_site != least_up_to_date) {
+    size_t suffixes_size = current_site - least_up_to_date;
+
+    vector<DPUpdateMap> suffixes = 
+              vector<DPUpdateMap>(suffixes_size, DPUpdateMap());
+    suffixes[0] = maps_by_site[current_site];
+
+    for(size_t i = 1; i < suffixes_size; i++) {
+      suffixes[i] = suffixes[i-1].compose(maps_by_site[current_site - i]);
+    }    
+    
+    for(size_t i = 0; i < maps_by_slot.size(); i++) {
+      if(slotmask[i]) {
+        if(updated_to[i] != current_site) {
+          // j is the slot's index in the suffix-vector
+          size_t j = current_site - updated_to[i] - 1;
+          maps_by_slot[i] = suffixes[j].of(maps_by_slot[i]);
+          updated_to[i] = current_site;
+        }
+      }
+    }
+  }
+  updated_maps = true;
+  return;
+}
 
 void delayMap::update_maps(const vector<size_t>& slots) {
   size_t least_up_to_date = current_site;
@@ -271,10 +302,8 @@ void delayMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
   update_maps(slots);
 }
 
-
 void delayMap::update_map_with_active_rows(const rowSet& active_rows) {
-  vector<size_t> slots = rows_to_slots(active_rows);
-  update_maps(slots);
+  update_maps(rows_to_slotmask(active_rows));
 }
 
 size_t delayMap::number_of_slots() const {
