@@ -5,12 +5,53 @@
 
 using namespace std;
 
+void mapHistory::push_back(const DPUpdateMap& map) {
+	elements.push_back(map);
+}
+
+size_t mapHistory::size() const {
+	return elements.size();
+}
+
+mapHistory::mapHistory() {
+  start = 0;
+}
+
+mapHistory::mapHistory(const DPUpdateMap& map, size_t start) : start(start) {
+	elements = {map};
+}
+
+
+mapHistory::mapHistory(const mapHistory& other) {
+	start = other.start;
+  elements = other.elements;
+}
+
+mapHistory::mapHistory(const mapHistory& other, size_t new_start) {
+	start = new_start;
+	size_t offset = new_start - other.start;
+	elements = vector<DPUpdateMap>(other.elements.begin() + offset, other.elements.end());	
+}
+
+DPUpdateMap& mapHistory::operator[](size_t i) {
+	return elements[i - start];
+}
+
+DPUpdateMap& mapHistory::back() {
+	return elements.back();
+}
+
+const vector<DPUpdateMap>& mapHistory::get_elements() const {
+  return elements;
+}
+
 delayMap::delayMap() {
   
 }
 
 delayMap::delayMap(size_t rows, size_t start) : 
             dM_start(start) {
+  maps_by_site = mapHistory(DPUpdateMap(0), start);
   current_site = start;
   add_identity_map();
   // After calling the above; maps_by_slot is a singleton containing the
@@ -28,11 +69,18 @@ void delayMap::add_identity_map() {
 delayMap::delayMap(const delayMap &other) {
 	added_span = other.added_span;
 	updated_maps = other.updated_maps;
-	dM_start = other.dM_start;
+	// dM_start = other.dM_start;
 	current_site = other.current_site;
-	maps_by_site = other.maps_by_site;
 	slots_by_row = other.slots_by_row;
 	updated_to = other.updated_to;
+  size_t oldest_seen = current_site;
+  for(size_t i = 0; i < updated_to.size(); i++) {
+    if(updated_to[i] < oldest_seen) {
+      oldest_seen = updated_to[i];
+    }
+  }
+  dM_start = oldest_seen;
+  maps_by_site = mapHistory(other.maps_by_site, oldest_seen);
 	maps_by_slot = other.maps_by_slot;
 	counts = other.counts;
 	empty_map_slots = other.empty_map_slots;
@@ -274,7 +322,7 @@ size_t delayMap::last_update(size_t row) {
 }
 
 const vector<DPUpdateMap>& delayMap::get_maps_by_site() const {
-  return maps_by_site;
+  return maps_by_site.get_elements();
 }
 
 void delayMap::reset_rows(const vector<size_t>& rows) {

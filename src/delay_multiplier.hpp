@@ -3,10 +3,25 @@
 
 #include <vector>
 #include "DP_map.hpp"
-// TODO factor out rowSet
 #include "row_set.hpp"
 
 using namespace std;
+
+struct mapHistory{
+private:
+	size_t start;
+	vector<DPUpdateMap> elements;
+public:
+  mapHistory();
+  mapHistory(const DPUpdateMap& map, size_t start = 0);
+  mapHistory(const mapHistory& other); 
+  mapHistory(const mapHistory& other, size_t new_start);
+	DPUpdateMap& operator[](size_t i);
+	DPUpdateMap& back();
+	void push_back(const DPUpdateMap& map);
+  size_t size() const;
+  const vector<DPUpdateMap>& get_elements() const;
+};
 
 // Shorthand for statements of complexity:
 // |H|      number of haplotypes in population cohort
@@ -31,7 +46,7 @@ private:
   size_t dM_start;
   size_t current_site = 0;
   size_t newest_index = 0;
-  vector<DPUpdateMap> maps_by_site = {DPUpdateMap(0)};
+  mapHistory maps_by_site;
   // This vector has size |H| and stores which map index the row
   // corresponds to
   vector<size_t> slots_by_row;
