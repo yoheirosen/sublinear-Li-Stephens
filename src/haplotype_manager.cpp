@@ -465,6 +465,8 @@ void haplotypeManager::build_next_level(double threshold) {
       vector<haplotypeStateNode*> last_leaves = current_leaves;
       current_leaves.clear();
       vector<rowSet*> current_rows = get_rowSets_at_site(current_site);
+      // double most_probable = //TODO
+      double likeliest_unrep_failure = threshold;
       for(size_t i = 0; i < last_leaves.size(); i++) {
         haplotypeStateNode* n = last_leaves[i];
         if(threshold == 0) {
@@ -475,11 +477,14 @@ void haplotypeManager::build_next_level(double threshold) {
         } else {
           if(!(n->is_marked_for_deletion())) {
             if(n->prefix_likelihood() >= threshold) {
-              branch_node(n, current_site, current_rows, threshold);
+              branch_node(n, current_site, current_rows, threshold, likeliest_unrep_failure);
               for(size_t j = 0; j < n->get_unordered_children().size(); j++) {
                 haplotypeStateNode* n_child = n->get_unordered_children()[j];
                 if(n_child->prefix_likelihood() > threshold) {
                   current_leaves.push_back(n_child);
+                  // if(n_child->prefix_likelihood() > most_probable) {
+                  //   most_probable = n_child->prefix_likelihood();
+                  // }
                 } else {
                   n_child->mark_for_deletion();
                 }
@@ -645,6 +650,7 @@ void haplotypeManager::print_tree() {
   vector<string> level_prefix = {""};
   size_t level_depth = 0;
   size_t total_nodes = 0;
+  vector<size_t> unpruned_per_level;
   cout << "root : " << tree->root->prefix_likelihood() << endl;
   if(tree->root->number_of_children() != 0) {
     next_level = tree->root->get_unordered_children();
@@ -668,20 +674,22 @@ void haplotypeManager::print_tree() {
         level_prefix.push_back("");
       }
     }
-    for(size_t i = 0; i < this_level.size(); i++) {   
-      state_ID = tree->state_to_alleles(this_level[i]);
-      for(size_t j = 0; j < state_ID.size(); j++) {
-        cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
-      }
-      if(this_level[i]->is_marked_for_deletion()) {
-        cout << " : pruned" << endl;
-      } else {
-        cout << " : " << this_level[i]->prefix_likelihood() << endl;
-      }
-      if(this_level[i]->number_of_children() != 0) {
-        temp_for_children = this_level[i]->get_unordered_children();
-        for(size_t j = 0; j < temp_for_children.size(); j++) {
-          next_level.push_back(temp_for_children[j]);
+    for(size_t i = 0; i < this_level.size(); i++) {
+      if(!(this_level[i]->is_marked_for_deletion())) {   
+        state_ID = tree->state_to_alleles(this_level[i]);
+        for(size_t j = 0; j < state_ID.size(); j++) {
+          cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
+        }
+        // if(this_level[i]->is_marked_for_deletion()) {
+          // cout << " : pruned" << endl;
+        // } else {
+          cout << " : " << this_level[i]->prefix_likelihood() << endl;
+        // }
+        if(this_level[i]->number_of_children() != 0) {
+          temp_for_children = this_level[i]->get_unordered_children();
+          for(size_t j = 0; j < temp_for_children.size(); j++) {
+            next_level.push_back(temp_for_children[j]);
+          }
         }
       }
     }
@@ -690,9 +698,12 @@ void haplotypeManager::print_tree() {
   cout << total_nodes << " total nodes" << endl;
 }
 
-void haplotypeManager::branch_node(haplotypeStateNode* n, size_t i, const vector<rowSet*>& rows, double threshold) {
+void haplotypeManager::branch_node(haplotypeStateNode* n, 
+            size_t i, const vector<rowSet*>& rows, double threshold) {
   fill_in_span_before(n, i);
   alleleValue a;
+  // if *anything* fails to pass threshold after extension, then this must also
+  // happen for any allele not represented in the reference
   bool unrepresented_will_hit_threshold = false;
   for(size_t j = 0; j < 5; j++) {
     a = (alleleValue)j;
@@ -702,6 +713,35 @@ void haplotypeManager::branch_node(haplotypeStateNode* n, size_t i, const vector
           haplotypeStateNode* new_branch = n->add_child_copying_state(a);
           new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
           if(new_branch->prefix_likelihood() < threshold) {
+            unrepresented_will_hit_threshold = true;
+          }
+        }
+      }      
+    } else {
+      haplotypeStateNode* new_branch = n->add_child_copying_state(a);
+      new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
+    }
+  }
+  n->clear_state();
+}
+
+
+void haplotypeManager::branch_node(haplotypeStateNode* n, 
+            size_t i, const vector<rowSet*>& rows, double threshold, double& likeliest_unrep_failure) {
+  fill_in_span_before(n, i);
+  alleleValue a;
+  // if *anything* fails to pass threshold after extension, then this must also
+  // happen for any allele not represented in the reference
+  bool unrepresented_will_hit_threshold = (n->prefix_likelihood() < likeliest_unrep_failure);
+  for(size_t j = 0; j < 5; j++) {
+    a = (alleleValue)j;
+    if(threshold != 0) {
+      if(!(unrepresented_will_hit_threshold && (cohort->number_matching(i, a) == 0))) {
+        if(!will_hit_threshold(n, threshold, i, a)) {
+          haplotypeStateNode* new_branch = n->add_child_copying_state(a);
+          new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
+          if(new_branch->prefix_likelihood() < threshold) {
+            likeliest_unrep_failure = new_branch->prefix_likelihood();
             unrepresented_will_hit_threshold = true;
           }
         }

@@ -81,6 +81,7 @@ private:
   // Vector of pointers to nodes keep track of leaves of tree to be extended
   vector<haplotypeStateNode*> current_leaves;
   size_t last_level_built = SIZE_MAX;
+  vector<double> max_likelihood_by_shared_site;
 public:
   haplotypeManager(
           const linearReferenceStructure* reference, 
@@ -167,7 +168,10 @@ public:
   void build_entire_tree(double threshold);
   
   vector<rowSet*> get_rowSets_at_site(size_t current_site) const;
-  void branch_node(haplotypeStateNode* n, size_t i, const vector<rowSet*>& rows, double threshold = 0);
+  void branch_node(haplotypeStateNode* n, 
+              size_t i, const vector<rowSet*>& rows, double threshold = 0);
+  void branch_node(haplotypeStateNode* n, 
+              size_t i, const vector<rowSet*>& rows, double threshold, double& likeliest_unrep_failure);
   void clear_rowSet_vector(vector<rowSet*> row_sets);
   
   void extend_node_at_site(haplotypeStateNode* n, 
