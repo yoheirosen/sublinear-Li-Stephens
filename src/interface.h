@@ -13,11 +13,11 @@ typedef struct penaltySet penaltySet;
 
 haplotypeManager* haplotypeManager_build(
             char* reference_sequence,
+            size_t ref_seq_length,
             size_t number_of_ref_sites,
             size_t* positions_of_ref_sites,
             size_t number_of_haplotypes,
-            char** alleles_by_site_and_haplotype,
-            char* population_vcf_path,
+            char* alleles_by_site_and_haplotype,
             double mutation_penalty, 
             double recombination_penalty,
             size_t read_DP_ref_start,
@@ -97,7 +97,6 @@ extern "C" haplotypeManager* haplotypeManager_build(
             size_t* read_DP_site_offsets,
             char* read_DP_sequence, 
             double threshold) {
-  // TODO switch to direct read-in to cohort
   penaltySet* penalties = new penaltySet(recombination_penalty, 
                                          mutation_penalty, 
                                          number_of_haplotypes);
@@ -119,7 +118,7 @@ extern "C" haplotypeManager* haplotypeManager_build(
                                          
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     for(size_t j = 0; j < number_of_ref_sites; j++) {
-      haplotypes[i][j] = char_to_allele(alleles_by_site_and_haplotype[i][j]);
+      haplotypes[i][j] = char_to_allele(alleles_by_site_and_haplotype[i*number_of_haplotypes + j]);
     }
   }
   
