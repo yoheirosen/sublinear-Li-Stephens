@@ -89,7 +89,7 @@ extern "C" haplotypeManager* haplotypeManager_build(
             size_t number_of_ref_sites,
             size_t* positions_of_ref_sites,
             size_t number_of_haplotypes,
-            char** alleles_by_site_and_haplotype,
+            char* alleles_by_site_and_haplotype,
             double mutation_penalty, 
             double recombination_penalty,
             size_t read_DP_ref_start,
