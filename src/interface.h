@@ -83,36 +83,62 @@ haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n);
 //    - length of subinterval
 //    - density of ref sites
 //    - cohort size - average counts of non-major alleles across ref sites
-// extern "C" haplotypeManager* haplotypeManager_build(
-//             char* reference_sequence,
-//             size_t number_of_ref_sites,
-//             size_t* positions_of_ref_sites,
-//             size_t number_of_haplotypes,
-//             char** alleles_by_site_and_haplotype,
-//             double mutation_penalty, 
-//             double recombination_penalty,
-//             size_t read_DP_ref_start,
-//             size_t read_DP_site_count,
-//             size_t* read_DP_site_offsets,
-//             char* read_DP_sequence, 
-//             double threshold) {
-//   // TODO switch to direct read-in to cohort
-//   penaltySet* penalties = new penaltySet(recombination_penalty, 
-//                                          mutation_penalty, 
-//                                          vcf_manager.num_phases);
-//   vector<size_t> read_sites(read_DP_site_offsets,
-//                             read_DP_site_offsets + read_DP_site_count);
-//   haplotypeManager* hap_manager = 
-//               new haplotypeManager(vcf_manager.reference, 
-//                                    vcf_manager.cohort, 
-//                                    penalties, 
-//                                    reference_sequence,
-//                                    read_sites,
-//                                    read_DP_sequence, 
-//                                    read_DP_ref_start);
-//   hap_manager->build_entire_tree(threshold);
-//   return hap_manager;
-// }
+extern "C" haplotypeManager* haplotypeManager_build(
+            char* reference_sequence,
+            size_t ref_seq_length,
+            size_t number_of_ref_sites,
+            size_t* positions_of_ref_sites,
+            size_t number_of_haplotypes,
+            char** alleles_by_site_and_haplotype,
+            double mutation_penalty, 
+            double recombination_penalty,
+            size_t read_DP_ref_start,
+            size_t read_DP_site_count,
+            size_t* read_DP_site_offsets,
+            char* read_DP_sequence, 
+            double threshold) {
+  // TODO switch to direct read-in to cohort
+  penaltySet* penalties = new penaltySet(recombination_penalty, 
+                                         mutation_penalty, 
+                                         number_of_haplotypes);
+  vector<alleleValue> ref_site_allele_vector;
+  for(size_t i = 0; i < number_of_ref_sites; i++) {
+    ref_site_allele_vector.push_back(char_to_allele(reference_sequence[positions_of_ref_sites[i]]));
+  }
+  vector<size_t> ref_site_position_vector = 
+            vector<size_t>(positions_of_ref_sites, positions_of_ref_sites + number_of_ref_sites);
+  
+  linearReferenceStructure* reference =
+            new linearReferenceStructure(ref_site_position_vector, 
+                                         ref_seq_length,
+                                         ref_site_allele_vector);  
+    
+  vector<vector<alleleValue> > haplotypes = 
+            vector<vector<alleleValue> >(number_of_haplotypes,
+                                         vector<alleleValue>(number_of_ref_sites, A));
+                                         
+  for(size_t i = 0; i < number_of_haplotypes; i++) {
+    for(size_t j = 0; j < number_of_ref_sites; j++) {
+      haplotypes[i][j] = char_to_allele(alleles_by_site_and_haplotype[i][j]);
+    }
+  }
+  
+  haplotypeCohort* cohort = 
+            new haplotypeCohort(haplotypes, reference);  
+  
+  vector<size_t> read_sites(read_DP_site_offsets,
+                            read_DP_site_offsets + read_DP_site_count);
+  haplotypeManager* hap_manager = 
+              new haplotypeManager(reference, 
+                                   cohort, 
+                                   penalties, 
+                                   reference_sequence,
+                                   read_sites,
+                                   read_DP_sequence, 
+                                   read_DP_ref_start);
+  hap_manager->build_entire_tree(threshold);
+  return hap_manager;
+}
 
 // takes in an array of haplotypeStateNode*s of size 5. Indexed A-C-T-G-gap. 
 // to this, it writes
