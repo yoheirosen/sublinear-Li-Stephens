@@ -17,10 +17,10 @@ CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(
 
 TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/scored_node.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-all : deps speed speed_tree tests tree_tests interface
+all : build_dirs speed speed_tree tests tree_tests interface
 
-deps:
-	mkdir obj && mkdir obj/test && mkdir bin
+build_dirs:
+	mkdir -p obj/test && mkdir -p bin
 
 speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o $(BIN_DIR)/speed
