@@ -7,6 +7,7 @@ int main() {
 	long unsigned int number_of_ref_sites = 3;
 	long unsigned int positions_of_ref_sites[] = {0,2,5};
 	long unsigned int number_of_haplotypes = 5;
+	// all haplotypes are concatenated here... ie you have 5 haplotypes with 3 sites assigned alleles
 	char alleles_by_site_and_haplotype[] = {"AAAAAAATAAATAGC"};
 	double mutation_penalty = -9;
 	double recombination_penalty = -6;
@@ -14,8 +15,11 @@ int main() {
 	long unsigned int read_DP_site_count = 3;
 	long unsigned int read_DP_site_offsets[] = {0,2,5};
 	char* read_DP_sequence = "AAAAAAA";
-	double threshold = 0;
+	// prefix likelihood value below which to trim nodes of the tree
+	// has to be < 0; value 0 denotes no threshold
+	double threshold = -7;
 
+	// builds and trims whole tree
 	haplotypeManager* hap_manager = haplotypeManager_build(
 		reference_sequence,
 		ref_seq_length,
@@ -30,17 +34,26 @@ int main() {
 		read_DP_site_offsets,
 		read_DP_sequence,
 		threshold);
-
+	
 	haplotypeStateNode* n = haplotypeManager_get_root_node(hap_manager);
 	haplotypeStateNode* options[5];
+	
+	// fills options-vector with children of n; options vector must be
+	// a minimum of number of children
+	haplotypeStateNode_get_next_options(n, options);
 
-	haplotypeManager_get_next_options(n, options);
-	printf("%d\n", haplotypeManager_number_of_children(n));
-	for(int i = 0; i < 5; i++) {
-n = options[i];
+	for(int i = 0; i < haplotypeStateNode_number_of_children(n); i++) {
+		n = options[i];
+		// what allele does this node have?		
 		char allele = haplotypeStateNode_allele(n);
 		printf("%c %d\n", allele, haplotypeStateNode_local_probability(n, hap_manager));
 	}
 	
+	// print the whole thing
+	haplotypeManager_print(hap_manager);
+		
+	// calls destructor
+	haplotypeManager_delete(hap_manager);
+
 	return 0;
 }

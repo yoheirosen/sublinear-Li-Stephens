@@ -698,6 +698,69 @@ void haplotypeManager::print_tree() {
   cout << total_nodes << " total nodes" << endl;
 }
 
+void haplotypeManager::print_tree_transitions() {
+  vector<haplotypeStateNode*> next_level;
+  vector<haplotypeStateNode*> this_level;
+  vector<haplotypeStateNode*> temp_for_children;
+  vector<alleleValue> state_ID;
+  vector<string> level_prefix = {""};
+  size_t level_depth = 0;
+  size_t total_nodes = 0;
+  vector<size_t> unpruned_per_level;
+  cout << "root : " << tree->root->prefix_likelihood() << endl;
+  if(tree->root->number_of_children() != 0) {
+    next_level = tree->root->get_unordered_children();
+  }
+  while(next_level.size() != 0) {
+    this_level = next_level;
+    next_level.clear();
+    total_nodes += this_level.size();
+    if(level_depth == 0) {
+      if(get_shared_site_read_position(0) != 0) {
+        level_prefix[0] = read_reference.substr(0, 
+                    get_shared_site_read_position(0));
+      }
+    } else {
+      if(get_shared_site_read_position(level_depth) - 
+                  get_shared_site_read_position(level_depth - 1) > 1) {
+        size_t bdd_1 = get_shared_site_read_position(level_depth - 1) + 1;
+        size_t len = get_shared_site_read_position(level_depth) - bdd_1;
+        level_prefix.push_back(read_reference.substr(bdd_1, len));
+      } else {
+        level_prefix.push_back("");
+      }
+    }
+    for(size_t i = 0; i < this_level.size(); i++) {
+      if(!(this_level[i]->is_marked_for_deletion())) {   
+        state_ID = tree->state_to_alleles(this_level[i]);
+        for(size_t j = 0; j < state_ID.size(); j++) {
+          cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
+        }
+        // if(this_level[i]->is_marked_for_deletion()) {
+          // cout << " : pruned" << endl;
+        // } else {
+          cout << " : ";
+          haplotypeStateNode* tracer = tree->root;
+          for(size_t k = 0; k < state_ID.size(); k++) {
+            tracer = tracer->get_child(state_ID[k]);
+            double transition = tracer->prefix_likelihood() - tracer->max_prefix_likelihood(penalties);
+            cout << transition << " ";
+          }
+          cout << endl;
+        // }
+        if(this_level[i]->number_of_children() != 0) {
+          temp_for_children = this_level[i]->get_unordered_children();
+          for(size_t j = 0; j < temp_for_children.size(); j++) {
+            next_level.push_back(temp_for_children[j]);
+          }
+        }
+      }
+    }
+    level_depth++;
+  }
+  cout << total_nodes << " total nodes" << endl;
+}
+
 void haplotypeManager::branch_node(haplotypeStateNode* n, 
             size_t i, const vector<rowSet*>& rows, double threshold) {
   fill_in_span_before(n, i);

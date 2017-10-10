@@ -180,6 +180,7 @@ public:
   vector<haplotypeStateNode*> get_current_leaves() const;
   
   void print_tree();
+  void print_tree_transitions();
   
   bool will_hit_threshold(haplotypeStateNode* n, 
               double threshold, size_t site_index, alleleValue a) const;

@@ -23,7 +23,7 @@ extern "C" haplotypeManager* haplotypeManager_build(
             char* read_DP_sequence, 
             double threshold);
             
-extern "C" void haplotypeManager_get_next_options(
+extern "C" void haplotypeStateNode_get_next_options(
             haplotypeStateNode* n, 
             haplotypeStateNode** option_array);
             
@@ -42,9 +42,9 @@ extern "C" haplotypeStateNode* haplotypeManager_get_root_node(
             
 extern "C" haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n);
 
-extern "C" size_t haplotypeManager_number_of_children(haplotypeStateNode* n);
+extern "C" size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n);
 
-extern "C" void print_five(double* test);
+extern "C" void haplotypeManager_print(haplotypeManager* hap_manager);
 
 #endif
 #endif

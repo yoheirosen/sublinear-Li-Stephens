@@ -3,7 +3,6 @@
 #include "reference.hpp"
 #include "probability.hpp"
 #include "reference_sequence.hpp"
-#include <iostream>
 
 using namespace std;
 #endif
@@ -110,7 +109,7 @@ extern "C" haplotypeManager* haplotypeManager_build(
 //      for pruning
 // We do not actually need to input the haplotypeManager itself because it is
 // implied by the haplotypeStateNode *n being contained within it
-extern "C" void haplotypeManager_get_next_options(
+extern "C" void haplotypeStateNode_get_next_options(
             haplotypeStateNode* n, 
             haplotypeStateNode** option_array) {
   size_t number_of_children = n->number_of_children();
@@ -123,7 +122,7 @@ extern "C" void haplotypeManager_get_next_options(
   }
 }
 
-extern "C" size_t haplotypeManager_number_of_children(haplotypeStateNode* n) {
+extern "C" size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n) {
   return n->number_of_children();
 }
 
@@ -138,13 +137,7 @@ extern "C" double haplotypeStateNode_local_probability(
 }
 
 extern "C" double haplotypeStateNode_total_probability(haplotypeStateNode* n) {
-  cout << n->prefix_likelihood() << "(from C++ cout) ";
-  // double to_return = n->prefix_likelihood();
-  return 5.0;
-}
-
-extern "C" void print_five(double* test) {
-  *test = 5.0;
+  return n->prefix_likelihood();
 }
 
 // gets the allele of the haplotypeStateNode. Fast O(1) query
@@ -171,5 +164,9 @@ extern "C" haplotypeStateNode* haplotypeManager_get_root_node(
 // step a state to the left by one "site"
 extern "C" haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n) {
   return n->get_parent();
+}
+
+extern "C" void haplotypeManager_print(haplotypeManager* hap_manager) {
+  hap_manager->print_tree_transitions();
 }
 #endif
