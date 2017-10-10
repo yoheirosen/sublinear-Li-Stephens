@@ -34,7 +34,7 @@ tree_tests : $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
 speed_tree : $(TEST_OBJ_DIR)/speed_tree.o $(CORE_OBJ) $(TREE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed_tree.o $(CORE_OBJ) $(TREE_OBJ) -o $(BIN_DIR)/speed_tree
 
-interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o
+interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE_OBJ)
 	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE_OBJ) -o $(BIN_DIR)/linhapexample
 
 clean:
