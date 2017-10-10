@@ -7,8 +7,10 @@ typedef struct haplotypeStateNode haplotypeStateNode;
 typedef struct penaltySet penaltySet;
 
 #ifdef __cplusplus
-
-extern "C" haplotypeManager* haplotypeManager_build(
+extern "C" {
+#endif
+  
+haplotypeManager* haplotypeManager_build(
             char* reference_sequence,
             size_t ref_seq_length,
             size_t number_of_ref_sites,
@@ -23,28 +25,30 @@ extern "C" haplotypeManager* haplotypeManager_build(
             char* read_DP_sequence, 
             double threshold);
             
-extern "C" void haplotypeStateNode_get_next_options(
+void haplotypeStateNode_get_next_options(
             haplotypeStateNode* n, 
             haplotypeStateNode** option_array);
             
-extern "C" double haplotypeStateNode_local_probability(
+double haplotypeStateNode_local_probability(
             haplotypeStateNode* n, 
             haplotypeManager* hap_manager);
             
-extern "C" double haplotypeStateNode_total_probability(haplotypeStateNode* n);
+double haplotypeStateNode_total_probability(haplotypeStateNode* n);
 
-extern "C" char haplotypeStateNode_allele(haplotypeStateNode* n);
+char haplotypeStateNode_allele(haplotypeStateNode* n);
 
-extern "C" void haplotypeManager_delete(haplotypeManager* to_delete);
+void haplotypeManager_delete(haplotypeManager* to_delete);
 
-extern "C" haplotypeStateNode* haplotypeManager_get_root_node(
+haplotypeStateNode* haplotypeManager_get_root_node(
             haplotypeManager* hap_manager);
             
-extern "C" haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n);
+haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n);
 
-extern "C" size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n);
+size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n);
 
-extern "C" void haplotypeManager_print(haplotypeManager* hap_manager);
+void haplotypeManager_print(haplotypeManager* hap_manager);
 
+#ifdef __cplusplus
+}
 #endif
 #endif

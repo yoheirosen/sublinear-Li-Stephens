@@ -1,15 +1,12 @@
-#ifdef __cplusplus
 #include "haplotype_manager.hpp"
 #include "reference.hpp"
 #include "probability.hpp"
 #include "reference_sequence.hpp"
 
 using namespace std;
-#endif
 
 #include "interface.h"
 
-#ifdef __cplusplus
 // A haplotypeManager is the containter for all likelihood calculations
 // it requires specification of:
 //   - the base sequence of the reference
@@ -46,7 +43,7 @@ using namespace std;
 //    - length of subinterval
 //    - density of ref sites
 //    - cohort size - average counts of non-major alleles across ref sites
-extern "C" haplotypeManager* haplotypeManager_build(
+haplotypeManager* haplotypeManager_build(
             char* reference_sequence,
             size_t ref_seq_length,
             size_t number_of_ref_sites,
@@ -109,7 +106,7 @@ extern "C" haplotypeManager* haplotypeManager_build(
 //      for pruning
 // We do not actually need to input the haplotypeManager itself because it is
 // implied by the haplotypeStateNode *n being contained within it
-extern "C" void haplotypeStateNode_get_next_options(
+void haplotypeStateNode_get_next_options(
             haplotypeStateNode* n, 
             haplotypeStateNode** option_array) {
   size_t number_of_children = n->number_of_children();
@@ -122,31 +119,31 @@ extern "C" void haplotypeStateNode_get_next_options(
   }
 }
 
-extern "C" size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n) {
+size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n) {
   return n->number_of_children();
 }
 
 // returns the conditional prefix likelihood for a state given the state of its
 // prefix which contains one fewer site 
 // Fast O(1) query given slow haplotypeManager pre-construction
-extern "C" double haplotypeStateNode_local_probability(
+double haplotypeStateNode_local_probability(
             haplotypeStateNode* n, 
             haplotypeManager* hap_manager) {
   const penaltySet* penalties = hap_manager->get_penalties();
   return n->prefix_likelihood() - n->max_prefix_likelihood(penalties);
 }
 
-extern "C" double haplotypeStateNode_total_probability(haplotypeStateNode* n) {
+double haplotypeStateNode_total_probability(haplotypeStateNode* n) {
   return n->prefix_likelihood();
 }
 
 // gets the allele of the haplotypeStateNode. Fast O(1) query
-extern "C" char haplotypeStateNode_allele(haplotypeStateNode* n) {
+char haplotypeStateNode_allele(haplotypeStateNode* n) {
   return allele_to_char(n->get_allele());
 }
 
 // clears the haplotypeManager from memory
-extern "C" void haplotypeManager_delete(haplotypeManager* to_delete) {
+void haplotypeManager_delete(haplotypeManager* to_delete) {
   delete to_delete->get_reference();
   delete to_delete->get_cohort();
   delete to_delete->get_penalties();
@@ -156,17 +153,16 @@ extern "C" void haplotypeManager_delete(haplotypeManager* to_delete) {
 // this is the node which preceds the first "site." It is either empty, if the
 // first "site" is also the first position within the subinterval. Otherwise it
 // contains the prefix likelihood of the invariant interval which precedes it
-extern "C" haplotypeStateNode* haplotypeManager_get_root_node(
+haplotypeStateNode* haplotypeManager_get_root_node(
             haplotypeManager* hap_manager) {
   return hap_manager->get_tree()->root;
 }
 
 // step a state to the left by one "site"
-extern "C" haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n) {
+haplotypeStateNode* haplotypeStateNode_get_parent(haplotypeStateNode* n) {
   return n->get_parent();
 }
 
-extern "C" void haplotypeManager_print(haplotypeManager* hap_manager) {
+void haplotypeManager_print(haplotypeManager* hap_manager) {
   hap_manager->print_tree_transitions();
 }
-#endif

@@ -17,7 +17,7 @@ int main() {
 	char* read_DP_sequence = "AAAAAAA";
 	// prefix likelihood value below which to trim nodes of the tree
 	// has to be < 0; value 0 denotes no threshold
-	double threshold = -7;
+	double threshold = 0;
 
 	// builds and trims whole tree
 	haplotypeManager* hap_manager = haplotypeManager_build(
@@ -46,7 +46,7 @@ int main() {
 		n = options[i];
 		// what allele does this node have?		
 		char allele = haplotypeStateNode_allele(n);
-		printf("%c %d\n", allele, haplotypeStateNode_local_probability(n, hap_manager));
+		printf("%c %lf\n", allele, haplotypeStateNode_local_probability(n, hap_manager));
 	}
 	
 	// print the whole thing

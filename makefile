@@ -46,8 +46,8 @@ $(OBJ_DIR)/allele.o : $(SRC_DIR)/allele.cpp $(SRC_DIR)/allele.hpp
 $(OBJ_DIR)/linhapexample.o : $(SRC_DIR)/linhapexample.c $(SRC_DIR)/interface.h $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
 	gcc $(INCLUDE_FLAGS) -c $(SRC_DIR)/linhapexample.c -o $(OBJ_DIR)/linhapexample.o
 
-$(OBJ_DIR)/interface.o : $(SRC_DIR)/interface.c $(SRC_DIR)/interface.h $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/interface.c -o $(OBJ_DIR)/interface.o
+$(OBJ_DIR)/interface.o : $(SRC_DIR)/interface.cpp $(SRC_DIR)/interface.h $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/interface.cpp -o $(OBJ_DIR)/interface.o
 
 $(OBJ_DIR)/haplotype_state_node.o : $(SRC_DIR)/haplotype_state_node.cpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/haplotype_state_node.cpp -o $(OBJ_DIR)/haplotype_state_node.o
