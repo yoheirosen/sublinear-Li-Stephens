@@ -1,3 +1,0 @@
-[submodule "deps/vcflib"]
-	path = deps/vcflib
-	url = https://github.com/vcflib/vcflib

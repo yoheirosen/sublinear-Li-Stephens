@@ -1,19 +1,20 @@
 #include "interface.h"
+#include <stdio.h>
 
 int main() {
-	char* reference_sequence = "AAA";
-	long unsigned int ref_seq_length = 3;
+	char* reference_sequence = "AAAAAAA";
+	long unsigned int ref_seq_length = 7;
 	long unsigned int number_of_ref_sites = 3;
-	long unsigned int positions_of_ref_sites[] = {0,1,2};
-	long unsigned int number_of_haplotypes = 2;
-	char alleles_by_site_and_haplotype[] = {"ATACGC"};
-	double mutation_penalty = 6;
-	double recombination_penalty = 9;
+	long unsigned int positions_of_ref_sites[] = {0,2,5};
+	long unsigned int number_of_haplotypes = 5;
+	char alleles_by_site_and_haplotype[] = {"AAAAAAATAAATAGC"};
+	double mutation_penalty = -9;
+	double recombination_penalty = -6;
 	long unsigned int read_DP_ref_start = 0;
 	long unsigned int read_DP_site_count = 3;
-	long unsigned int read_DP_site_offsets[] = {0,1,2};
-	char* read_DP_sequence = "CCC";
-	double threshold = -30;
+	long unsigned int read_DP_site_offsets[] = {0,2,5};
+	char* read_DP_sequence = "AAAAAAA";
+	double threshold = 0;
 
 	haplotypeManager* hap_manager = haplotypeManager_build(
 		reference_sequence,
@@ -31,14 +32,15 @@ int main() {
 		threshold);
 
 	haplotypeStateNode* n = haplotypeManager_get_root_node(hap_manager);
-
 	haplotypeStateNode* options[5];
+
 	haplotypeManager_get_next_options(n, options);
-	n = options[0];
-	haplotypeManager_get_next_options(n, options);
-	n = options[1];
-	double transition_probability =
-		haplotypeStateNode_local_probability(n, hap_manager);
-	char allele = haplotypeStateNode_allele(n);
+	printf("%d\n", haplotypeManager_number_of_children(n));
+	for(int i = 0; i < 5; i++) {
+n = options[i];
+		char allele = haplotypeStateNode_allele(n);
+		printf("%c %d\n", allele, haplotypeStateNode_local_probability(n, hap_manager));
+	}
+	
 	return 0;
 }
