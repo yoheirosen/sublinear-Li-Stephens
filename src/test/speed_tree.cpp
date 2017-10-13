@@ -97,15 +97,20 @@ int main(int argc, char* argv[]) {
       read_alleles.c_str(), 
       0);
     
-    cout << endl << "building tree..." << endl;
+    cout << endl << "building tree with " << hap_manager.shared_sites() << " shared sites ..." << endl;
     
+    // hap_manager.set_cutoff_interval(cutoff);
     auto begin = chrono::high_resolution_clock::now();
     
-    hap_manager.build_entire_tree(cutoff);
+    hap_manager.build_entire_tree_cutoff(cutoff);
       
     auto end = chrono::high_resolution_clock::now();
     
+    cout << "built tree" << endl << endl;
+    
     hap_manager.print_tree();
+    // cout << endl;
+    // hap_manager.print_tree_transitions();
     
     auto ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << endl << "sites\t" << number_of_sites << "\tshared\t" << shared_sites.size() << "\t cutoff \t" << cutoff << "\tterminal leaves\t" << hap_manager.get_current_leaves().size() << "\t time \t" << ms << "\tms"<< endl;

@@ -11,6 +11,28 @@
 
 using namespace std;
 
+struct thresholdInterval{
+private:
+  double threshold;
+  double upper_bound;
+  double last_upper_bound = 0;
+  const penaltySet* penalties;
+  bool using_cutoff;
+public:
+  thresholdInterval(const penaltySet* penalties);
+  thresholdInterval(double threshold, const penaltySet* penalites);
+  void set_new_site();
+  void check_for_new_bound(double test_bound);
+  void check_for_new_bound(const haplotypeStateNode* test_bound);
+  void check_for_new_bound(const vector<double>& test_bounds);
+  void check_for_new_bound(const vector<haplotypeStateNode*>& test_bounds);
+  bool is_within_interval(double test_value) const;
+  bool is_within_interval(const haplotypeStateNode* test_value) const;
+  double get_upper_bound() const;
+  double get_lower_bound() const;
+  bool using_interval_cutoff() const;
+};
+
 // There are four indexing schemes:
 // 1. Reference-position
 // 2. Read-position
@@ -80,6 +102,7 @@ private:
   
   // Vector of pointers to nodes keep track of leaves of tree to be extended
   vector<haplotypeStateNode*> current_leaves;
+  thresholdInterval cutoff_interval;
   size_t last_level_built = SIZE_MAX;
   vector<double> max_likelihood_by_shared_site;
 public:
@@ -162,16 +185,30 @@ public:
   void initialize_tree();
   
   void build_next_level(double threshold);
+  void build_next_level_cutoff(double threshold);
   void fill_in_level(double threshold, size_t start_site,
           size_t upper_bound_site); 
+  void fill_in_level_no_threshold(size_t start_site,
+          size_t upper_bound_site); 
+  void fill_in_level_threshold(double threshold, size_t start_site,
+          size_t upper_bound_site); 
+          
   void extend_final_level(double threshold);
-  void build_entire_tree(double threshold);
+  void extend_final_level_threshold(double threshold);
+  void extend_final_level_no_threshold();
+  
+  void build_entire_tree(double absolute_threshold);
+  void build_entire_tree_cutoff(double cutoff);
   
   vector<rowSet*> get_rowSets_at_site(size_t current_site) const;
   void branch_node(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows, double threshold = 0);
   void branch_node(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows, double threshold, double& likeliest_unrep_failure);
+  void branch_node_cutoff(haplotypeStateNode* n, 
+              size_t i, const vector<rowSet*>& rows);
+  void branch_node_no_threshold(haplotypeStateNode* n, 
+              size_t i, const vector<rowSet*>& rows);
   void clear_rowSet_vector(vector<rowSet*> row_sets);
   
   void extend_node_at_site(haplotypeStateNode* n, 
@@ -184,7 +221,11 @@ public:
   
   bool will_hit_threshold(haplotypeStateNode* n, 
               double threshold, size_t site_index, alleleValue a) const;
+  void set_cutoff_interval(double relative_threshold);
+  
+  void trim_back_abandoned_nodes(vector<haplotypeStateNode*>& nodes);
+  void trim_back_marked_nodes(vector<haplotypeStateNode*>& nodes);  
+  void delete_marked_children(vector<haplotypeStateNode*>& nodes);
 };
-
 
 #endif

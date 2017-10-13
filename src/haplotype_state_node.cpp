@@ -31,6 +31,7 @@ haplotypeStateNode::haplotypeStateNode(const haplotypeStateNode& other) {
   parent = other.parent;
   children = {};
   state = new haplotypeMatrix(*state);
+  marked_for_deletion = false;
 }
 
 bool haplotypeStateNode::is_root() const {
@@ -102,9 +103,9 @@ haplotypeStateNode* haplotypeStateNode::get_parent() const {
   return parent;
 }
 
-void haplotypeStateNode::remove_child(haplotypeStateNode* c) {
-  size_t i = node_to_child_index(c);
-  remove_child(i);    
+void haplotypeStateNode::remove_child(haplotypeStateNode*& c) {
+  remove_child_from_childvector(node_to_child_index(c));
+  delete c;
   return;
 }
 
@@ -142,6 +143,14 @@ void haplotypeStateNode::clear_state() {
   state = nullptr;
 }
 
+// void haplotypeStateNode::delete_children_except(vector<size_t>& indices) {
+//   vector<haplotypeStateNode*> temporary_children;
+//   for(size_t i = 0; i < indices.size(); i++) {
+//     temporary_children.push_back(children[i]);
+//   }
+// }
+
+
 void haplotypeStateNode::copy_state_from_node(const haplotypeStateNode* other) {
   clear_state();
   state = new haplotypeMatrix(*(other->state));
@@ -173,11 +182,11 @@ double haplotypeStateNode::max_prefix_likelihood(const penaltySet* penalties) co
 
 void haplotypeStateNode::mark_for_deletion() {
   clear_state();
-  S = 1;
+  marked_for_deletion = true;
 }
 
 bool haplotypeStateNode::is_marked_for_deletion() const {
-  return (S == 1);
+  return marked_for_deletion;
 }
 
 

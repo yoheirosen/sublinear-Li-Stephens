@@ -27,9 +27,9 @@ public:
   
   haplotypeStateNode* root;
   
-  void remove_node(haplotypeStateNode* n);
-  void remove_node_and_unshared_ancestors(haplotypeStateNode* n);
-  void remove_unlikely_children(haplotypeStateNode* n, double threshold);
+  void remove_node(haplotypeStateNode*& n);
+  void remove_node_and_unshared_ancestors(haplotypeStateNode*& n);
+  // void remove_unlikely_children(haplotypeStateNode* n, double threshold);
     
   haplotypeStateNode* alleles_to_state(
               const vector<alleleValue>& identifiers) const;

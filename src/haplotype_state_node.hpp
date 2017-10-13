@@ -9,12 +9,12 @@ using namespace std;
 struct haplotypeStateNode{
 private:
   // tracks the last reference position
-  alleleValue allele;
-  haplotypeStateNode* parent = nullptr;
-  vector<haplotypeStateNode*> children;
-  
   double S;
-  
+  haplotypeStateNode* parent = nullptr;
+  alleleValue allele;
+  bool marked_for_deletion = false;
+  vector<haplotypeStateNode*> children;
+    
 public:
   // stores a probability calculation DP state
   haplotypeMatrix* state = nullptr;  
@@ -50,7 +50,7 @@ public:
   size_t number_of_children() const;
   haplotypeStateNode* get_parent() const;
   
-  void remove_child(haplotypeStateNode* c);
+  void remove_child(haplotypeStateNode*& c);
   void remove_child(alleleValue a);
   void remove_child(size_t index);
   void remove_child_from_childvector(size_t index);

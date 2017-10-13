@@ -16,9 +16,9 @@ haplotypeStateTree::~haplotypeStateTree() {
   delete root;
 }
 
-void haplotypeStateTree::remove_node(haplotypeStateNode* n) {
+void haplotypeStateTree::remove_node(haplotypeStateNode*& n) {
   if(n == root) {
-    delete root;
+    delete n;
   } else {
     haplotypeStateNode* parent = n->get_parent();
     // handles both deletion from parent's child-vector as well as 
@@ -27,36 +27,29 @@ void haplotypeStateTree::remove_node(haplotypeStateNode* n) {
 }
 
 void haplotypeStateTree::remove_node_and_unshared_ancestors(
-            haplotypeStateNode* n) {
+            haplotypeStateNode*& n) {
   if(n == root) {
-    remove_node(n);
+    delete n;
   } else {
-    haplotypeStateNode* current_node = n->get_parent();
-    haplotypeStateNode* next_node;
-    remove_node(n);
-    while(current_node->is_leaf()) {
-      if(current_node == root) {
-        remove_node(n);
-        break;
-      } else {
-        next_node = current_node->get_parent();
-        // remove from children of parent
-        next_node->remove_child(current_node);
-        current_node = next_node;
-      }
+    haplotypeStateNode* n_parent = n->get_parent(); 
+    size_t child_index = n_parent->node_to_child_index(n);
+    n->remove_child_from_childvector(child_index);
+    delete n;
+    if(n_parent->is_leaf()) {
+      remove_node_and_unshared_ancestors(n_parent);
     }
   }
 }
 
-// TODO test []
-void haplotypeStateTree::remove_unlikely_children(haplotypeStateNode* n, 
-            double threshold) {
-  for(size_t i = 0; i < n->number_of_children(); i++) {
-    if(n->get_child(i)->prefix_likelihood() < threshold) {
-      n->remove_child(n->get_child(i));
-    }
-  }
-}
+// 
+// void haplotypeStateTree::remove_unlikely_children(haplotypeStateNode* n, 
+//             double threshold) {
+//   for(size_t i = 0; i < n->number_of_children(); i++) {
+//     if(n->get_child(i)->prefix_likelihood() < threshold) {
+//       n->remove_child(n->get_child(i));
+//     }
+//   }
+// }
 
 haplotypeStateNode* haplotypeStateTree::alleles_to_state(
             const vector<alleleValue>& identifiers) const {
