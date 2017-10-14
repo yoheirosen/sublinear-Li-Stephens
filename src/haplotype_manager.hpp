@@ -17,7 +17,7 @@ private:
   double upper_bound;
   double last_upper_bound = 0;
   const penaltySet* penalties;
-  bool using_cutoff;
+  bool using_interval;
 public:
   thresholdInterval(const penaltySet* penalties);
   thresholdInterval(double threshold, const penaltySet* penalites);
@@ -185,7 +185,7 @@ public:
   void initialize_tree();
   
   void build_next_level(double threshold);
-  void build_next_level_cutoff(double threshold);
+  void build_next_level_interval(double threshold);
   void fill_in_level(double threshold, size_t start_site,
           size_t upper_bound_site); 
   void fill_in_level_no_threshold(size_t start_site,
@@ -198,15 +198,17 @@ public:
   void extend_final_level_no_threshold();
   
   void build_entire_tree(double absolute_threshold);
-  void build_entire_tree_cutoff(double cutoff);
+  void build_entire_tree_interval(double cutoff);
   
   vector<rowSet*> get_rowSets_at_site(size_t current_site) const;
   void branch_node(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows, double threshold = 0);
   void branch_node(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows, double threshold, double& likeliest_unrep_failure);
-  void branch_node_cutoff(haplotypeStateNode* n, 
+  void branch_node_interval(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows);
+  void branch_node_interval(haplotypeStateNode* n, 
+              size_t i, const vector<rowSet*>& rows, thresholdInterval& predictor);
   void branch_node_no_threshold(haplotypeStateNode* n, 
               size_t i, const vector<rowSet*>& rows);
   void clear_rowSet_vector(vector<rowSet*> row_sets);

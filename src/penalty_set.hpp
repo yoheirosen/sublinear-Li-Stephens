@@ -13,7 +13,6 @@ struct penaltySet{
   double log_H;
   double rho;
   double mu;
-  double one_minus_rho;
   double one_minus_mu;
   double one_minus_2mu;
   

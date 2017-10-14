@@ -20,7 +20,7 @@ int main() {
 	double threshold = 0;
 
 	// builds and trims whole tree
-	haplotypeManager* hap_manager = haplotypeManager_build(
+	haplotypeManager* hap_manager = haplotypeManager_build_abs_bound(
 		reference_sequence,
 		ref_seq_length,
 		number_of_ref_sites,
@@ -50,10 +50,9 @@ int main() {
 	}
 	
 	// print the whole thing
-	haplotypeManager_print(hap_manager);
+	haplotypeManager_print_transition_likelihoods(hap_manager);
+	printf("\n");
+	haplotypeManager_print_prefix_likelihoods(hap_manager);
 		
-	// calls destructor
-	haplotypeManager_delete(hap_manager);
-
 	return 0;
 }

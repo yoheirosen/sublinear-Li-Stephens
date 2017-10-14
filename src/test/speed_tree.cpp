@@ -68,17 +68,17 @@ int main(int argc, char* argv[]) {
       cohort_alleles.push_back(haplotype_alleles);
     }
     
-    for(size_t i = 0; i < number_of_haplotypes; i++) {
-      if(i == 0) {
-        cout << "haplotypes:\t";
-      } else {
-        cout << "\t\t";
-      }
-      for(size_t j = 0; j < number_of_sites; j++) {
-        cout << allele_to_char(cohort_alleles[i][j]);
-      }
-      cout << endl;
-    }
+    // for(size_t i = 0; i < number_of_haplotypes; i++) {
+    //   if(i == 0) {
+    //     cout << "haplotypes:\t";
+    //   } else {
+    //     cout << "\t\t";
+    //   }
+    //   for(size_t j = 0; j < number_of_sites; j++) {
+    //     cout << allele_to_char(cohort_alleles[i][j]);
+    //   }
+    //   cout << endl;
+    // }
     
     if(shared_sites.size() == 0) {
       cout << "no tree to build" << endl;
@@ -97,18 +97,19 @@ int main(int argc, char* argv[]) {
       read_alleles.c_str(), 
       0);
     
-    cout << endl << "building tree with " << hap_manager.shared_sites() << " shared sites ..." << endl;
+    cout << endl << "penalties : rho - " << penalties.rho << " mu - " << penalties.mu << " log(H) - " << penalties.log_H << " alpha - " << penalties.alpha_value << " beta -" << penalties.beta_value << endl << endl;
     
-    // hap_manager.set_cutoff_interval(cutoff);
+    cout << endl << "building tree with " << hap_manager.shared_sites() << " shared sites" << endl;
+    
     auto begin = chrono::high_resolution_clock::now();
     
-    hap_manager.build_entire_tree_cutoff(cutoff);
+    hap_manager.build_entire_tree_interval(cutoff);
       
     auto end = chrono::high_resolution_clock::now();
     
     cout << "built tree" << endl << endl;
     
-    hap_manager.print_tree();
+    // hap_manager.print_tree();
     // cout << endl;
     // hap_manager.print_tree_transitions();
     

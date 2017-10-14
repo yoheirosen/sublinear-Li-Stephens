@@ -399,14 +399,15 @@ void haplotypeManager::build_entire_tree(double absolute_threshold) {
 }
 
 
-void haplotypeManager::build_entire_tree_cutoff(double cutoff) {
+void haplotypeManager::build_entire_tree_interval(double cutoff) {
   initialize_tree();
   set_cutoff_interval(cutoff);
-  cout << "built root" << endl;
+  cerr << "built root" << endl;
+  cerr << "\tcurrent leaves " << current_leaves.size() << endl;
   for(size_t i = 1; i < shared_sites(); i++) {
-    cout << "building shared site " << i << " of "<< shared_sites() << "; ref index " << shared_index_to_ref_index(i) << endl;
-    build_next_level_cutoff(0);
-    cout << "\tcurrent leaves " << current_leaves.size() << endl;
+    cerr << "building shared site " << i << " of "<< shared_sites() << "; ref index " << shared_index_to_ref_index(i) << endl;
+    build_next_level_interval(0);
+    cerr << "\tcurrent leaves " << current_leaves.size() << endl;
   }
   if(shared_sites() != 0) {
     extend_final_level(0);
@@ -476,7 +477,7 @@ void haplotypeManager::initialize_tree() {
   }
 }
 
-void haplotypeManager::build_next_level_cutoff(double threshold) {
+void haplotypeManager::build_next_level_interval(double threshold) {
   if(last_level_built >= shared_sites() - 1) {
     // no more levels to build
     return;
@@ -495,13 +496,16 @@ void haplotypeManager::build_next_level_cutoff(double threshold) {
 
     vector<rowSet*> current_rows = get_rowSets_at_site(current_site);
     
-    branch_node(last_leaves[0], current_site, current_rows);
-    cutoff_interval.set_new_site();
-    cutoff_interval.check_for_new_bound(last_leaves[0]->get_unordered_children());
-    
+    if(last_leaves.size() != 0) {
+      branch_node(last_leaves[0], current_site, current_rows);
+      cutoff_interval.set_new_site();
+      cutoff_interval.check_for_new_bound(last_leaves[0]->get_unordered_children());
+    }
+    // thresholdInterval predictor(penalties);
     for(size_t i = 1; i < last_leaves.size(); i++) {
       haplotypeStateNode* n = last_leaves[i];
-      branch_node_cutoff(n, current_site, current_rows);
+      branch_node_interval(n, current_site, current_rows);
+      // branch_node_interval(n, current_site, current_rows, predictor);
     }
     for(size_t i = 0; i < last_leaves.size(); i++) {
       for(size_t j = 0; j < last_leaves[i]->number_of_children(); j++) {
@@ -697,12 +701,11 @@ void haplotypeManager::branch_node(haplotypeStateNode* n,
   n->clear_state();
 }
 
-void haplotypeManager::branch_node_cutoff(haplotypeStateNode* n, 
+void haplotypeManager::branch_node_interval(haplotypeStateNode* n, 
             size_t i, const vector<rowSet*>& rows) {
   fill_in_span_before(n, i);
   alleleValue a;
-  // if *anything* fails to pass threshold after extension, then this must also
-  // happen for any allele not represented in the reference
+
   for(size_t j = 0; j < 5; j++) {
     a = (alleleValue)j;
     haplotypeStateNode* new_branch = n->add_child_copying_state(a);
@@ -716,8 +719,32 @@ void haplotypeManager::branch_node_cutoff(haplotypeStateNode* n,
   n->clear_state();
 }
 
-// TODO pre-estimate killed nodes
-// make sure you account for read-ref mismatches
+void haplotypeManager::branch_node_interval(haplotypeStateNode* n, 
+            size_t i, const vector<rowSet*>& rows, thresholdInterval& predictor) {
+  fill_in_span_before(n, i);
+  alleleValue a;
+  // if *anything* fails to pass threshold after extension, then this must also
+  // happen for any allele not represented in the reference
+  for(size_t j = 0; j < 5; j++) {
+    a = (alleleValue)j;
+    haplotypeStateNode* new_branch = n->add_child_copying_state(a);
+    if(!predictor.using_interval_cutoff() || predictor.is_within_interval(n)) {
+      new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
+      if(cutoff_interval.is_within_interval(new_branch)) {
+        cutoff_interval.check_for_new_bound(new_branch);
+      } else {
+        if(!predictor.using_interval_cutoff()) {
+          predictor = thresholdInterval(n->prefix_likelihood(), penalties);
+        } else {
+          predictor.check_for_new_bound(n);
+        }
+        new_branch->mark_for_deletion();
+      }
+    }
+  }
+  n->clear_state();
+}
+
 void haplotypeManager::fill_in_level(double threshold,
         size_t start_site, size_t upper_bound_site) {
   if(threshold == 0) {
@@ -792,12 +819,11 @@ void haplotypeManager::extend_final_level_threshold(double threshold) {
     size_t past_last_shared = shared_index_to_ref_index(shared_sites() - 1) + 1;
     size_t past_last_ref = final_ref_site() + 1;
     fill_in_level(threshold, past_last_shared, past_last_ref);
-  }
-  
-  vector<haplotypeStateNode*> last_leaves = current_leaves;
-  current_leaves.clear();
+  }  
 
   if(final_span_after_last_ref_site() > 0) {
+    vector<haplotypeStateNode*> last_leaves = current_leaves;
+    current_leaves.clear();
     haplotypeStateNode* n;
     for(size_t i = 0; i < last_leaves.size(); i++) {
       n = last_leaves[i];
@@ -997,12 +1023,12 @@ bool haplotypeManager::will_hit_threshold(haplotypeStateNode* n,
 }
 
 bool thresholdInterval::using_interval_cutoff() const {
-  return using_cutoff;
+  return using_interval;
 }
 
 thresholdInterval::thresholdInterval(const penaltySet* penalties) : penalties(penalties) {
   threshold = 0;
-  using_cutoff = false;
+  using_interval = false;
 }
 
 
@@ -1011,7 +1037,7 @@ thresholdInterval::thresholdInterval(double threshold,
           threshold(threshold), penalties(penalties) {
   upper_bound = last_upper_bound - penalties->mu;
   if(threshold < 0) {
-    using_cutoff = true;
+    using_interval = true;
   }
 }
 
@@ -1061,6 +1087,7 @@ bool thresholdInterval::is_within_interval(const haplotypeStateNode* test_value)
 double thresholdInterval::get_upper_bound() const {
   return upper_bound;
 }
+
 double thresholdInterval::get_lower_bound() const {
   return upper_bound + threshold;
 }

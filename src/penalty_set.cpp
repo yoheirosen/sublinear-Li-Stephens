@@ -7,6 +7,7 @@ penaltySet::~penaltySet() {
 
 penaltySet::penaltySet(double rho, double mu, int H) : H(H), 
           rho(rho), mu(mu) {
+  rho = rho;
   log_H = log(H);
   one_minus_mu = log1p(-4*exp(mu));
   one_minus_2mu = log1p(-5*exp(mu));
