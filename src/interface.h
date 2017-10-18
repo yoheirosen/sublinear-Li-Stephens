@@ -1,10 +1,14 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
+#include <stdint.h>
+
 typedef long unsigned size_t;
 typedef struct haplotypeManager haplotypeManager;
 typedef struct haplotypeStateNode haplotypeStateNode;
 typedef struct penaltySet penaltySet;
+typedef struct linearReferenceStructure linearReferenceStructure;
+typedef struct haplotypeCohort haplotypeCohort;
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,6 +80,19 @@ haplotypeManager* haplotypeManager_build_interval_bound(
             size_t* read_DP_site_offsets,
             char* read_DP_sequence, 
             double threshold);
+            
+haplotypeManager* haplotypeManager_build_int_from_index(
+            char* reference_sequence,
+            size_t ref_seq_length,
+            linearReferenceStructure* reference,
+            haplotypeCohort* cohort,
+            double mutation_penalty, 
+            double recombination_penalty,
+            size_t read_DP_ref_start,
+            size_t read_DP_site_count,
+            size_t* read_DP_site_offsets,
+            char* read_DP_sequence, 
+            double threshold);
 
 // takes in an array of haplotypeStateNode*s of size 5. Indexed A-C-T-G-gap. 
 // to this, it writes
@@ -117,6 +134,28 @@ size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n);
 void haplotypeManager_print_transition_likelihoods(haplotypeManager* hap_manager);
 
 void haplotypeManager_print_prefix_likelihoods(haplotypeManager* hap_manager);
+
+size_t haplotypeManager_get_num_shared_sites(haplotypeManager* hap_manager);
+
+int haplotypeManager_read_index_is_shared(haplotypeManager* hap_manager, size_t read_site_index);
+
+// double haplotypeManager_read_site_penalty(haplotypeManager* hap_manager, size_t read_site_index, char allele);
+
+haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref);
+
+linearReferenceStructure* linearReferenceStructure_init_empty(size_t global_offset);
+
+int64_t linearReferenceStructure_add_site(
+            linearReferenceStructure* reference, size_t position);
+
+int haplotypeCohort_add_record(haplotypeCohort* cohort, size_t site);
+
+int haplotypeCohort_set_sample_allele(
+            haplotypeCohort* cohort, size_t site, size_t sample, char allele);
+
+void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, size_t length);
+
+void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
 #ifdef __cplusplus
 }

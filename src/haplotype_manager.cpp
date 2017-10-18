@@ -1092,3 +1092,14 @@ double thresholdInterval::get_lower_bound() const {
   return upper_bound + threshold;
 }
 
+bool haplotypeManager::read_index_is_shared(size_t i) const {
+  return read_site_is_shared[i];
+}
+
+bool haplotypeManager::read_matches(size_t i, alleleValue a) const {
+  return reference_sequence.matches(i, a);
+}
+
+bool haplotypeManager::read_matches(size_t i, char a) const {
+  return reference_sequence.matches(i, a);
+}

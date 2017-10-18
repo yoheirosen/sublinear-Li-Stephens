@@ -143,8 +143,13 @@ public:
 
   size_t get_ref_site_below_read_site(size_t i) const;
   
+  bool read_index_is_shared(size_t i) const;
+  
   double invariant_penalty_at_read_site(size_t i) const;
   double invariant_penalty_at_ref_site(size_t i) const;
+  
+  bool read_matches(size_t i, alleleValue a) const;
+  bool read_matches(size_t i, char a) const;
   
   bool contains_shared_sites() const;
   bool contains_ref_sites() const;
