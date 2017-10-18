@@ -215,6 +215,7 @@ void haplotypeCohort::populate_allele_counts() {
       haplotype_indices_by_site_and_allele[j][allele_rank].push_back(i);
     }
   }
+  finalized = true;
 }
 
 size_t haplotypeCohort::size() const {
@@ -345,5 +346,35 @@ int linearReferenceStructure::set_allele_at_global_pos(size_t p, alleleValue all
   } else {
     p = pos_global2ref(p);
     return set_allele_at_pos(p, allele);
+  }
+}
+
+linearReferenceStructure::linearReferenceStructure(size_t global_offset) : global_offset(global_offset) {
+  
+}
+
+int haplotypeCohort::add_record(size_t site) {
+  if(finalized) {
+    return 0;
+  } else {
+    if(reference->number_of_sites() != 0) {
+      if(site == reference->number_of_sites() - 1) {
+        haplotype_alleles_by_site_index.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
+        return 1;
+      } else {
+        return -1;
+      }
+    } else {
+      return -1;
+    }
+  }
+}
+
+int haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a) {
+  if(finalized) {
+    return 0;
+  } else {
+    haplotype_alleles_by_site_index[sample][site] = a;
+    return 1;
   }
 }

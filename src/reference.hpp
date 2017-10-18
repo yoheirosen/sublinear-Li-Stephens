@@ -27,7 +27,6 @@ private:
   vector<alleleValue> site_index_to_reference_allele;
   
   void add_site(size_t position, alleleValue reference_value);
-  void calculate_final_span_length(size_t reference_length);
   
   vector<size_t> span_lengths;
   size_t leading_span_length;
@@ -38,6 +37,7 @@ public:
             const vector<alleleValue>& reference_values);
   linearReferenceStructure(const vector<size_t>& positions,
             const string& reference_sequence);
+  linearReferenceStructure(size_t global_offset);
   ~linearReferenceStructure();
   
   bool is_site(size_t actual_position) const;
@@ -67,9 +67,10 @@ public:
   // -3 : site-vector locked
   int64_t add_site(size_t position);
   
+  void calculate_final_span_length(size_t reference_length);
+  
   size_t pos_ref2global(size_t p) const;
   int64_t pos_global2ref(int64_t p) const;
-  
   
   // 1: success
   // 0: not a site
@@ -83,13 +84,14 @@ struct haplotypeCohort{
 private:
   const linearReferenceStructure* reference;
   size_t number_of_haplotypes;
+  bool finalized = false;
   // dim 1: haplotype, dim 2: allele value at site
   vector<vector<alleleValue> > haplotype_alleles_by_site_index;
   // dim 1: site, dim 2: allele value
   vector<vector<size_t> > allele_counts_by_site_index;
   vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
-  void populate_allele_counts();
 public:
+  void populate_allele_counts();
   haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
             const linearReferenceStructure* reference);
   haplotypeCohort(const vector<string>& haplotypes, 
@@ -112,6 +114,12 @@ public:
   
   vector<size_t> get_active_rows(size_t site, alleleValue a) const;
   rowSet get_active_rowSet(size_t site, alleleValue a) const;
+
+  // 1 : successful
+  // 0 : cohort locked
+  // -1 : out of order
+  int add_record(size_t site);
+  int set_sample_allele(size_t site, size_t sample, alleleValue a);
 };
 
 #endif
