@@ -18,12 +18,19 @@ using namespace std;
 
 struct linearReferenceStructure{
 private:
+  size_t global_offset = 0;
+  size_t length = 0;
+  bool final_span_calculated = false;
+  bool alleles_set = false;
   unordered_map<size_t, size_t> position_to_site_index;
   vector<size_t> site_index_to_position;
   vector<alleleValue> site_index_to_reference_allele;
   
   void add_site(size_t position, alleleValue reference_value);
   void calculate_final_span_length(size_t reference_length);
+  
+  vector<size_t> span_lengths;
+  size_t leading_span_length;
 public:
   linearReferenceStructure(const vector<string>& haplotypes,
             const string& reference_values);
@@ -32,9 +39,6 @@ public:
   linearReferenceStructure(const vector<size_t>& positions,
             const string& reference_sequence);
   ~linearReferenceStructure();
-  
-  vector<size_t> span_lengths;
-  size_t leading_span_length;
   
   bool is_site(size_t actual_position) const;
   size_t get_site_index(size_t actual_position) const;
@@ -48,7 +52,7 @@ public:
   bool is_augmentation(alleleValue a, size_t position) const;
   
   size_t number_of_sites() const;
-  size_t absolute_length() const;
+  size_t absolute_length();
   
   alleleValue get_reference_allele_at_site(size_t site_index) const;
   
@@ -56,6 +60,23 @@ public:
   size_t find_site_above(size_t position) const;
   // behavior when there is no site below: returns SIZE_MAX
   size_t find_site_below(size_t position) const;
+  
+  // >= 0 : successful, returns site-index
+  // -1 : out of order
+  // -2 : collision
+  // -3 : site-vector locked
+  int64_t add_site(size_t position);
+  
+  size_t pos_ref2global(size_t p) const;
+  int64_t pos_global2ref(int64_t p) const;
+  
+  
+  // 1: success
+  // 0: not a site
+  // -1: out of bounds
+  int set_allele_at_global_pos(size_t p, alleleValue allele);
+  bool set_allele_at_pos(size_t p, alleleValue allele);
+  void set_allele_at_site(size_t site, alleleValue allele);
 };
 
 struct haplotypeCohort{

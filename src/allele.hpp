@@ -10,7 +10,8 @@ typedef enum alleleValue{
   C,
   T,
   G,
-  gap
+  gap,
+  unassigned
 } alleleValue;
 
 char allele_to_char(alleleValue a);

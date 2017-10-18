@@ -46,8 +46,15 @@ size_t linearReferenceStructure::number_of_sites() const {
   return site_index_to_position.size();
 }
 
-size_t linearReferenceStructure::absolute_length() const {
-  return site_index_to_position.back() + span_lengths.back() + 1;
+size_t linearReferenceStructure::absolute_length() {
+  if(final_span_calculated) {
+    if(length == 0) {
+      length = site_index_to_position.back() + span_lengths.back() + 1;
+    }
+    return length;
+  } else {
+    return 0;
+  }
 }
 
 linearReferenceStructure::linearReferenceStructure(
@@ -98,25 +105,38 @@ linearReferenceStructure::linearReferenceStructure(
   calculate_final_span_length(reference_sequence.length());
 }
 
+int64_t linearReferenceStructure::add_site(size_t position) {
+  if(final_span_calculated) {
+    return -3;
+  }
+  size_t new_index = site_index_to_position.size();
+  if(new_index > 0) {
+    if(position < site_index_to_position.back()) {
+      return -1;
+    } else if(position == site_index_to_position.back()) {
+      return -2;
+    }
+    span_lengths.push_back(position - site_index_to_position.back() - 1);
+  } else {
+    leading_span_length = position - global_offset;
+  }
+  site_index_to_position.push_back(position);
+  position_to_site_index.emplace(position, new_index);
+  site_index_to_reference_allele.push_back(unassigned);
+  return site_index_to_position.size() - 1;
+}
 
 void linearReferenceStructure::add_site(size_t position, 
             alleleValue reference_value) {
-  size_t new_index = site_index_to_position.size();
-  if(new_index == 0) {
-    leading_span_length = position;
-  } else {
-    size_t previous_position = site_index_to_position.back();
-    span_lengths.push_back(position - previous_position - 1);
-  }
-  site_index_to_position.push_back(position);
-  site_index_to_reference_allele.push_back(reference_value);
-  position_to_site_index.emplace(position, new_index);
+  add_site(position);
+  site_index_to_reference_allele.back() = reference_value;
 }
 
 void linearReferenceStructure::calculate_final_span_length(
             size_t reference_length) {
   size_t previous_position = site_index_to_position.back();
   span_lengths.push_back(reference_length - previous_position - 1);
+  final_span_calculated = true;
 }
 
 alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_index) const {
@@ -295,5 +315,35 @@ rowSet haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
       }
     }
     return rowSet(row_vectors, alleles);
+  }
+}
+
+size_t linearReferenceStructure::pos_ref2global(size_t p) const {
+  return p + global_offset;
+}
+
+int64_t linearReferenceStructure::pos_global2ref(int64_t p) const {
+  return p - global_offset;
+}
+
+void linearReferenceStructure::set_allele_at_site(size_t site, alleleValue allele) {
+  site_index_to_reference_allele[site] = allele;
+}
+
+bool linearReferenceStructure::set_allele_at_pos(size_t p, alleleValue allele) {
+  if(is_site(p)) {
+    site_index_to_reference_allele[get_site_index(p)] = allele;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+int linearReferenceStructure::set_allele_at_global_pos(size_t p, alleleValue allele) {
+  if(p < global_offset || p >= global_offset + length) {
+    return -1;
+  } else {
+    p = pos_global2ref(p);
+    return set_allele_at_pos(p, allele);
   }
 }
