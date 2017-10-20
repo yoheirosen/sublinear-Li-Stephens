@@ -141,20 +141,52 @@ int haplotypeManager_read_index_is_shared(haplotypeManager* hap_manager, size_t 
 
 // double haplotypeManager_read_site_penalty(haplotypeManager* hap_manager, size_t read_site_index, char allele);
 
-haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref);
+// *****************************************************************************
+// functions below used to construct haplotypeCohort and linearReferenceStructure
+// from VCF
+// *****************************************************************************
 
+// initialize linearReferenceStructure with no sites
 linearReferenceStructure* linearReferenceStructure_init_empty(size_t global_offset);
 
+// initialize haplotypeCohort with no sites
+haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref);
+
+// CONDITIONS:
+//   must be called in ascending order of position, with no positions repeated
+//   must be called before calling linearReferenceStructure_calc_spans, which 
+//   locks the linearReferenceStructure
+// Return value:
+//   site index of just added site if conditions above are met 
+//   -1 : positions added in non-ascending order
+//   -2 : site with same position already
+//   -3 : site-vector locked
 int64_t linearReferenceStructure_add_site(
             linearReferenceStructure* reference, size_t position);
 
+// Adds an empty record at the site specified, with all alleles set to unassigned
+// CONDITIONS:
+//   a site with the index specified must exist in the linearReferenceStructure
+//   associated with the haplotypeCohort
+//   this also must be the successor to the last site added to the haplotypeCohort
+// Return value:
+//   1 : successful
+//   0 : locked
+//   -1 : out of order
 int haplotypeCohort_add_record(haplotypeCohort* cohort, size_t site);
 
+// 1 : successful
+// 0 : cohort locked
+// -1 : already assigned
 int haplotypeCohort_set_sample_allele(
             haplotypeCohort* cohort, size_t site, size_t sample, char allele);
 
+// calculates final span length
+// also locks the linearReferenceStructure from being modified
 void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, size_t length);
 
+// builds allele-counts and lookup tables
+// also locks the haplotypeCohort from being modified
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
 #ifdef __cplusplus
