@@ -5,16 +5,14 @@ penaltySet::~penaltySet() {
   
 }
 
-penaltySet::penaltySet(double rho, double mu, int H) : H(H), 
-          rho(rho), mu(mu) {
-  rho = rho;
+penaltySet::penaltySet(double rho_in, double mu, int H) : H(H), 
+          mu(mu) {
+  rho = rho_in - log(H - 1);
   log_H = log(H);
   one_minus_mu = log1p(-4*exp(mu));
   one_minus_2mu = log1p(-5*exp(mu));
-  // alpha_value = log1p(-2*exp(rho));
   alpha_value = log1p(-H*exp(rho));
   beta_value = 0;
-  // beta_value = logsum(alpha_value, rho + log_H);
 }
 
 DPUpdateMap penaltySet::get_match_map(double last_sum) const {
