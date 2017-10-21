@@ -22,6 +22,9 @@ public:
   rowSet(vector<const vector<size_t>* > row_vectors, vector<alleleValue> allele);
   const size_t& operator[](size_t i) const;
   const size_t& size() const;
+
+  size_t max_element(const vector<double>& values) const;
+  size_t min_element(const vector<double>& values) const;
 };
 
 #endif
