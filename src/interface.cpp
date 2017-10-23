@@ -286,8 +286,8 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     size_t** return_read_sites,
                                     size_t* n_return_read_sites,
                                     char** return_read_seq) {
-  double mutation_rate = exp(log(5) + mutation_rate);
-  double recombination_rate = exp(log(cohort_size) + recombination_rate);
+  mutation_rate = exp(log(5) + mutation_rate);
+  recombination_rate = exp(log(cohort_size) + recombination_rate);
   cohort->simulate_read_query(ref_seq,
                               mutation_rate,
                               recombination_rate,
