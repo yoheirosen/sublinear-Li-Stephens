@@ -193,7 +193,9 @@ void linearReferenceStructure_set_initial_span(linearReferenceStructure* ref, si
 
 void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     const char* ref_seq,
-                                    const penaltySet* rates, 
+                                    double mutation_rate,
+                                    double recombination_rate,
+                                    size_t cohort_size,
                                     double uncertainty_rate,
                                     size_t** return_read_sites,
                                     size_t* n_return_read_sites,
