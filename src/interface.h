@@ -200,6 +200,8 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     size_t** return_read_sites,
                                     size_t* n_return_read_sites,
                                     char** return_read_seq);
+                                    
+size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 
 #ifdef __cplusplus
 }
