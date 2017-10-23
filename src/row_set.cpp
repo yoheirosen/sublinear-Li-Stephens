@@ -33,7 +33,7 @@ const size_t& rowSet::size() const {
   return elements;
 }
 
-size_t max_element(const vector<double>& values) const {
+size_t rowSet::max_element(const vector<double>& values) const {
   double max = values[row_vectors[0]->at(0)];
   size_t max_index = 0;
   for(size_t i = 0; i < row_vectors.size(); i++) {
@@ -47,7 +47,7 @@ size_t max_element(const vector<double>& values) const {
   return max_index;
 }
 
-size_t min_element(const vector<double>& values) const {
+size_t rowSet::min_element(const vector<double>& values) const {
   double min = values[row_vectors[0]->at(0)];
   size_t min_index = 0;
   for(size_t i = 0; i < row_vectors.size(); i++) {

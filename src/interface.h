@@ -189,6 +189,16 @@ void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, si
 // also locks the haplotypeCohort from being modified
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
+void linearReferenceStructure_set_initial_span(linearReferenceStructure* ref, size_t length);
+
+void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
+                                    const char* ref_seq,
+                                    const penaltySet* rates, 
+                                    double uncertainty_rate,
+                                    size_t** return_read_sites,
+                                    size_t* n_return_read_sites,
+                                    char** return_read_seq);
+
 #ifdef __cplusplus
 }
 #endif

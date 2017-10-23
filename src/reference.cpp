@@ -1,4 +1,9 @@
 #include "reference.hpp"
+#include <string.h>
+#include <unordered_set>
+#include <random>
+#include <chrono>
+#include <algorithm>
 
 using namespace std;
 
@@ -55,6 +60,10 @@ size_t linearReferenceStructure::absolute_length() {
   } else {
     return 0;
   }
+}
+
+size_t linearReferenceStructure::absolute_length() const {
+  return length;
 }
 
 linearReferenceStructure::linearReferenceStructure(
@@ -374,7 +383,107 @@ int haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a
   if(finalized) {
     return 0;
   } else {
-    haplotype_alleles_by_site_index[sample][site] = a;
-    return 1;
+    if(haplotype_alleles_by_site_index[sample][site] == unassigned) {
+      haplotype_alleles_by_site_index[sample][site] = a;
+      return 1;
+    } else {
+      return -1;
+    }
   }
+}
+
+void linearReferenceStructure::set_initial_span(size_t length) {
+  leading_span_length = length;
+}
+
+void haplotypeCohort::simulate_read_query(
+                         const char* ref_seq,
+                         double mutation_rate,
+                         double recombination_rate,
+                         double uncertainty_rate,
+                         size_t** return_read_sites,
+                         size_t* n_return_read_sites,
+                         char** return_read_seq) {
+  char* str_to_return = new char[strlen(ref_seq) + 1];
+  strcpy(str_to_return, ref_seq);
+  return_read_seq = &str_to_return;
+  
+  // We are making same number of read sites as there are ref sites
+  *n_return_read_sites = reference->number_of_sites();
+  size_t* read_sites_to_return = new size_t[reference->number_of_sites()];
+  
+  size_t ref_length = reference->absolute_length();
+  
+  default_random_engine generator;
+  
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  bernoulli_distribution rand_make_uncertain(uncertainty_rate);
+  bernoulli_distribution rand_recombine(recombination_rate);
+  uniform_int_distribution<size_t> which_haplotype(0, number_of_haplotypes);
+  bernoulli_distribution rand_mutate(mutation_rate);
+  uniform_int_distribution<size_t> which_allele(0, 4);
+  uniform_int_distribution<size_t> which_position(0, ref_length - 1);
+  
+  // Deal with sites ***********************************************************
+  
+  size_t ref_sites = reference->number_of_sites();
+  size_t read_sites_left = ref_sites;
+  unordered_set<size_t> blacklist;
+  
+  vector<size_t> read_sites;
+  
+  // decide which sites are shared
+  for(size_t i = 0; i < ref_sites; i++) {
+    blacklist.emplace(reference->get_position(i));
+    if(rand_make_uncertain(generator)) {
+      read_sites.push_back(reference->get_position(i));
+      --read_sites_left;
+    }
+  }
+  
+  // decide which non-ref sites are read sites
+  while(read_sites_left > 0) {
+    size_t candidate = which_position(generator);
+    if(blacklist.count(candidate) == 0) {
+      read_sites.push_back(candidate);
+      blacklist.emplace(candidate);
+      --read_sites_left;
+    }
+  }
+  
+  // need to return ordered size_t C-style array
+  sort(read_sites.begin(), read_sites.end());
+  for(size_t i = 0; i < read_sites.size(); i++) {
+    read_sites_to_return[i] = read_sites[i];
+  }
+  
+  // Deal with alleles *********************************************************
+  
+  size_t pos;
+  for(pos = 0; pos < reference->get_position(0); pos++) {
+    if(blacklist.count(pos) == 0) {
+      if(rand_mutate(generator)) {
+        size_t mutate_to = which_allele(generator);
+        str_to_return[pos] = allele_to_char((alleleValue)mutate_to);
+      }
+    }
+  }
+
+  // will piece together haplotype using Li-Stephens approximation
+  size_t h_index = which_haplotype(generator);
+  for(size_t site = 0; site < ref_sites; site++) {
+    str_to_return[reference->get_position(site)] = allele_to_char(allele_at(site, h_index));
+    if(rand_recombine(generator)) {
+      h_index = which_haplotype(generator);
+    }
+    for(size_t pos = reference->get_position(site) + 1; pos < reference->get_position(site + 1); pos++) {
+      if(rand_mutate(generator)) {
+        size_t mutate_to = which_allele(generator);
+        str_to_return[pos] = allele_to_char((alleleValue)mutate_to);
+      }
+      if(rand_recombine(generator)) {
+        h_index = which_haplotype(generator);
+      }
+    }
+  }  
 }

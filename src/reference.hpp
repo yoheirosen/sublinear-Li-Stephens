@@ -53,6 +53,7 @@ public:
   
   size_t number_of_sites() const;
   size_t absolute_length();
+  size_t absolute_length() const;
   
   alleleValue get_reference_allele_at_site(size_t site_index) const;
   
@@ -66,6 +67,7 @@ public:
   // -2 : collision
   // -3 : site-vector locked
   int64_t add_site(size_t position);
+  void set_initial_span(size_t length);
   
   void calculate_final_span_length(size_t reference_length);
   
@@ -116,10 +118,21 @@ public:
   rowSet get_active_rowSet(size_t site, alleleValue a) const;
 
   // 1 : successful
-  // 0 : cohort locked
+  // 0 : locked
   // -1 : out of order
   int add_record(size_t site);
+  // 1 : successful
+  // 0 : cohort locked
+  // -1 : already assigned
   int set_sample_allele(size_t site, size_t sample, alleleValue a);
+  
+  void simulate_read_query(const char* ref_seq,
+                           double mutation_rate,
+                           double recombination_rate,
+                           double uncertainty_rate,
+                           size_t** return_read_sites,
+                           size_t* n_return_read_sites,
+                           char** return_read_seq);
 };
 
 #endif

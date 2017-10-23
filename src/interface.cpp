@@ -2,10 +2,11 @@
 #include "reference.hpp"
 #include "probability.hpp"
 #include "reference_sequence.hpp"
+#include "interface.h"
+#include <cmath>
 
 using namespace std;
 
-#include "interface.h"
 
 size_t haplotypeManager_get_num_shared_sites(haplotypeManager* hap_manager) {
   return hap_manager->shared_sites();
@@ -249,4 +250,47 @@ void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, si
 
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort) {
   cohort->populate_allele_counts();
+}
+
+void linearReferenceStructure_set_initial_span(linearReferenceStructure* ref, size_t length) {
+  ref->set_initial_span(length);
+}
+
+
+// Simulates an input from marginPhase consisting of:
+//      1. positions of "sites"
+//      2. consensus sequence at non-site positions
+// In this particular simulation,
+//      to generate 1., the parameter uncertainty_rate "U" is the probability 
+//      that a site which is variable in the haplotype cohort is also variable, 
+//      ie uncertain, from the perspective of the haplotype caller
+//        - each reference cohort-site is chosen to be variable using a 
+//          Bernoulli trial with p = U
+//        - in order to have the same number of sites as the reference cohort,
+//          additional sites are then chosen with uniform probability
+// and
+//       to generate the consensus sequence, a haplotype is copied, recombining
+//       and mutating at random according to the probabilities from the 
+//       penaltySet
+// Return objects are passed by pointer and are:
+//       return_read_sites -- the positions of sites "1"
+//       n_return_read_sites -- number of sites
+//       return_read_seq -- consensus sequence
+// These can then be fed directly into the haplotypeManager constructor
+void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
+                                    const char* ref_seq,
+                                    const penaltySet* rates, 
+                                    double uncertainty_rate,
+                                    size_t** return_read_sites,
+                                    size_t* n_return_read_sites,
+                                    char** return_read_seq) {
+  double mutation_rate = exp(log(5) + rates->mu);
+  double recombination_rate = exp(rates->log_H + rates->rho);
+  cohort->simulate_read_query(ref_seq,
+                              mutation_rate,
+                              recombination_rate,
+                              uncertainty_rate,
+                              return_read_sites,
+                              n_return_read_sites,
+                              return_read_seq);
 }
