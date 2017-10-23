@@ -104,6 +104,7 @@ public:
   void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
   
   size_t size() const;
+  size_t get_haplotype_count() const;
   
   const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
   vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;

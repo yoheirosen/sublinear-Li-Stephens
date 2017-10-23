@@ -487,3 +487,7 @@ void haplotypeCohort::simulate_read_query(
     }
   }  
 }
+
+size_t haplotypeCohort::get_haplotype_count() const {
+  return number_of_haplotypes;
+}

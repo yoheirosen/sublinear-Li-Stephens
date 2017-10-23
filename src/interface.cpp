@@ -298,5 +298,5 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
 }
 
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
-  return cohort->number_of_haplotypes();
+  return cohort->get_haplotype_count();
 }
