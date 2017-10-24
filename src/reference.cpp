@@ -368,7 +368,10 @@ int haplotypeCohort::add_record(size_t site) {
   } else {
     if(reference->number_of_sites() != 0) {
       if(site == reference->number_of_sites() - 1) {
-        haplotype_alleles_by_site_index.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
+        for(size_t i = 0; i < number_of_haplotypes; i++) {
+          haplotype_alleles_by_site_index[i].push_back(unassigned);
+        }
+        // haplotype_alleles_by_site_index.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
         return 1;
       } else {
         return -1;
