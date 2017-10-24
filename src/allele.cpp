@@ -12,17 +12,23 @@ char allele_to_char(alleleValue a) {
       return 'G';
     case gap:
       return '-';
+    case unassigned:
+      return 'N';
   }
 }
 
 alleleValue char_to_allele(char c, alleleValue ref) {
   switch (c) {
+    case 'a':
     case 'A':
       return A;
+    case 'c':
     case 'C':
       return C;
+    case 't':
     case 'T':
       return T;
+    case 'g':
     case 'G':
       return G;
     case '-':
@@ -33,7 +39,7 @@ alleleValue char_to_allele(char c, alleleValue ref) {
 }
 
 alleleValue char_to_allele(char c) {
-  return char_to_allele(c, gap);
+  return char_to_allele(c, unassigned);
 }
 
 alleleValue str_to_allele(string& s) {
