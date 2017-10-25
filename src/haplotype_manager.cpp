@@ -769,7 +769,7 @@ void haplotypeManager::fill_in_level_threshold(double threshold,
   haplotypeStateNode* n;
   
   for(size_t j = start_site; j < upper_bound_site; j++) {
-    p = read_position(j);
+    p = get_ref_site_read_position(j);
     consensus_read_allele = char_to_allele(read_reference[p]);
     rowSet current_rowSet = get_cohort()->get_active_rowSet(j, consensus_read_allele);
     for(size_t i = 0; i < current_leaves.size(); i++) {
@@ -783,13 +783,17 @@ void haplotypeManager::fill_in_level_threshold(double threshold,
   }
 }
 
+size_t haplotypeManager::get_ref_site_read_position(size_t j) const {
+  return read_position(get_ref_site_ref_position(j));
+}
+
 void haplotypeManager::fill_in_level_no_threshold(size_t start_site, size_t upper_bound_site) {
   size_t p;
   alleleValue consensus_read_allele;
   haplotypeStateNode* n;
   
   for(size_t j = start_site; j < upper_bound_site; j++) {
-    p = read_position(j);
+    p = get_ref_site_read_position(j);
     consensus_read_allele = char_to_allele(read_reference[p]);
     rowSet current_rowSet = get_cohort()->get_active_rowSet(j, consensus_read_allele);
     for(size_t i = 0; i < current_leaves.size(); i++) {
@@ -888,6 +892,12 @@ vector<haplotypeStateNode*> haplotypeManager::get_current_leaves() const {
   return current_leaves;
 }
 
+void haplotypeManager::print_terminal_nodes() {
+  for(size_t i = 0; i < current_leaves.size(); i++) {
+    cout << current_leaves[i]->prefix_likelihood() << endl;
+  }
+}
+
 void haplotypeManager::print_tree() {
   vector<haplotypeStateNode*> next_level;
   vector<haplotypeStateNode*> this_level;
@@ -907,15 +917,25 @@ void haplotypeManager::print_tree() {
     total_nodes += this_level.size();
     if(level_depth == 0) {
       if(get_shared_site_read_position(0) != 0) {
-        level_prefix[0] = read_reference.substr(0, 
-                    get_shared_site_read_position(0));
+        if(get_shared_site_read_position(0) > 5) {
+          level_prefix[0] = "..." + read_reference.substr(get_shared_site_read_position(0) - 2, 2);
+        } else {
+          level_prefix[0] = read_reference.substr(0, 
+                      get_shared_site_read_position(0));
+        }            
       }
     } else {
       if(get_shared_site_read_position(level_depth) - 
                   get_shared_site_read_position(level_depth - 1) > 1) {
         size_t bdd_1 = get_shared_site_read_position(level_depth - 1) + 1;
         size_t len = get_shared_site_read_position(level_depth) - bdd_1;
-        level_prefix.push_back(read_reference.substr(bdd_1, len));
+        if(len > 7) {
+          string compressed_str;
+          compressed_str = read_reference.substr(bdd_1, 2) + "..." + read_reference.substr(bdd_1 + len - 2, 2);
+          level_prefix.push_back(compressed_str);
+        } else {
+          level_prefix.push_back(read_reference.substr(bdd_1, len));
+        }
       } else {
         level_prefix.push_back("");
       }

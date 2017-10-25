@@ -132,8 +132,7 @@ public:
                            double recombination_rate,
                            double uncertainty_rate,
                            size_t* return_read_sites,
-                           size_t* n_return_read_sites,
-                           char* return_read_seq);
+                           char* return_read_seq) const;
 };
 
 #endif

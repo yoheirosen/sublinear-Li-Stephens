@@ -407,9 +407,8 @@ void haplotypeCohort::simulate_read_query(
                          double recombination_rate,
                          double uncertainty_rate,
                          size_t* read_sites_to_return,
-                         size_t* n_return_read_sites,
-                         char* str_to_return) {
-                           
+                         char* str_to_return) const {
+   
   size_t ref_length = reference->absolute_length();
   
   default_random_engine generator;
@@ -423,14 +422,14 @@ void haplotypeCohort::simulate_read_query(
   bernoulli_distribution rand_mutate(mutation_rate);
   uniform_int_distribution<size_t> which_allele(0, 4);
   uniform_int_distribution<size_t> which_position(start_offset, start_offset + ref_length - 1);
-  
+
   // Deal with sites ***********************************************************
   
   size_t ref_sites = reference->number_of_sites();
   size_t read_sites_left = ref_sites;
-  unordered_set<size_t> blacklist;
-  
   vector<size_t> read_sites;
+  
+  unordered_set<size_t> blacklist;
   
   // decide which sites are shared
   for(size_t i = 0; i < ref_sites; i++) {
@@ -461,18 +460,15 @@ void haplotypeCohort::simulate_read_query(
 
   size_t pos;
   for(pos = start_offset; pos < reference->get_position(0); pos++) {
-    if(blacklist.count(pos) == 0) {
-      if(rand_mutate(generator)) {  
-        int mutate_to = which_allele(generator);
-        str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
-      }
+    if(rand_mutate(generator)) {  
+      int mutate_to = which_allele(generator);
+      str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
     }
   }
-  
   // will piece together haplotype using Li-Stephens approximation
   size_t h_index = which_haplotype(generator);
   for(size_t site = 0; site < ref_sites; site++) {
-    str_to_return[reference->get_position(site)] = allele_to_char(allele_at(site, h_index));
+    str_to_return[reference->get_position(site) - start_offset] = allele_to_char(allele_at(site, h_index));
     if(rand_recombine(generator)) {
       h_index = which_haplotype(generator);
     }

@@ -140,6 +140,7 @@ public:
   size_t get_shared_site_ref_position(size_t j) const;
   size_t get_shared_site_read_position(size_t j) const;
   size_t get_ref_site_ref_position(size_t j) const;
+  size_t get_ref_site_read_position(size_t j) const;
 
   size_t get_ref_site_below_read_site(size_t i) const;
   
@@ -225,6 +226,7 @@ public:
   
   void print_tree();
   void print_tree_transitions();
+  void print_terminal_nodes();
   
   bool will_hit_threshold(haplotypeStateNode* n, 
               double threshold, size_t site_index, alleleValue a) const;

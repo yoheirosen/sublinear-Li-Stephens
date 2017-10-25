@@ -155,6 +155,7 @@ haplotypeManager* haplotypeManager_build_int_from_index(
                                          cohort->get_haplotype_count());
   vector<size_t> read_sites(read_DP_site_offsets,
                             read_DP_site_offsets + read_DP_site_count);
+
   haplotypeManager* hap_manager = 
               new haplotypeManager(reference, 
                                    cohort, 
@@ -163,7 +164,9 @@ haplotypeManager* haplotypeManager_build_int_from_index(
                                    read_sites,
                                    read_DP_sequence, 
                                    read_DP_ref_start);
+
   hap_manager->build_entire_tree_interval(threshold);
+
   return hap_manager;
 }
 
@@ -221,6 +224,10 @@ void haplotypeManager_print_transition_likelihoods(haplotypeManager* hap_manager
 
 void haplotypeManager_print_prefix_likelihoods(haplotypeManager* hap_manager) {
   hap_manager->print_tree();
+}
+
+void haplotypeManager_print_terminal_nodes(haplotypeManager* hap_manager) {
+  hap_manager->print_terminal_nodes();
 }
 
 haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref) {
@@ -285,16 +292,15 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     size_t cohort_size,
                                     double uncertainty_rate,
                                     size_t* return_read_sites,
-                                    size_t* n_return_read_sites,
                                     char* return_read_seq) {
   mutation_rate = pow(10, mutation_rate);
   recombination_rate = pow(10, recombination_rate);
+
   cohort->simulate_read_query(ref_seq,
                               mutation_rate,
                               recombination_rate,
                               uncertainty_rate,
                               return_read_sites,
-                              n_return_read_sites,
                               return_read_seq);
 }
 

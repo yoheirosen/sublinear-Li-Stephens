@@ -135,6 +135,8 @@ void haplotypeManager_print_transition_likelihoods(haplotypeManager* hap_manager
 
 void haplotypeManager_print_prefix_likelihoods(haplotypeManager* hap_manager);
 
+void haplotypeManager_print_terminal_nodes(haplotypeManager* hap_manager);
+
 size_t haplotypeManager_get_num_shared_sites(haplotypeManager* hap_manager);
 
 int haplotypeManager_read_index_is_shared(haplotypeManager* hap_manager, size_t read_site_index);
@@ -198,7 +200,6 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     size_t cohort_size,
                                     double uncertainty_rate,
                                     size_t* return_read_sites,
-                                    size_t* n_return_read_sites,
                                     char* return_read_seq);
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
