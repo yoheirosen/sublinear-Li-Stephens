@@ -4,6 +4,7 @@
 #include <random>
 #include <chrono>
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
@@ -146,6 +147,7 @@ void linearReferenceStructure::calculate_final_span_length(
   size_t previous_position = site_index_to_position.back();
   span_lengths.push_back(reference_length - previous_position - 1);
   final_span_calculated = true;
+  absolute_length();
 }
 
 alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_index) const {
@@ -404,28 +406,23 @@ void haplotypeCohort::simulate_read_query(
                          double mutation_rate,
                          double recombination_rate,
                          double uncertainty_rate,
-                         size_t** return_read_sites,
+                         size_t* read_sites_to_return,
                          size_t* n_return_read_sites,
-                         char** return_read_seq) {
-  char* str_to_return = new char[strlen(ref_seq) + 1];
-  strcpy(str_to_return, ref_seq);
-  return_read_seq = &str_to_return;
-  
-  // We are making same number of read sites as there are ref sites
-  *n_return_read_sites = reference->number_of_sites();
-  size_t* read_sites_to_return = new size_t[reference->number_of_sites()];
-  
+                         char* str_to_return) {
+                           
   size_t ref_length = reference->absolute_length();
   
   default_random_engine generator;
   
+  size_t start_offset = reference->pos_ref2global(0);
+  
   generator.seed(chrono::system_clock::now().time_since_epoch().count());
   bernoulli_distribution rand_make_uncertain(uncertainty_rate);
   bernoulli_distribution rand_recombine(recombination_rate);
-  uniform_int_distribution<size_t> which_haplotype(0, number_of_haplotypes);
+  uniform_int_distribution<size_t> which_haplotype(0, number_of_haplotypes - 1);
   bernoulli_distribution rand_mutate(mutation_rate);
   uniform_int_distribution<size_t> which_allele(0, 4);
-  uniform_int_distribution<size_t> which_position(0, ref_length - 1);
+  uniform_int_distribution<size_t> which_position(start_offset, start_offset + ref_length - 1);
   
   // Deal with sites ***********************************************************
   
@@ -457,21 +454,21 @@ void haplotypeCohort::simulate_read_query(
   // need to return ordered size_t C-style array
   sort(read_sites.begin(), read_sites.end());
   for(size_t i = 0; i < read_sites.size(); i++) {
-    read_sites_to_return[i] = read_sites[i];
+    read_sites_to_return[i] = read_sites[i] - start_offset;
   }
-  
+
   // Deal with alleles *********************************************************
-  
+
   size_t pos;
-  for(pos = 0; pos < reference->get_position(0); pos++) {
+  for(pos = start_offset; pos < reference->get_position(0); pos++) {
     if(blacklist.count(pos) == 0) {
-      if(rand_mutate(generator)) {
-        size_t mutate_to = which_allele(generator);
-        str_to_return[pos] = allele_to_char((alleleValue)mutate_to);
+      if(rand_mutate(generator)) {  
+        int mutate_to = which_allele(generator);
+        str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
       }
     }
   }
-
+  
   // will piece together haplotype using Li-Stephens approximation
   size_t h_index = which_haplotype(generator);
   for(size_t site = 0; site < ref_sites; site++) {
@@ -479,16 +476,24 @@ void haplotypeCohort::simulate_read_query(
     if(rand_recombine(generator)) {
       h_index = which_haplotype(generator);
     }
-    for(size_t pos = reference->get_position(site) + 1; pos < reference->get_position(site + 1); pos++) {
+    size_t pos_limit;
+    if(site != ref_sites - 1) {
+      pos_limit = reference->get_position(site + 1);
+    } else {
+      pos_limit = reference->absolute_length() + start_offset;
+    }
+    for(size_t pos = reference->get_position(site) + 1; pos < pos_limit; pos++) {
       if(rand_mutate(generator)) {
-        size_t mutate_to = which_allele(generator);
-        str_to_return[pos] = allele_to_char((alleleValue)mutate_to);
+        int mutate_to = which_allele(generator);
+        str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
+      } else {
+        str_to_return[pos - start_offset] = ref_seq[pos - start_offset];
       }
       if(rand_recombine(generator)) {
         h_index = which_haplotype(generator);
       }
     }
-  }  
+  }
 }
 
 size_t haplotypeCohort::get_haplotype_count() const {

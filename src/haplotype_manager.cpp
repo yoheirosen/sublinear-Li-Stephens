@@ -1,5 +1,6 @@
 #include "haplotype_manager.hpp"
 #include "set_of_extensions.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -12,12 +13,13 @@ haplotypeManager::haplotypeManager(
         reference(reference), cohort(cohort), penalties(penalties),
         read_site_read_positions(site_positions_within_read),
               start_position(start_reference_position),
-              reference_sequence(referenceSequence(reference_bases)),
+              reference_sequence(referenceSequence(reference_bases, start_reference_position)),
               cutoff_interval(thresholdInterval(penalties))
               {
   read_reference = string(read_bases);
   tree = new haplotypeStateTree(reference, penalties, cohort);
   end_position = start_position + read_reference.size() - 1;
+
   // TODO: handle case that read is not contained within reference
   find_ref_sites_below_read_sites();
   find_shared_sites();
@@ -45,12 +47,16 @@ size_t haplotypeManager::shared_sites() const {
 
 size_t haplotypeManager::ref_position(size_t p) const {
   return p + start_position;
+  // return p;
 }
 
 size_t haplotypeManager::read_position(size_t p) const {
   if(p >= start_position && p <= end_position) {
+    // return p - start_position - reference->pos_ref2global(0);
     return p - start_position;
   } else {
+    cerr << "Asked for out of range conversion from reference to read position" << endl;
+    cerr << "query was " << p << " limits are [" << start_position << "," << end_position << "]" << endl;
     return SIZE_MAX;
   }
 }
@@ -232,6 +238,7 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
     lower_ref_index = reference->find_site_above(start_position);
     upper_ref_index = shared_index_to_ref_index(0);
     vector<alleleAtSite> to_add;
+
     for(size_t i = lower_ref_index; i < upper_ref_index; i++) {
       to_add.push_back(alleleAtSite(i, 
               char_to_allele(read_reference.at(read_position(
@@ -276,7 +283,7 @@ void haplotypeManager::count_invariant_penalties() {
     size_t running_count = 0;
     size_t count_from;
     size_t count_until;
-    
+
     // count by read site
     // initial span
     count_from = start_position;    
@@ -292,7 +299,7 @@ void haplotypeManager::count_invariant_penalties() {
       }
     }
     invariant_penalties_by_read_site.push_back(running_count);
-    
+
     // spans following read sites i to 1-before-end
     for(size_t i = 0; i < read_site_read_positions.size() - 1; i++) {
       count_from = get_read_site_ref_position(i);
@@ -305,7 +312,7 @@ void haplotypeManager::count_invariant_penalties() {
       }
       invariant_penalties_by_read_site.push_back(running_count);
     }
-    
+
     // terminal span
     if(read_site_read_positions.size() != 0) {
       count_from = get_read_site_ref_position(read_sites() - 1);
@@ -321,7 +328,7 @@ void haplotypeManager::count_invariant_penalties() {
     
     // count by ref site
     running_count = 0;
-    
+
     count_from = start_position;    
     if(contains_ref_sites()) {
       count_until = reference->get_position(
@@ -336,7 +343,6 @@ void haplotypeManager::count_invariant_penalties() {
       }
     }
     invariant_penalties_by_ref_site.push_back(running_count);
-    
     if(contains_ref_sites()) {
       // spans following ref sites i to 1-before-end
       for(size_t i = reference->find_site_above(start_position) + 1;
@@ -351,7 +357,6 @@ void haplotypeManager::count_invariant_penalties() {
         }
         invariant_penalties_by_ref_site.push_back(running_count);
       }
-      
       count_from = 
              reference->get_position(
                     reference->find_site_below(end_position)) + 1;
@@ -390,8 +395,11 @@ void haplotypeManager::set_cutoff_interval(double relative_threshold) {
 
 void haplotypeManager::build_entire_tree(double absolute_threshold) {
   initialize_tree();
+  cerr << "built root" << endl;
   for(size_t i = 1; i < shared_sites(); i++) {
+    cerr << "building shared site " << i << " of "<< shared_sites() << "; ref index " << shared_index_to_ref_index(i) << endl;
     build_next_level(absolute_threshold);
+    cerr << "\tcurrent leaves " << current_leaves.size() << endl;
   }
   if(shared_sites() != 0) {
     extend_final_level(absolute_threshold);
@@ -402,12 +410,11 @@ void haplotypeManager::build_entire_tree(double absolute_threshold) {
 void haplotypeManager::build_entire_tree_interval(double cutoff) {
   initialize_tree();
   set_cutoff_interval(cutoff);
-  cerr << "built root" << endl;
-  cerr << "\tcurrent leaves " << current_leaves.size() << endl;
+  cout << "built root" << endl;
   for(size_t i = 1; i < shared_sites(); i++) {
-    cerr << "building shared site " << i << " of "<< shared_sites() << "; ref index " << shared_index_to_ref_index(i) << endl;
+    cout << "building shared site " << i << " of "<< shared_sites() << "; ref index " << shared_index_to_ref_index(i) << endl;
     build_next_level_interval(0);
-    cerr << "\tcurrent leaves " << current_leaves.size() << endl;
+    cout << "\tcurrent leaves " << current_leaves.size() << endl;
   }
   if(shared_sites() != 0) {
     extend_final_level(0);

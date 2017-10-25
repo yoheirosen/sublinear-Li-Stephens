@@ -197,11 +197,13 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     double recombination_rate,
                                     size_t cohort_size,
                                     double uncertainty_rate,
-                                    size_t** return_read_sites,
+                                    size_t* return_read_sites,
                                     size_t* n_return_read_sites,
-                                    char** return_read_seq);
+                                    char* return_read_seq);
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
+
+size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference);
 
 #ifdef __cplusplus
 }

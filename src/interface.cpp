@@ -3,6 +3,7 @@
 #include "probability.hpp"
 #include "reference_sequence.hpp"
 #include "interface.h"
+#include <iostream>
 #include <cmath>
 
 using namespace std;
@@ -151,7 +152,7 @@ haplotypeManager* haplotypeManager_build_int_from_index(
             double threshold) {
   penaltySet* penalties = new penaltySet(recombination_penalty, 
                                          mutation_penalty, 
-                                         cohort->size());
+                                         cohort->get_haplotype_count());
   vector<size_t> read_sites(read_DP_site_offsets,
                             read_DP_site_offsets + read_DP_site_count);
   haplotypeManager* hap_manager = 
@@ -283,11 +284,11 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     double recombination_rate,
                                     size_t cohort_size,
                                     double uncertainty_rate,
-                                    size_t** return_read_sites,
+                                    size_t* return_read_sites,
                                     size_t* n_return_read_sites,
-                                    char** return_read_seq) {
-  mutation_rate = exp(log(5) + mutation_rate);
-  recombination_rate = exp(log(cohort_size) + recombination_rate);
+                                    char* return_read_seq) {
+  mutation_rate = pow(10, mutation_rate);
+  recombination_rate = pow(10, recombination_rate);
   cohort->simulate_read_query(ref_seq,
                               mutation_rate,
                               recombination_rate,
@@ -299,4 +300,8 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
 
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
   return cohort->get_haplotype_count();
+}
+
+size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference) {
+  return reference->number_of_sites();
 }
