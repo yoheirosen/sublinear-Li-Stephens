@@ -61,6 +61,15 @@ haplotypeStateNode* haplotypeStateNode::add_child_copying_state(
   return new_child;
 }
 
+haplotypeStateNode* haplotypeStateNode::add_child_transferring_state(
+            alleleValue a) {
+  // this->state->take_snapshot();
+  haplotypeStateNode* new_child = add_child(a);
+  new_child->state = state;
+  release_state();
+  return new_child;
+}
+
 void haplotypeStateNode::set_parent(haplotypeStateNode* n) {
   parent = n;
 }
@@ -140,6 +149,13 @@ void haplotypeStateNode::clear_state() {
     S = state->prefix_likelihood();
   }
   delete state;
+  state = nullptr;
+}
+
+void haplotypeStateNode::release_state() {
+  if(state != nullptr) {
+    S = state->prefix_likelihood();
+  }
   state = nullptr;
 }
 

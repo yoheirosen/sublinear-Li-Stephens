@@ -4,6 +4,69 @@
 
 using namespace std;
 
+optionIndex::optionIndex(char* unphased_chars_1, char* unphased_chars_2, 
+            const haplotypeCohort* cohort,
+            const vector<size_t>* ref_index_shared_indices) : 
+                        cohort(cohort),
+                        ref_index_shared_indices(ref_index_shared_indices) {
+                          
+  vector<size_t> shared_index_ref_indices;
+  for(size_t i = 0; i < ref_index_shared_indices->size(); i++) {
+    if((*ref_index_shared_indices)[i] != SIZE_MAX) {
+      shared_index_ref_indices.push_back(i);
+    }
+  }
+  size_t shared_sites = shared_index_ref_indices.size();
+  
+  unphased_option_1 = vector<alleleValue>(shared_sites, unassigned);
+  unphased_option_2 = vector<alleleValue>(shared_sites, unassigned);
+  
+  
+  for(size_t i = 0; i < shared_sites; i++) {
+    alleleValue a_1 = char_to_allele(unphased_chars_1[i]);
+    alleleValue a_2 = char_to_allele(unphased_chars_2[i]);
+    if(a_1 != unassigned && a_2 != unassigned) {
+      size_t site = shared_index_ref_indices[i];
+      if(cohort->number_matching(site, a_2) > 
+                cohort->number_matching(site, a_1)) {
+        unphased_option_2[i] = a_1;
+        unphased_option_1[i] = a_2;
+      } else {
+        unphased_option_1[i] = a_1;
+        unphased_option_2[i] = a_2;
+      }
+    }
+  }
+}
+
+optionIndex::optionIndex() {
+  
+}
+
+bool optionIndex::consider_all(size_t ref_idx) const {
+  if(more_likely(ref_idx) == unassigned) {
+    return true;
+  } else if(less_likely(ref_idx) == unassigned) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+alleleValue optionIndex::more_likely(size_t ref_idx) const {
+  return unphased_option_1[(*ref_index_shared_indices)[ref_idx]];
+}
+
+alleleValue optionIndex::less_likely(size_t ref_idx) const {
+  return unphased_option_2[(*ref_index_shared_indices)[ref_idx]];
+}
+
+void haplotypeManager::set_option_index(char* unphased_chars_1, char* unphased_chars_2) {
+  option_index = optionIndex(unphased_chars_1, unphased_chars_2,
+                             cohort, &ref_index_shared_indices);
+  has_option_index = true;
+}
+
 haplotypeManager::haplotypeManager(
         const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
               const penaltySet* penalties, const char* reference_bases,
@@ -271,6 +334,23 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
       }
       ref_sites_after_shared_sites.push_back(to_add);
     }
+    ref_index_shared_indices = vector<size_t>(final_ref_site() + 1, SIZE_MAX);
+    size_t shared_ctr = 0;
+    for(size_t i = 0; i < ref_index_shared_indices.size(); i++) {
+      if(i == shared_index_to_ref_index(shared_ctr)) {
+        ref_index_shared_indices[i] = shared_index_to_ref_index(shared_ctr);
+        shared_ctr++;
+      }
+    }
+  }
+}
+
+size_t haplotypeManager::get_ref_index_shared_index(size_t i) const {
+  if(ref_index_shared_indices[i] == SIZE_MAX) {
+    cout << "asked for shared index of a non-shared ref site" << endl;
+    return SIZE_MAX;
+  } else {
+    return ref_index_shared_indices[i];
   }
 }
 
@@ -712,17 +792,31 @@ void haplotypeManager::branch_node_interval(haplotypeStateNode* n,
             size_t i, const vector<rowSet*>& rows) {
   fill_in_span_before(n, i);
   alleleValue a;
-
-  for(size_t j = 0; j < 5; j++) {
-    a = (alleleValue)j;
-    haplotypeStateNode* new_branch = n->add_child_copying_state(a);
-    new_branch->state->extend_probability_at_site(*(rows[j]), get_cohort()->match_is_rare(i, a), a);
+  vector<alleleValue> options;
+  // const vector<alleleValue>* options;
+  if(has_option_index && !option_index.consider_all(i)) {
+    options = {option_index.more_likely(i), option_index.less_likely(i)};
+  } else {
+    options = {A, C, T, G, gap};
+    // options = canonical_alleles(); 
+  }
+  
+  for(size_t j = 0; j < options.size(); j++) {
+    haplotypeStateNode* new_branch = nullptr;
+    if(j != options.size() - 1) {
+      new_branch = n->add_child_copying_state(options[j]);
+    } else {
+      new_branch = n->add_child_transferring_state(options[j]);
+    }
+    new_branch->state->extend_probability_at_site(*(rows[(size_t)options[j]]), get_cohort()->match_is_rare(i, options[j]), options[j]);
     if(cutoff_interval.is_within_interval(new_branch)) {
       cutoff_interval.check_for_new_bound(new_branch);
     } else {
       new_branch->mark_for_deletion();
     }
   }
+  
+  
   n->clear_state();
 }
 

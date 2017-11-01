@@ -37,6 +37,7 @@ public:
   // adds a new child with probability state copied from this one; this state
   // is not yet extended to the new child's site
   haplotypeStateNode* add_child_copying_state(alleleValue a);
+  haplotypeStateNode* add_child_transferring_state(alleleValue a);
 
   void set_parent(haplotypeStateNode* n);
   
@@ -57,6 +58,7 @@ public:
   void remove_child_from_childvector(haplotypeStateNode* n);
   
   void clear_state();
+  void release_state();
   void copy_state_from_node(const haplotypeStateNode* other);  
   void compress_state();
   

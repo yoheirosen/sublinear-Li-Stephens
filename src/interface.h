@@ -81,7 +81,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
             char* read_DP_sequence, 
             double threshold);
             
-haplotypeManager* haplotypeManager_build_int_from_index(
+haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
             char* reference_sequence,
             size_t ref_seq_length,
             linearReferenceStructure* reference,
@@ -112,6 +112,10 @@ double haplotypeStateNode_local_probability(
             haplotypeStateNode* n, 
             haplotypeManager* hap_manager);
             
+haplotypeStateNode* haplotypeStateNode_get_child(
+            haplotypeStateNode* parent,
+            char allele);
+            
 double haplotypeStateNode_total_probability(haplotypeStateNode* n);
 
 // gets the allele of the haplotypeStateNode. Fast O(1) query
@@ -119,6 +123,8 @@ char haplotypeStateNode_allele(haplotypeStateNode* n);
 
 // clears the haplotypeManager from memory
 void haplotypeManager_delete(haplotypeManager* to_delete);
+
+int haplotypeManager_is_shared_site(haplotypeManager* hap_manager, size_t position);
 
 // this is the node which preceds the first "site." It is either empty, if the
 // first "site" is also the first position within the subinterval. Otherwise it

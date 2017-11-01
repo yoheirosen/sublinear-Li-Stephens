@@ -11,6 +11,22 @@
 
 using namespace std;
 
+struct optionIndex{
+private:
+  const haplotypeCohort* cohort;
+  const vector<size_t>* ref_index_shared_indices;
+  vector<alleleValue> unphased_option_1;
+  vector<alleleValue> unphased_option_2;
+public:
+  optionIndex(char* unphased_chars_1, char* unphased_chars_2, 
+              const haplotypeCohort* cohort, 
+              const vector<size_t>* ref_index_shared_indices);
+  optionIndex();
+  alleleValue more_likely(size_t ref_idx) const;
+  alleleValue less_likely(size_t ref_idx) const;
+  bool consider_all(size_t ref_idx) const;
+};
+
 struct thresholdInterval{
 private:
   double threshold;
@@ -62,6 +78,10 @@ private:
   // from the first position of the read-set
   string read_reference;
   
+  bool has_option_index = false;
+  optionIndex option_index;
+  void set_option_index(char* unphased_chars_1, char* unphased_chars_2);
+  
   // read-positions of all read sites; maps {a_i} -> N
   vector<size_t> read_site_read_positions;
   
@@ -87,6 +107,7 @@ private:
   // reference-sites occuring after each shared site; individual vectors may
   // be empty; vector-of-vectors will be empty if there are zero shared sites
   vector<vector<alleleAtSite> > ref_sites_after_shared_sites;
+  vector<size_t> ref_index_shared_indices;
   void find_ref_only_sites_and_alleles();
 
   vector<size_t> invariant_penalties_by_read_site;
@@ -143,6 +164,7 @@ public:
   size_t get_ref_site_read_position(size_t j) const;
 
   size_t get_ref_site_below_read_site(size_t i) const;
+  size_t get_ref_index_shared_index(size_t i) const;
   
   bool read_index_is_shared(size_t i) const;
   

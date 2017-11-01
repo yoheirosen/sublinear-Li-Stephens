@@ -138,7 +138,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
   return hap_manager;
 }
 
-haplotypeManager* haplotypeManager_build_int_from_index(
+haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
             char* reference_sequence,
             size_t ref_seq_length,
             linearReferenceStructure* reference,
@@ -181,6 +181,12 @@ void haplotypeStateNode_get_next_options(
   for(size_t i = number_of_children; i < 5; i++) {
     option_array[i] = nullptr;
   }
+}
+
+haplotypeStateNode* haplotypeStateNode_get_child(
+            haplotypeStateNode* parent,
+            char allele) {
+  return parent->get_child(char_to_allele(allele));
 }
 
 size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n) {
@@ -310,4 +316,8 @@ size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
 
 size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference) {
   return reference->number_of_sites();
+}
+
+int haplotypeManager_is_shared_site(haplotypeManager* hap_manager, size_t position) {
+  return (int)(hap_manager->get_reference()->is_site(position));
 }
