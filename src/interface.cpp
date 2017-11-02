@@ -310,6 +310,30 @@ void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                               return_read_seq);
 }
 
+void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
+                                      const char* ref_seq,
+                                      double mutation_rate,
+                                      double recombination_rate,
+                                      double uncertainty_rate,
+                                      size_t* return_read_sites,
+                                      size_t* n_read_sites,
+                                      char* return_read_seq,
+                                      char* r_s_alleles_1,
+                                      char* r_s_alleles_2) {
+  mutation_rate = pow(10, mutation_rate);
+  recombination_rate = pow(10, recombination_rate);
+
+  cohort->simulate_read_query_2(ref_seq,
+                                mutation_rate,
+                                recombination_rate,
+                                uncertainty_rate,
+                                return_read_sites,
+                                n_read_sites,
+                                return_read_seq,
+                                r_s_alleles_1,
+                                r_s_alleles_2);
+}
+
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
   return cohort->get_haplotype_count();
 }
