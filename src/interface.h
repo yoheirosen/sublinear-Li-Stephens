@@ -213,11 +213,11 @@ void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
                                       double mutation_rate,
                                       double recombination_rate,
                                       double uncertainty_rate,
-                                      size_t* return_read_sites,
+                                      size_t** return_read_sites,
                                       size_t* n_read_sites,
                                       char* return_read_seq,
-                                      char* r_s_alleles_1,
-                                      char* r_s_alleles_2); 
+                                      char** r_s_alleles_1,
+                                      char** r_s_alleles_2); 
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 

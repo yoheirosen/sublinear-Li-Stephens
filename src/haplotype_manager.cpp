@@ -20,8 +20,7 @@ optionIndex::optionIndex(char* unphased_chars_1, char* unphased_chars_2,
   
   unphased_option_1 = vector<alleleValue>(shared_sites, unassigned);
   unphased_option_2 = vector<alleleValue>(shared_sites, unassigned);
-  
-  
+    
   for(size_t i = 0; i < shared_sites; i++) {
     alleleValue a_1 = char_to_allele(unphased_chars_1[i]);
     alleleValue a_2 = char_to_allele(unphased_chars_2[i]);
@@ -299,7 +298,11 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
     
     // initial span
     lower_ref_index = reference->find_site_above(start_position);
-    upper_ref_index = shared_index_to_ref_index(0);
+    if(shared_sites() != 0) {
+      upper_ref_index = shared_index_to_ref_index(0);
+    } else {
+      upper_ref_index = reference->find_site_below(end_position);
+    }
     vector<alleleAtSite> to_add;
 
     for(size_t i = lower_ref_index; i < upper_ref_index; i++) {
@@ -310,20 +313,21 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
     ref_sites_in_initial_span = to_add;
     
     // spans following read sites i to 1-before-end
-    for(size_t i = 0; i < shared_sites() - 1; i++) {
-      lower_ref_index = shared_index_to_ref_index(i) + 1;
-      upper_ref_index = shared_index_to_ref_index(i + 1);
-      to_add.clear();
-      for(size_t j = lower_ref_index; j < upper_ref_index; j++) {
-        to_add.push_back(alleleAtSite(j, 
-                char_to_allele(read_reference.at(read_position(
-                        reference->get_position(j))))));
-      }
-      ref_sites_after_shared_sites.push_back(to_add);
-    }
     
-    // terminal span
     if(shared_sites() != 0) {
+      for(size_t i = 0; i < shared_sites() - 1; i++) {
+        lower_ref_index = shared_index_to_ref_index(i) + 1;
+        upper_ref_index = shared_index_to_ref_index(i + 1);
+        to_add.clear();
+        for(size_t j = lower_ref_index; j < upper_ref_index; j++) {
+          to_add.push_back(alleleAtSite(j, 
+                  char_to_allele(read_reference.at(read_position(
+                          reference->get_position(j))))));
+        }
+        ref_sites_after_shared_sites.push_back(to_add);
+      }
+      
+      // terminal span
       lower_ref_index = shared_index_to_ref_index(shared_sites() - 1);
       upper_ref_index = reference->find_site_above(end_position);
       to_add.clear();
@@ -335,11 +339,15 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
       ref_sites_after_shared_sites.push_back(to_add);
     }
     ref_index_shared_indices = vector<size_t>(final_ref_site() + 1, SIZE_MAX);
-    size_t shared_ctr = 0;
-    for(size_t i = 0; i < ref_index_shared_indices.size(); i++) {
-      if(i == shared_index_to_ref_index(shared_ctr)) {
-        ref_index_shared_indices[i] = shared_index_to_ref_index(shared_ctr);
-        shared_ctr++;
+    if(shared_sites() != 0) {
+      size_t shared_ctr = 0;
+      for(size_t i = 0; i < ref_index_shared_indices.size(); i++) {
+        if(shared_sites() != shared_ctr) {
+          if(i == shared_index_to_ref_index(shared_ctr)) {
+            ref_index_shared_indices[i] = shared_index_to_ref_index(shared_ctr);
+            shared_ctr++;
+          }
+        }
       }
     }
   }
@@ -381,20 +389,20 @@ void haplotypeManager::count_invariant_penalties() {
     invariant_penalties_by_read_site.push_back(running_count);
 
     // spans following read sites i to 1-before-end
-    for(size_t i = 0; i < read_site_read_positions.size() - 1; i++) {
-      count_from = get_read_site_ref_position(i);
-      count_until = get_read_site_ref_position(i + 1);
-      for(size_t p = count_from; p < count_until; p++) {
-        if(!reference_sequence.matches(p, 
-                char_to_allele(read_reference.at(read_position(p))))) {
-          running_count++;
-        }
-      }
-      invariant_penalties_by_read_site.push_back(running_count);
-    }
-
-    // terminal span
     if(read_site_read_positions.size() != 0) {
+      for(size_t i = 0; i < read_site_read_positions.size() - 1; i++) {
+        count_from = get_read_site_ref_position(i);
+        count_until = get_read_site_ref_position(i + 1);
+        for(size_t p = count_from; p < count_until; p++) {
+          if(!reference_sequence.matches(p, 
+                  char_to_allele(read_reference.at(read_position(p))))) {
+            running_count++;
+          }
+        }
+        invariant_penalties_by_read_site.push_back(running_count);
+      }
+
+      // terminal span
       count_from = get_read_site_ref_position(read_sites() - 1);
       count_until = end_position + 1;
       for(size_t p = count_from; p < count_until; p++) {

@@ -139,11 +139,11 @@ public:
                            double mutation_rate,
                            double recombination_rate,
                            double uncertainty_rate,
-                           size_t* return_read_sites,
+                           size_t** return_read_sites,
                            size_t* n_read_sites,
                            char* return_read_seq,
-                           char* r_s_alleles_1,
-                           char* r_s_alleles_2) const; 
+                           char** r_s_alleles_1,
+                           char** r_s_alleles_2) const; 
 };
 
 #endif

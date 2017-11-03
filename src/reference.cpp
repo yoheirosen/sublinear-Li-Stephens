@@ -406,11 +406,11 @@ void haplotypeCohort::simulate_read_query_2(
                          double mutation_rate,
                          double recombination_rate,
                          double uncertainty_rate,
-                         size_t* read_sites_to_return,
+                         size_t** read_sites_to_return,
                          size_t* n_read_sites,
                          char* str_to_return,
-                         char* r_s_alleles_1,
-                         char* r_s_alleles_2) const {
+                         char** r_s_alleles_1,
+                         char** r_s_alleles_2) const {
    
   size_t ref_length = reference->absolute_length();
   
@@ -460,7 +460,7 @@ void haplotypeCohort::simulate_read_query_2(
     if(a_1 == a_2) {
       str_to_return[p - start_offset] = a_1;
     } else {
-      r_s_positions.push_back(p);
+      r_s_positions.push_back(p - start_offset);
       str_to_return[p - start_offset] = 'N';
       r_s_alleles_vec_1.push_back(a_1);
       r_s_alleles_vec_2.push_back(a_2);
@@ -473,17 +473,20 @@ void haplotypeCohort::simulate_read_query_2(
     }
   }
   size_t n_r_s = r_s_positions.size();
+  *n_read_sites = n_r_s;
   size_t* r_s_to_return = (size_t*)malloc(n_r_s * sizeof(size_t));
-  char* r_s_alleles_to_return_1 = (char*)malloc(n_r_s);
-  char* r_s_alleles_to_return_2 = (char*)malloc(n_r_s);
+  char* r_s_alleles_to_return_1 = (char*)malloc(n_r_s + 1);
+  char* r_s_alleles_to_return_2 = (char*)malloc(n_r_s + 1);
   
-  memcpy(read_sites_to_return, r_s_positions.data(), n_r_s * sizeof(size_t));
+  memcpy(r_s_to_return, r_s_positions.data(), n_r_s * sizeof(size_t));
   memcpy(r_s_alleles_to_return_1, r_s_alleles_vec_1.data(), n_r_s);
   memcpy(r_s_alleles_to_return_2, r_s_alleles_vec_2.data(), n_r_s);
+  r_s_alleles_to_return_1[n_r_s] = '\0';
+  r_s_alleles_to_return_2[n_r_s] = '\0';
   
-  read_sites_to_return = r_s_to_return;
-  r_s_alleles_1 = r_s_alleles_to_return_1;
-  r_s_alleles_2 = r_s_alleles_to_return_2;
+  *read_sites_to_return = r_s_to_return;
+  *r_s_alleles_1 = r_s_alleles_to_return_1;
+  *r_s_alleles_2 = r_s_alleles_to_return_2;
 }
 
 void haplotypeCohort::simulate_read_query(
