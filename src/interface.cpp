@@ -138,7 +138,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
   return hap_manager;
 }
 
-haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
+haplotypeManager* haplotypeManager_build_from_idx(
             char* reference_sequence,
             size_t ref_seq_length,
             linearReferenceStructure* reference,
@@ -148,8 +148,7 @@ haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
             size_t read_DP_ref_start,
             size_t read_DP_site_count,
             size_t* read_DP_site_offsets,
-            char* read_DP_sequence, 
-            double threshold) {
+            char* read_DP_sequence) {
   penaltySet* penalties = new penaltySet(recombination_penalty, 
                                          mutation_penalty, 
                                          cohort->get_haplotype_count());
@@ -165,9 +164,12 @@ haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
                                    read_DP_sequence, 
                                    read_DP_ref_start);
 
-  hap_manager->build_entire_tree_interval(threshold);
-
   return hap_manager;
+}
+
+void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
+                                          double threshold) {
+  hap_manager->build_entire_tree_interval(threshold);
 }
 
 void haplotypeStateNode_get_next_options(
@@ -344,4 +346,18 @@ size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference) {
 
 int haplotypeManager_is_shared_site(haplotypeManager* hap_manager, size_t position) {
   return (int)(hap_manager->get_reference()->is_site(position));
+}
+
+void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
+                  								 char* r_alleles_1,
+                  								 char* r_alleles_2) {
+  char* ss_values_1 = (char*)malloc(hap_manager->shared_sites());
+  char* ss_values_2 = (char*)malloc(hap_manager->shared_sites());
+  for(size_t i = 0; i < hap_manager->shared_sites(); i++) {
+    ss_values_1[i] = r_alleles_1[hap_manager->shared_index_to_read_index(i)];
+    ss_values_2[i] = r_alleles_2[hap_manager->shared_index_to_read_index(i)];
+  }
+  hap_manager->set_option_index(ss_values_1, ss_values_2);
+  free(ss_values_1);
+  free(ss_values_2);
 }

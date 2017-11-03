@@ -81,7 +81,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
             char* read_DP_sequence, 
             double threshold);
             
-haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
+haplotypeManager* haplotypeManager_build_from_idx(
             char* reference_sequence,
             size_t ref_seq_length,
             linearReferenceStructure* reference,
@@ -91,8 +91,7 @@ haplotypeManager* haplotypeManager_build_from_idx_intrvl_bdd(
             size_t read_DP_ref_start,
             size_t read_DP_site_count,
             size_t* read_DP_site_offsets,
-            char* read_DP_sequence, 
-            double threshold);
+            char* read_DP_sequence);
 
 // takes in an array of haplotypeStateNode*s of size 5. Indexed A-C-T-G-gap. 
 // to this, it writes
@@ -222,6 +221,14 @@ void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 
 size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference);
+
+void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
+                  								 char* r_alleles_1,
+                  								 char* r_alleles_2);
+
+void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
+                                          double threshold);
+
 
 #ifdef __cplusplus
 }

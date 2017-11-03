@@ -80,7 +80,6 @@ private:
   
   bool has_option_index = false;
   optionIndex option_index;
-  void set_option_index(char* unphased_chars_1, char* unphased_chars_2);
   
   // read-positions of all read sites; maps {a_i} -> N
   vector<size_t> read_site_read_positions;
@@ -108,6 +107,7 @@ private:
   // be empty; vector-of-vectors will be empty if there are zero shared sites
   vector<vector<alleleAtSite> > ref_sites_after_shared_sites;
   vector<size_t> ref_index_shared_indices;
+  
   void find_ref_only_sites_and_alleles();
 
   vector<size_t> invariant_penalties_by_read_site;
@@ -253,6 +253,8 @@ public:
   bool will_hit_threshold(haplotypeStateNode* n, 
               double threshold, size_t site_index, alleleValue a) const;
   void set_cutoff_interval(double relative_threshold);
+  
+  void set_option_index(char* unphased_chars_1, char* unphased_chars_2);
   
   void trim_back_abandoned_nodes(vector<haplotypeStateNode*>& nodes);
   void trim_back_marked_nodes(vector<haplotypeStateNode*>& nodes);  

@@ -487,6 +487,62 @@ void haplotypeCohort::simulate_read_query_2(
   *read_sites_to_return = r_s_to_return;
   *r_s_alleles_1 = r_s_alleles_to_return_1;
   *r_s_alleles_2 = r_s_alleles_to_return_2;
+  
+  // //TODO: replace with this more realistic model
+  // size_t str_length = reference->absolute_length();
+  // size_t generations = 4;
+  // vector<size_t> gen_size;
+  // for(size_t j = 0; j < generations; j++) {
+  //   gen_size.push_back(pow(2, (generations - j)));
+  // }
+  // char** old_generation_data = (char**)malloc(gen_size[0] * sizeof(char*));
+  // for(size_t j = 0; j < gen_size[0]; j++) {
+  //   char* new_haplotype = (char*)malloc(str_length + 1);
+  //   size_t h_new = which_haplotype(generator);
+  //   for(size_t p = start_offset; p < str_length + start_offset; p++) {
+  //     char a;
+  //     if(reference->is_site(p)) {
+  //       size_t site = reference->get_site_index(p);
+  //       a = allele_to_char(allele_at(site, h_n));
+  //     } else {
+  //       a = ref_seq[p - start_offset];
+  //     }
+  //     if(rand_mutate(generator)) {
+  //       a = allele_to_char((alleleValue)which_allele(generator));
+  //     }
+  //     new_haplotype[p - start_offset] = a;
+  //   }
+  //   old_generation_data[j] = new_haplotype;
+  // }
+  // char*** old_generation = &old_generation_data;
+  // for(size_t k = 1; k <= generations; k++) {
+  //   char** new_generation_data = (char**)malloc(gen_size[k] * size_of(char*));
+  //   char*** new_generation = &new_generation_data;
+  //   for(size_t j = 0; j < gen_size[k-1]/2; j++) {
+  //     char* new_haplotype = (char*)malloc(str_length + 1);
+  //     size_t h = 0;
+  //     char** parents = (char**)malloc(2 * size_of(char*));
+  //     parents[0] = (*old_generation)[2*j];
+  //     parents[1] = (*old_generation)[2*j + 1];
+  //     for(size_t p = start_offset; p < str_length + start_offset; p++) {
+  //       char a;
+  //       a = (parents[h])[p - start_offset];
+  //       if(rand_mutate(generator)) {
+  //         a = allele_to_char((alleleValue)which_allele(generator));
+  //       }
+  //       if(rand_recombine(generator)) {
+  //         h = (h + 1) % 2;
+  //       }
+  //       new_haplotype[p - start_offset] = a;
+  //     }
+  //     new_generation_data[j] = new_haplotype;
+  //   }
+  //   for(size_t j = 0; j < gen_size[k-1]; j++) {
+  //     free((*old_generation)[j]);
+  //   }    
+  //   free(*old_generation);
+  //   old_generation = new_generation;
+  // }
 }
 
 void haplotypeCohort::simulate_read_query(
