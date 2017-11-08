@@ -53,11 +53,19 @@ bool optionIndex::consider_all(size_t ref_idx) const {
 }
 
 alleleValue optionIndex::more_likely(size_t ref_idx) const {
-  return unphased_option_1[(*ref_index_shared_indices)[ref_idx]];
+  if((*ref_index_shared_indices)[ref_idx] != SIZE_MAX) {
+    return unphased_option_1[(*ref_index_shared_indices)[ref_idx]];
+  } else {
+    return unassigned;
+  }
 }
 
 alleleValue optionIndex::less_likely(size_t ref_idx) const {
-  return unphased_option_2[(*ref_index_shared_indices)[ref_idx]];
+  if((*ref_index_shared_indices)[ref_idx] != SIZE_MAX) {
+    return unphased_option_2[(*ref_index_shared_indices)[ref_idx]];
+  } else {
+    return unassigned;
+  }
 }
 
 void haplotypeManager::set_option_index(char* unphased_chars_1, char* unphased_chars_2) {
@@ -344,7 +352,8 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
       for(size_t i = 0; i < ref_index_shared_indices.size(); i++) {
         if(shared_sites() != shared_ctr) {
           if(i == shared_index_to_ref_index(shared_ctr)) {
-            ref_index_shared_indices[i] = shared_index_to_ref_index(shared_ctr);
+            ref_index_shared_indices[i] = shared_ctr;
+            // shared_index_to_ref_index(shared_ctr);
             shared_ctr++;
           }
         }
@@ -823,8 +832,6 @@ void haplotypeManager::branch_node_interval(haplotypeStateNode* n,
       new_branch->mark_for_deletion();
     }
   }
-  
-  
   n->clear_state();
 }
 

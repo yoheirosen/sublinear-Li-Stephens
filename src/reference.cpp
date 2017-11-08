@@ -429,7 +429,6 @@ void haplotypeCohort::simulate_read_query_2(
   // Deal with sites ***********************************************************
   
   size_t ref_sites = reference->number_of_sites();
-  size_t read_sites_left = ref_sites;
   vector<size_t> read_sites;
 
   // Deal with alleles *********************************************************
@@ -437,26 +436,104 @@ void haplotypeCohort::simulate_read_query_2(
   vector<char> r_s_alleles_vec_1;
   vector<char> r_s_alleles_vec_2;
   vector<size_t> r_s_positions;
-
-  // will piece together haplotype using Li-Stephens approximation
-  size_t h_1 = which_haplotype(generator);
-  size_t h_2 = which_haplotype(generator);
+  // 
+  // // will piece together haplotype using Li-Stephens approximation
+  // size_t h_1 = which_haplotype(generator);
+  // size_t h_2 = which_haplotype(generator);
+  // 
+  // for(size_t p = start_offset; p < reference->absolute_length() + start_offset; p++) {
+  //   char a_1, a_2;
+  //   if(reference->is_site(p)) {
+  //     size_t site = reference->get_site_index(p);
+  //     a_1 = allele_to_char(allele_at(site, h_1));
+  //     a_2 = allele_to_char(allele_at(site, h_2));
+  //   } else {
+  //     a_1 = a_2 = ref_seq[p - start_offset];
+  //   }
+  //   if(rand_mutate(generator)) {
+  //     a_1 = allele_to_char((alleleValue)which_allele(generator));
+  //   }
+  //   if(rand_mutate(generator)) {
+  //     a_2 = allele_to_char((alleleValue)which_allele(generator));
+  //   }
+  //   if(a_1 == a_2) {
+  //     str_to_return[p - start_offset] = a_1;
+  //   } else {
+  //     r_s_positions.push_back(p - start_offset);
+  //     str_to_return[p - start_offset] = 'N';
+  //     r_s_alleles_vec_1.push_back(a_1);
+  //     r_s_alleles_vec_2.push_back(a_2);
+  //   }
+  //   if(rand_recombine(generator)) {
+  //     h_1 = which_haplotype(generator);
+  //   }
+  //   if(rand_recombine(generator)) {
+  //     h_2 = which_haplotype(generator);
+  //   }
+  // }
   
-  for(size_t p = start_offset; p < reference->absolute_length() + start_offset; p++) {
-    char a_1, a_2;
-    if(reference->is_site(p)) {
-      size_t site = reference->get_site_index(p);
-      a_1 = allele_to_char(allele_at(site, h_1));
-      a_2 = allele_to_char(allele_at(site, h_2));
-    } else {
-      a_1 = a_2 = ref_seq[p - start_offset];
+  // //TODO: replace with this more realistic model
+  size_t str_length = reference->absolute_length();
+  size_t generations = 4;
+  vector<size_t> gen_size;
+  for(size_t j = 0; j < generations; j++) {
+    gen_size.push_back(pow(2, (generations - j)));
+  }
+  char** old_generation_data = (char**)malloc(gen_size[0] * sizeof(char**));
+  for(size_t j = 0; j < gen_size[0]; j++) {
+    char* new_haplotype = (char*)malloc(str_length + 1);
+    size_t h_new = which_haplotype(generator);
+    for(size_t p = start_offset; p < str_length + start_offset; p++) {
+      char a;
+      if(reference->is_site(p)) {
+        size_t site = reference->get_site_index(p);
+        a = allele_to_char(allele_at(site, h_new));
+      } else {
+        a = ref_seq[p - start_offset];
+      }
+      if(rand_mutate(generator)) {
+        a = allele_to_char((alleleValue)which_allele(generator));
+      }
+      new_haplotype[p - start_offset] = a;
     }
-    if(rand_mutate(generator)) {
-      a_1 = allele_to_char((alleleValue)which_allele(generator));
+    new_haplotype[str_length] = '\0';
+    old_generation_data[j] = new_haplotype;
+  }
+  char** old_generation = old_generation_data;
+  for(size_t k = 1; k < generations; k++) {
+    char** new_generation_data = (char**)malloc(gen_size[k] * sizeof(char**));
+    for(size_t j = 0; j < gen_size[k-1]/2; j++) {
+      char* new_haplotype = (char*)malloc(str_length + 1);
+      size_t h = 0;
+      char** parents = (char**)malloc(2 * sizeof(char**));
+      parents[0] = (old_generation)[2*j];
+      parents[1] = (old_generation)[2*j + 1];
+      for(size_t p = start_offset; p < str_length + start_offset; p++) {
+        char a;
+        a = (parents[h])[p - start_offset];
+        if(rand_mutate(generator)) {
+          a = allele_to_char((alleleValue)which_allele(generator));
+        }
+        if(rand_recombine(generator)) {
+          h = (h + 1) % 2;
+        }
+        new_haplotype[p - start_offset] = a;
+      }
+      new_haplotype[str_length] = '\0';
+      
+      new_generation_data[j] = new_haplotype;
+      
     }
-    if(rand_mutate(generator)) {
-      a_2 = allele_to_char((alleleValue)which_allele(generator));
-    }
+    for(size_t j = 0; j < gen_size[k-1]; j++) {
+      free((old_generation)[j]);
+    }    
+    free(old_generation);
+    old_generation = new_generation_data;
+  }
+  
+  for(size_t p = start_offset; p < str_length + start_offset; p++) {
+    char a_1 = (old_generation)[0][p - start_offset];
+    char a_2 = (old_generation)[1][p - start_offset];
     if(a_1 == a_2) {
       str_to_return[p - start_offset] = a_1;
     } else {
@@ -465,13 +542,12 @@ void haplotypeCohort::simulate_read_query_2(
       r_s_alleles_vec_1.push_back(a_1);
       r_s_alleles_vec_2.push_back(a_2);
     }
-    if(rand_recombine(generator)) {
-      h_1 = which_haplotype(generator);
-    }
-    if(rand_recombine(generator)) {
-      h_2 = which_haplotype(generator);
-    }
   }
+  
+  free((old_generation)[0]);
+  free((old_generation)[1]);
+  free(old_generation);
+  
   size_t n_r_s = r_s_positions.size();
   *n_read_sites = n_r_s;
   size_t* r_s_to_return = (size_t*)malloc(n_r_s * sizeof(size_t));
@@ -487,62 +563,6 @@ void haplotypeCohort::simulate_read_query_2(
   *read_sites_to_return = r_s_to_return;
   *r_s_alleles_1 = r_s_alleles_to_return_1;
   *r_s_alleles_2 = r_s_alleles_to_return_2;
-  
-  // //TODO: replace with this more realistic model
-  // size_t str_length = reference->absolute_length();
-  // size_t generations = 4;
-  // vector<size_t> gen_size;
-  // for(size_t j = 0; j < generations; j++) {
-  //   gen_size.push_back(pow(2, (generations - j)));
-  // }
-  // char** old_generation_data = (char**)malloc(gen_size[0] * sizeof(char*));
-  // for(size_t j = 0; j < gen_size[0]; j++) {
-  //   char* new_haplotype = (char*)malloc(str_length + 1);
-  //   size_t h_new = which_haplotype(generator);
-  //   for(size_t p = start_offset; p < str_length + start_offset; p++) {
-  //     char a;
-  //     if(reference->is_site(p)) {
-  //       size_t site = reference->get_site_index(p);
-  //       a = allele_to_char(allele_at(site, h_n));
-  //     } else {
-  //       a = ref_seq[p - start_offset];
-  //     }
-  //     if(rand_mutate(generator)) {
-  //       a = allele_to_char((alleleValue)which_allele(generator));
-  //     }
-  //     new_haplotype[p - start_offset] = a;
-  //   }
-  //   old_generation_data[j] = new_haplotype;
-  // }
-  // char*** old_generation = &old_generation_data;
-  // for(size_t k = 1; k <= generations; k++) {
-  //   char** new_generation_data = (char**)malloc(gen_size[k] * size_of(char*));
-  //   char*** new_generation = &new_generation_data;
-  //   for(size_t j = 0; j < gen_size[k-1]/2; j++) {
-  //     char* new_haplotype = (char*)malloc(str_length + 1);
-  //     size_t h = 0;
-  //     char** parents = (char**)malloc(2 * size_of(char*));
-  //     parents[0] = (*old_generation)[2*j];
-  //     parents[1] = (*old_generation)[2*j + 1];
-  //     for(size_t p = start_offset; p < str_length + start_offset; p++) {
-  //       char a;
-  //       a = (parents[h])[p - start_offset];
-  //       if(rand_mutate(generator)) {
-  //         a = allele_to_char((alleleValue)which_allele(generator));
-  //       }
-  //       if(rand_recombine(generator)) {
-  //         h = (h + 1) % 2;
-  //       }
-  //       new_haplotype[p - start_offset] = a;
-  //     }
-  //     new_generation_data[j] = new_haplotype;
-  //   }
-  //   for(size_t j = 0; j < gen_size[k-1]; j++) {
-  //     free((*old_generation)[j]);
-  //   }    
-  //   free(*old_generation);
-  //   old_generation = new_generation;
-  // }
 }
 
 void haplotypeCohort::simulate_read_query(
