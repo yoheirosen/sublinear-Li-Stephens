@@ -2,9 +2,11 @@
 #include "reference.hpp"
 #include "probability.hpp"
 #include "reference_sequence.hpp"
+#include "input_haplotype.hpp"
 #include "interface.h"
 #include <iostream>
 #include <cmath>
+#include <string>
 
 using namespace std;
 
@@ -360,4 +362,48 @@ void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
   hap_manager->set_option_index(ss_values_1, ss_values_2);
   free(ss_values_1);
   free(ss_values_2);
+}
+
+inputHaplotype* inputHaplotype_build(const char* ref_seq, 
+                          const char* query, 
+                          linearReferenceStructure* ref_struct,
+                          size_t start_position) {
+  inputHaplotype* to_return = new inputHaplotype(ref_seq, query, 
+                                                 ref_struct, start_position, 
+                                                 ref_struct->absolute_length());
+  return to_return;
+}
+
+void inputHaplotype_delete(inputHaplotype* in_hap) {
+  delete in_hap;
+}
+
+haplotypeMatrix* haplotypeMatrix_initialize(linearReferenceStructure* reference,
+                                            penaltySet* penalties,
+                                            haplotypeCohort* cohort) {
+  haplotypeMatrix* to_return = new haplotypeMatrix(reference, penalties, cohort);
+  return to_return;
+}
+
+void haplotypeMatrix_delete(haplotypeMatrix* hap_matrix) {
+  delete hap_matrix;
+}
+
+double haplotypeMatrix_score(haplotypeMatrix* hap_matrix, inputHaplotype* query) {
+  double to_return = hap_matrix->calculate_probability(query);
+  cout << to_return << endl;
+  return to_return;
+}
+
+penaltySet* penaltySet_build(double recombination_penalty,
+                             double mutation_penalty,
+                             size_t number_of_haplotypes) {
+  penaltySet* to_return = new penaltySet(recombination_penalty, 
+                                         mutation_penalty, 
+                                         number_of_haplotypes);
+  return to_return;
+}
+
+void penaltySet_delete(penaltySet* penalty_set) {
+  delete penalty_set;  
 }

@@ -14,8 +14,9 @@ private:
   vector<size_t> augmentations;
   
   // absolute positions of start and end
-  size_t start_position;
-  size_t end_position;
+  size_t ih_start_position;
+  size_t ih_end_position;
+  size_t ih_start_offset;
   // indices w.r.t. the reference structure of the first and last sites covered
   // by the haplotype (the haplotype may begin and end in the middle of a span)
   size_t start_index = 0;
@@ -32,11 +33,11 @@ public:
   inputHaplotype(linearReferenceStructure* reference);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
-            linearReferenceStructure *reference, size_t start_pos = 1, 
+            linearReferenceStructure *reference, size_t ih_start_position = 1, 
             size_t length = 0);
             
-  inputHaplotype(string query, string reference_sequence, 
-            linearReferenceStructure* reference, size_t start_pos = 1, 
+  inputHaplotype(const char* query, const char* reference_sequence, 
+            linearReferenceStructure* reference, size_t ih_start_position = 1, 
             size_t length = 0);
   ~inputHaplotype();
               

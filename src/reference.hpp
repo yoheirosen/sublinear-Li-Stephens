@@ -72,6 +72,7 @@ public:
   void calculate_final_span_length(size_t reference_length);
   
   size_t pos_ref2global(size_t p) const;
+  size_t start_position() const;
   int64_t pos_global2ref(int64_t p) const;
   
   // 1: success

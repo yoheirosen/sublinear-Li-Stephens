@@ -338,6 +338,10 @@ int64_t linearReferenceStructure::pos_global2ref(int64_t p) const {
   return p - global_offset;
 }
 
+size_t linearReferenceStructure::start_position() const {
+  return global_offset;
+}
+
 void linearReferenceStructure::set_allele_at_site(size_t site, alleleValue allele) {
   site_index_to_reference_allele[site] = allele;
 }

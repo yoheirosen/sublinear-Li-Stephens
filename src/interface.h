@@ -9,6 +9,8 @@ typedef struct haplotypeStateNode haplotypeStateNode;
 typedef struct penaltySet penaltySet;
 typedef struct linearReferenceStructure linearReferenceStructure;
 typedef struct haplotypeCohort haplotypeCohort;
+typedef struct inputHaplotype inputHaplotype;
+typedef struct haplotypeMatrix haplotypeMatrix;
 
 #ifdef __cplusplus
 extern "C" {
@@ -229,6 +231,26 @@ void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
 void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
                                           double threshold);
 
+inputHaplotype* inputHaplotype_build(const char* ref_seq, 
+                          const char* query, 
+                          linearReferenceStructure* ref_struct,
+                          size_t start_position);
+
+void inputHaplotype_delete(inputHaplotype* in_hap);
+
+haplotypeMatrix* haplotypeMatrix_initialize(linearReferenceStructure* reference,
+                                            penaltySet* penalties,
+                                            haplotypeCohort* cohort);
+                                              
+void haplotypeMatrix_delete(haplotypeMatrix* hap_matrix);
+
+double haplotypeMatrix_score(haplotypeMatrix* hap_matrix, inputHaplotype* query);
+
+penaltySet* penaltySet_build(double recombination_penalty,
+                             double mutation_penalty,
+                             size_t number_of_haplotypes);
+
+void penaltySet_delete(penaltySet* penalty_set);
 
 #ifdef __cplusplus
 }
