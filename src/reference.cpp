@@ -569,6 +569,29 @@ void haplotypeCohort::simulate_read_query_2(
   *r_s_alleles_2 = r_s_alleles_to_return_2;
 }
 
+alleleValue haplotypeCohort::get_dominant_allele(size_t site) const {
+  size_t candidate = 0;
+  alleleValue allele = unassigned;
+  for(size_t i = 0; i < 5; i++) {
+    if(number_matching(site, (alleleValue)i) > candidate) {
+      allele = (alleleValue)i;
+    }
+  }
+  return allele;
+}
+
+size_t haplotypeCohort::get_MAC(size_t site) const {
+  return number_of_haplotypes - number_matching(site, get_dominant_allele(site));
+}
+
+size_t haplotypeCohort::sum_MACs() const {
+  size_t sum = 0;
+  for(size_t i = 0; i < size(); i++) {
+    sum += get_MAC(i);
+  }
+  return sum;
+}
+
 void haplotypeCohort::simulate_read_query(
                          const char* ref_seq,
                          double mutation_rate,

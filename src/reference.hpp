@@ -114,6 +114,9 @@ public:
   
   size_t size() const;
   size_t get_haplotype_count() const;
+  alleleValue get_dominant_allele(size_t site) const;
+  size_t get_MAC(size_t site) const;
+  size_t sum_MACs() const;
   
   const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
   vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;

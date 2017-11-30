@@ -222,6 +222,10 @@ void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 
+size_t number_of_sites(haplotypeCohort* cohort);
+
+size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort);
+
 size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference);
 
 void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,

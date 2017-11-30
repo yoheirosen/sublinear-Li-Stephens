@@ -244,6 +244,14 @@ haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearR
   return new haplotypeCohort(number_of_haplotypes, ref);
 }
 
+size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort) {
+  return cohort->sum_MACs();
+}
+
+size_t number_of_sites(haplotypeCohort* cohort) {
+  return cohort->size();
+}
+
 linearReferenceStructure* linearReferenceStructure_init_empty(size_t global_offset) {
   return new linearReferenceStructure(global_offset);
 }
