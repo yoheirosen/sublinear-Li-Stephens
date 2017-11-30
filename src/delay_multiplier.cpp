@@ -45,11 +45,11 @@ const vector<DPUpdateMap>& mapHistory::get_elements() const {
   return elements;
 }
 
-delayMap::delayMap() {
+lazyEvalMap::lazyEvalMap() {
   
 }
 
-delayMap::delayMap(size_t rows, size_t start) : 
+lazyEvalMap::lazyEvalMap(size_t rows, size_t start) : 
             dM_start(start) {
   maps_by_site = mapHistory(DPUpdateMap(0), start);
   current_site = start;
@@ -61,12 +61,12 @@ delayMap::delayMap(size_t rows, size_t start) :
   slots_by_row = vector<size_t>(rows, 0);
 }
 
-void delayMap::add_identity_map() {
+void lazyEvalMap::add_identity_map() {
   add_map(DPUpdateMap(0));
   return;
 }
 
-delayMap::delayMap(const delayMap &other) {
+lazyEvalMap::lazyEvalMap(const lazyEvalMap &other) {
 	added_span = other.added_span;
 	updated_maps = other.updated_maps;
 	// dM_start = other.dM_start;
@@ -86,14 +86,14 @@ delayMap::delayMap(const delayMap &other) {
 	empty_map_slots = other.empty_map_slots;
 }
 
-void delayMap::assign_row_to_newest_index(size_t row) {
+void lazyEvalMap::assign_row_to_newest_index(size_t row) {
   //TODO: complain if slots_by_row[row] != |H|
   slots_by_row[row] = newest_index;
   counts[newest_index]++;
   return;
 }
 
-void delayMap::hard_clear_all() {
+void lazyEvalMap::hard_clear_all() {
   for(int i = 0; i < maps_by_slot.size(); i++) {
     delete_slot(i);
   }
@@ -104,7 +104,7 @@ void delayMap::hard_clear_all() {
   return;
 }
 
-void delayMap::hard_update_all() {
+void lazyEvalMap::hard_update_all() {
   vector<size_t> non_empty_slots;
   
   for(int i = 0; i < counts.size(); i++) {
@@ -116,7 +116,7 @@ void delayMap::hard_update_all() {
   return;
 }
 
-vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) const {
+vector<size_t> lazyEvalMap::rows_to_slots(const vector<size_t>& rows) const {
   vector<bool> seen = vector<bool>(maps_by_slot.size(), false);
   vector<size_t> to_return;
   for(int i = 0; i < rows.size(); i++) {
@@ -128,7 +128,7 @@ vector<size_t> delayMap::rows_to_slots(const vector<size_t>& rows) const {
   return to_return;
 }
 
-vector<size_t> delayMap::rows_to_slots(const rowSet& rows) const {
+vector<size_t> lazyEvalMap::rows_to_slots(const rowSet& rows) const {
   vector<bool> seen = vector<bool>(maps_by_slot.size(), false);
   vector<size_t> to_return;
   for(int i = 0; i < rows.size(); i++) {
@@ -140,7 +140,7 @@ vector<size_t> delayMap::rows_to_slots(const rowSet& rows) const {
   return to_return;
 }
 
-vector<bool> delayMap::rows_to_slotmask(const rowSet& rows) const {
+vector<bool> lazyEvalMap::rows_to_slotmask(const rowSet& rows) const {
   vector<bool> to_return = vector<bool>(maps_by_slot.size(), false);
   for(int i = 0; i < rows.size(); i++) {
     to_return[slots_by_row[rows[i]]] = true;
@@ -148,7 +148,7 @@ vector<bool> delayMap::rows_to_slotmask(const rowSet& rows) const {
   return to_return;
 }
 
-void delayMap::update_maps(const vector<bool>& slotmask) {
+void lazyEvalMap::update_maps(const vector<bool>& slotmask) {
   size_t least_up_to_date = current_site;
   for(size_t i = 0; i < maps_by_slot.size(); i++) {
     if(slotmask[i]) {
@@ -183,7 +183,7 @@ void delayMap::update_maps(const vector<bool>& slotmask) {
   return;
 }
 
-void delayMap::update_maps(const vector<size_t>& slots) {
+void lazyEvalMap::update_maps(const vector<size_t>& slots) {
   size_t least_up_to_date = current_site;
   for(size_t i = 0; i < slots.size(); i++) {
     if(updated_to[slots[i]] < least_up_to_date) {
@@ -214,14 +214,14 @@ void delayMap::update_maps(const vector<size_t>& slots) {
   return;
 }
 
-void delayMap::increment_site_marker() {
+void lazyEvalMap::increment_site_marker() {
   current_site++;
   added_span = false;
   updated_maps = false;
   return;
 }
 
-void delayMap::delete_slot(size_t slot) {
+void lazyEvalMap::delete_slot(size_t slot) {
   maps_by_slot[slot] = DPUpdateMap(0);
   counts[slot] = 0;
   updated_to[slot] = current_site;
@@ -229,7 +229,7 @@ void delayMap::delete_slot(size_t slot) {
   return;
 }
 
-void delayMap::decrement_slot(size_t slot) {
+void lazyEvalMap::decrement_slot(size_t slot) {
   if(counts[slot] == 1) {
     delete_slot(slot);
   } else {
@@ -238,7 +238,7 @@ void delayMap::decrement_slot(size_t slot) {
   return;
 }
 
-void delayMap::remove_row_from_slot(size_t row) {
+void lazyEvalMap::remove_row_from_slot(size_t row) {
   decrement_slot(slots_by_row[row]);
   // unassigned row is given max possible slot index + 1 to ensure that
   // accessing it will throw an error
@@ -246,7 +246,7 @@ void delayMap::remove_row_from_slot(size_t row) {
   return;
 }
 
-void delayMap::add_map(const DPUpdateMap& map) {
+void lazyEvalMap::add_map(const DPUpdateMap& map) {
   if(empty_map_slots.size() == 0) {
     newest_index = maps_by_slot.size();
     maps_by_slot.push_back(map);
@@ -263,57 +263,57 @@ void delayMap::add_map(const DPUpdateMap& map) {
   }
 }
 
-void delayMap::add_map(double coefficient, double constant) {
+void lazyEvalMap::add_map(double coefficient, double constant) {
   add_map(DPUpdateMap(coefficient, constant));
   return;
 }
 
-double delayMap::get_constant(size_t row) const {
+double lazyEvalMap::get_constant(size_t row) const {
   return maps_by_slot[slots_by_row[row]].constant;
 }
 
-double delayMap::get_coefficient(size_t row) const {
+double lazyEvalMap::get_coefficient(size_t row) const {
   return maps_by_slot[slots_by_row[row]].coefficient;
 }
 
-const DPUpdateMap& delayMap::get_map(size_t row) const {
+const DPUpdateMap& lazyEvalMap::get_map(size_t row) const {
   return maps_by_slot[slots_by_row[row]];
 }
 
-const vector<DPUpdateMap>& delayMap::get_maps() const {
+const vector<DPUpdateMap>& lazyEvalMap::get_maps() const {
   return maps_by_slot;
 }
 
-vector<DPUpdateMap>& delayMap::get_maps() {
+vector<DPUpdateMap>& lazyEvalMap::get_maps() {
   return maps_by_slot;
 }
 
-const vector<size_t>& delayMap::get_map_indices() const {
+const vector<size_t>& lazyEvalMap::get_map_indices() const {
   return slots_by_row;
 }
 
-void delayMap::update_map_with_span(const DPUpdateMap& span_map) {
+void lazyEvalMap::update_map_with_span(const DPUpdateMap& span_map) {
   add_map_for_site(span_map);
   return;
 }
 
-void delayMap::update_map_with_span(double coefficient, double constant) {
+void lazyEvalMap::update_map_with_span(double coefficient, double constant) {
   update_map_with_span(DPUpdateMap(coefficient, constant));
   return;
 }
 
-void delayMap::add_map_for_site(const DPUpdateMap& site_map) {
+void lazyEvalMap::add_map_for_site(const DPUpdateMap& site_map) {
   increment_site_marker();
   maps_by_site.push_back(site_map);
   return;
 }
 
-void delayMap::add_map_for_site(double coefficient, double constant) {
+void lazyEvalMap::add_map_for_site(double coefficient, double constant) {
   add_map_for_site(DPUpdateMap(coefficient, constant));
   return;
 }
 
-size_t delayMap::last_update(size_t row) {
+size_t lazyEvalMap::last_update(size_t row) {
   if(slots_by_row[row] != slots_by_row.size()) {
     return updated_to[slots_by_row[row]];
   } else {
@@ -321,11 +321,11 @@ size_t delayMap::last_update(size_t row) {
   }
 }
 
-const vector<DPUpdateMap>& delayMap::get_maps_by_site() const {
+const vector<DPUpdateMap>& lazyEvalMap::get_maps_by_site() const {
   return maps_by_site.get_elements();
 }
 
-void delayMap::reset_rows(const vector<size_t>& rows) {
+void lazyEvalMap::reset_rows(const vector<size_t>& rows) {
   for(size_t i = 0; i < rows.size(); i++) {
     remove_row_from_slot(rows[i]);
   }
@@ -335,7 +335,7 @@ void delayMap::reset_rows(const vector<size_t>& rows) {
   }
 }
 
-void delayMap::reset_rows(const rowSet& rows) {
+void lazyEvalMap::reset_rows(const rowSet& rows) {
   for(size_t i = 0; i < rows.size(); i++) {
     remove_row_from_slot(rows[i]);
   }
@@ -345,31 +345,31 @@ void delayMap::reset_rows(const rowSet& rows) {
   }
 }
 
-void delayMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
+void lazyEvalMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
   vector<size_t> slots = rows_to_slots(active_rows);
   update_maps(slots);
 }
 
-void delayMap::update_map_with_active_rows(const rowSet& active_rows) {
+void lazyEvalMap::update_map_with_active_rows(const rowSet& active_rows) {
   update_maps(rows_to_slotmask(active_rows));
 }
 
-size_t delayMap::number_of_slots() const {
+size_t lazyEvalMap::number_of_slots() const {
   return counts.size() - empty_map_slots.size();
 }
 
-size_t delayMap::row_updated_to(size_t row) const {
+size_t lazyEvalMap::row_updated_to(size_t row) const {
   return updated_to[slots_by_row[row]];
 }
 
-size_t delayMap::get_current_site() const {
+size_t lazyEvalMap::get_current_site() const {
   return current_site;
 }
 
-size_t delayMap::get_slot(size_t row) const {
+size_t lazyEvalMap::get_slot(size_t row) const {
   return slots_by_row[row];
 }
 
-double delayMap::evaluate(size_t row, double value) const {
+double lazyEvalMap::evaluate(size_t row, double value) const {
   return maps_by_slot[slots_by_row[row]].of(value);
 }

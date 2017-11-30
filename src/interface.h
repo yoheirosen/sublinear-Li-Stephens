@@ -10,7 +10,7 @@ typedef struct penaltySet penaltySet;
 typedef struct siteIndex siteIndex;
 typedef struct haplotypeCohort haplotypeCohort;
 typedef struct inputHaplotype inputHaplotype;
-typedef struct haplotypeMatrix haplotypeMatrix;
+typedef struct fastFwdAlgState fastFwdAlgState;
 
 #ifdef __cplusplus
 extern "C" {
@@ -242,13 +242,13 @@ inputHaplotype* inputHaplotype_build(const char* ref_seq,
 
 void inputHaplotype_delete(inputHaplotype* in_hap);
 
-haplotypeMatrix* haplotypeMatrix_initialize(siteIndex* reference,
+fastFwdAlgState* fastFwdAlgState_initialize(siteIndex* reference,
                                             penaltySet* penalties,
                                             haplotypeCohort* cohort);
                                               
-void haplotypeMatrix_delete(haplotypeMatrix* hap_matrix);
+void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix);
 
-double haplotypeMatrix_score(haplotypeMatrix* hap_matrix, inputHaplotype* query);
+double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* query);
 
 penaltySet* penaltySet_build(double recombination_penalty,
                              double mutation_penalty,

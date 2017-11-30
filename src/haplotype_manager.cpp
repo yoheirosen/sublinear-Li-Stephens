@@ -964,18 +964,18 @@ void haplotypeManager::start_with_active_site(size_t i) {
   for(size_t j = 0; j < 5; j++) {
     a = (alleleValue)j;
     haplotypeStateNode* new_branch = tree->root->add_child(a);
-    new_branch->state = new haplotypeMatrix(reference, penalties, cohort);
+    new_branch->state = new fastFwdAlgState(reference, penalties, cohort);
     new_branch->state->initialize_probability_at_site(i, a);
   }
 }
 
 void haplotypeManager::start_with_inactive_site(size_t i, alleleValue a) {
-  tree->root->state = new haplotypeMatrix(reference, penalties, cohort);
+  tree->root->state = new fastFwdAlgState(reference, penalties, cohort);
   tree->root->state->initialize_probability_at_site(i, a);
 }
 
 void haplotypeManager::start_with_span(size_t length) {
-  tree->root->state = new haplotypeMatrix(reference, penalties, cohort);
+  tree->root->state = new fastFwdAlgState(reference, penalties, cohort);
   tree->root->state->initialize_probability_at_span(length, 0);
 }
 

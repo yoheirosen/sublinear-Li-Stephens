@@ -18,6 +18,7 @@ using namespace std;
 
 //------------------------------------------------------------------------------
 struct siteIndex{
+//------------------------------------------------------------------------------
 
 private:
   size_t global_offset = 0;   // relative to the position on the chromosome
@@ -77,13 +78,16 @@ public:
 
 //------------------------------------------------------------------------------
 struct haplotypeCohort{
-  
+//------------------------------------------------------------------------------
+
 private:
   const siteIndex* reference;
   size_t number_of_haplotypes;
   bool finalized = false;
 
-  //----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+  // TODO: ability to swap below for more succinct structures
   // maps [haplotypes] x [sites] -> alleles
   //      haplotype i           vector[i][ ]
   //      site j                vector[ ][j]
@@ -99,45 +103,26 @@ private:
   //      site i                vector[i][ ]
   //      allele j              vector[ ][j]
   vector<vector<size_t> > allele_counts_by_site_index;
+
 public:
-  haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
-            const siteIndex* reference);
-  haplotypeCohort(const vector<string>& haplotypes, 
-            const siteIndex* reference);
+//-- construction --
+
   haplotypeCohort(size_t cohort_size, const siteIndex* reference);
+  haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
+                  const siteIndex* reference);
+  haplotypeCohort(const vector<string>& haplotypes, 
+                  const siteIndex* reference);
   ~haplotypeCohort();
   
-  void populate_allele_counts();
-  
-  // Removes sites where the minor allele frequency is below [double frequency].
-  // For multiallelic sites, the minor allele frequency is taken to be the sum
-  // of the minor allele frequencies with respect to the most common allele.
-  // This constructs both a new (dynamically allocated) haplotypeCohort as well
-  // as a new siteIndex, which is implicitly returned as
-
-  haplotypeCohort* remove_sites_below_frequency(double frequency) const;
-  const siteIndex* get_reference() const;  
-  
+  // all-at-once
   void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
   
-  size_t size() const;
-  size_t get_haplotype_count() const;
-  alleleValue get_dominant_allele(size_t site) const;
-  size_t get_MAC(size_t site) const;
-  size_t sum_MACs() const;
+  // per-site
+  void set_column(const vector<alleleValue>& values);
+  void set_column(const vector<alleleValue>& values, size_t site);
   
-  const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
-  vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;
-  alleleValue allele_at(size_t site_index, size_t haplotype_index) const;
-  size_t number_matching(size_t site_index, alleleValue a) const;
-  size_t number_not_matching(size_t site_index, alleleValue a) const;
-  bool match_is_rare(size_t site_index, alleleValue a) const;
-  
-  const vector<alleleValue>& get_alleles_at_site(size_t site_index) const;
-  
-  vector<size_t> get_active_rows(size_t site, alleleValue a) const;
-  rowSet get_active_rowSet(size_t site, alleleValue a) const;
-
+  // per site x index
+  //TODO update how this works
   // 1 : successful
   // 0 : locked
   // -1 : out of order
@@ -147,8 +132,49 @@ public:
   // -1 : already assigned
   int set_sample_allele(size_t site, size_t sample, alleleValue a);
   
-  void set_column(const vector<alleleValue>& values);
-  void set_column(const vector<alleleValue>& values, size_t site);
+  void populate_allele_counts();
+  
+//-- basic attributes ----------------------------------------------------------
+
+  const siteIndex* get_reference() const;  
+  size_t get_n_sites() const;
+  size_t get_n_haplotypes() const;
+  
+//-- accessors -----------------------------------------------------------------
+  
+  // site x index -> allele
+  alleleValue allele_at(size_t site_index, size_t haplotype_index) const;
+  const vector<alleleValue>& allele_vector_at_site(size_t site_index) const;
+
+  // site x allele -> indices
+  const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
+  vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;
+
+  // site x allele -> counts
+  bool match_is_rare(size_t site_index, alleleValue a) const;
+  size_t number_matching(size_t site_index, alleleValue a) const;
+  size_t number_not_matching(size_t site_index, alleleValue a) const;
+
+  // site -> mask
+  vector<size_t> get_active_rows(size_t site, alleleValue a) const;
+  rowSet get_active_rowSet(size_t site, alleleValue a) const;
+
+//-- downsampling --------------------------------------------------------------
+
+  // Removes sites where the minor allele frequency is below [double frequency].
+  // For multiallelic sites, the minor allele frequency is taken to be the sum
+  // of the minor allele frequencies with respect to the most common allele.
+  // This constructs both a new (dynamically allocated) haplotypeCohort as well
+  // as a new siteIndex, which is implicitly returned as
+  haplotypeCohort* remove_sites_below_frequency(double frequency) const;
+
+//-- more complex statistics ---------------------------------------------------
+
+  alleleValue get_dominant_allele(size_t site) const;
+  size_t get_MAC(size_t site) const;                                  // O(1)
+  size_t sum_MACs() const;                                            // O(n)
+
+//-- haplotype simulation ------------------------------------------------------
   
   void simulate_read_query(const char* ref_seq,
                            double mutation_rate,

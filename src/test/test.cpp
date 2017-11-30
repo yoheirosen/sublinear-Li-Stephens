@@ -136,7 +136,7 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
     };
     haplotypeCohort direct_cohort = haplotypeCohort(haplotypes, &ref_struct);
     
-    REQUIRE(direct_cohort.size() == 6);
+    REQUIRE(direct_cohort.get_n_sites() == 6);
     REQUIRE(direct_cohort.allele_at(0,0) == A);
     REQUIRE(direct_cohort.allele_at(0,1) == T);
     REQUIRE(direct_cohort.allele_at(0,2) == C);
@@ -188,7 +188,7 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
     };
     haplotypeCohort string_cohort = haplotypeCohort(haplotypes, &ref_struct);
     
-    REQUIRE(string_cohort.size() == 6);
+    REQUIRE(string_cohort.get_n_sites() == 6);
     REQUIRE(string_cohort.allele_at(0,0) == A);
     REQUIRE(string_cohort.allele_at(0,1) == T);
     REQUIRE(string_cohort.allele_at(0,2) == C);
@@ -314,15 +314,15 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
 
     inputHaplotype query = inputHaplotype((string)"A", ref_seq, &ref_struct);
 
-    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_allA = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_allA);
     double probability_allA = matrix_allA.calculate_probability(&query);
 
-    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_allT = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_allT);
     double probability_allT = matrix_allT.calculate_probability(&query);
 
-    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_AT = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_AT);
     double probability_AT = matrix_AT.calculate_probability(&query);
 
@@ -363,11 +363,11 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     haplotypeCohort cohort_AT = haplotypeCohort(AT, &ref_struct);
     
     inputHaplotype query = inputHaplotype((string)"AA", ref_seq, &ref_struct);
-    haplotypeMatrix matrix_allA = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_allA = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_allA);
-    haplotypeMatrix matrix_allT = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_allT = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_allT);
-    haplotypeMatrix matrix_AT = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_AT = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort_AT);
     double R0A = log(0.25) + penalties.one_minus_mu;
     double R0T = log(0.25) + penalties.mu;
@@ -466,7 +466,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double expected_probability_for_1_mismatch_haplotype =
               mu_c*4 + mu + beta_l + lS_i;
     
-    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_0_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
     matrix_0_aug.initialize_probability(&query_0_aug);
     matrix_0_aug.extend_probability_at_span_after(&query_0_aug, 0);
@@ -476,7 +476,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(fabs(matrix_0_aug.R[2] - expected_R2_for_0_mismatch_haplotype) < eps);
     REQUIRE(fabs(matrix_0_aug.S- expected_probability_for_0_mismatch_haplotype) < eps);
 
-    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_1_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
     matrix_1_aug.initialize_probability(&query_1_aug);
     matrix_1_aug.extend_probability_at_span_after(&query_1_aug, 0);
@@ -505,9 +505,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     inputHaplotype query_1_aug = 
               inputHaplotype((string)"TAAAAA", ref_seq, &ref_struct);
     
-    haplotypeMatrix matrix_0_aug = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_0_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
-    haplotypeMatrix matrix_1_aug = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix_1_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
     
     double mu = penalties.mu;
@@ -559,7 +559,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     siteIndex ref_struct = build_ref(ref_seq, positions);
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
     inputHaplotype query = inputHaplotype(query_string, ref_seq, &ref_struct);
-    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
       
     vector<double> Ss;
@@ -688,9 +688,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
                 &ref_struct_span);
     //TODO: rebuild without inputHaplotypes
     
-    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
-    haplotypeMatrix matrix_span = haplotypeMatrix(&ref_struct_span, &penalties, 
+    fastFwdAlgState matrix_span = fastFwdAlgState(&ref_struct_span, &penalties, 
                 &cohort_span);
         
     double probability = matrix.calculate_probability(&query);
@@ -770,8 +770,8 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(fabs((test1.of(test2)).coefficient + 8.0) < eps);
     REQUIRE(fabs((test1.of(test2)).constant - logsum(-6, 1)) < eps);
   }
-  SECTION( "Building and accessing delayMaps" ) {
-    delayMap map = delayMap(5, 0);
+  SECTION( "Building and accessing lazyEvalMaps" ) {
+    lazyEvalMap map = lazyEvalMap(5, 0);
     REQUIRE(map.get_map_indices().size() == 5);
     REQUIRE(map.get_map(0).is_identity() == true);
     // Can we add and then read a value?
@@ -810,7 +810,7 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE((map.get_coefficient(3) - 3.0) < eps);
   }
   SECTION( "Updating maps performs correct arithmetic" ) {
-    delayMap map = delayMap(3, 0);
+    lazyEvalMap map = lazyEvalMap(3, 0);
     map.add_map_for_site(-2.0, -3.0);
     REQUIRE(map.get_maps_by_site()[0].is_identity());
     REQUIRE(map.get_maps_by_site()[1] == DPUpdateMap(-2.0, -3.0));
@@ -823,9 +823,9 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(map.get_constant(0) == -3.0);
     REQUIRE(map.get_map(0).of(-1.0) == m_of_one);
   }
-  SECTION( "We can track sites and times-of-update in delayMaps" ) {
+  SECTION( "We can track sites and times-of-update in lazyEvalMaps" ) {
     // build a dM with a non-zero start position
-    delayMap map2 = delayMap(2, 2);
+    lazyEvalMap map2 = lazyEvalMap(2, 2);
     map2.add_map(-1.0, -1.0);
     map2.assign_row_to_newest_index(0);
     REQUIRE(map2.last_update(0) == 2);
@@ -893,7 +893,7 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
   string query_string = "ATAAT";
   inputHaplotype query = inputHaplotype(query_string, ref_seq, &ref_struct);
   
-  haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
+  fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
               &cohort);
   
   double mu_c = penalties.one_minus_mu;
@@ -904,7 +904,7 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
   double S;
   double mu2 = penalties.one_minus_2mu;
   SECTION( "Delay map maintains correct states for all rows in matrix" ) {
-    haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
+    fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
     matrix.initialize_probability(&query);
     REQUIRE(matrix.get_maps().number_of_slots() == 1);

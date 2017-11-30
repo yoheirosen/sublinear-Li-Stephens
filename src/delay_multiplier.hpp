@@ -26,20 +26,20 @@ public:
 // Shorthand for statements of complexity:
 // |H|      number of haplotypes in population cohort
 // n        length of haplotype since we last took a snapshot and reset the 
-//          contents of the delayMap struct
+//          contents of the lazyEvalMap struct
 // |slots|  a quantity whose expected value is a function of the frequency of
 //          rare alleles and which is bounded by |H|
 // M_avg    average across all sites of the number of haplotypes containing the 
 
-// A delayMap is an O(|H| + n)-sized data structure which allows us to
+// A lazyEvalMap is an O(|H| + n)-sized data structure which allows us to
 // defer partial-probability update calculation of rows until the next site at
 // which the row contains an allele seen in less than half the population
 // This allows us to reduce the time complexity of the probability-calculation 
 // DP to O(M_avg * n) from O(|H| * n) at the expense of a memory use increase to
-// O(|H| + n) from O(|H|). However, the delayMap struct need not be
+// O(|H| + n) from O(|H|). However, the lazyEvalMap struct need not be
 // stored and may be replaced with O(|H|) information as long as we call
 // hard_update_all() first at at cost of O(|slots| + n) time
-struct delayMap{
+struct lazyEvalMap{
 private:
   bool added_span;
   bool updated_maps;
@@ -58,9 +58,9 @@ private:
   // slots can be added in their place
   vector<size_t> empty_map_slots;
 public:
-  delayMap();
-  delayMap(size_t rows, size_t start = 0);
-  delayMap(const delayMap& other);
+  lazyEvalMap();
+  lazyEvalMap(size_t rows, size_t start = 0);
+  lazyEvalMap(const lazyEvalMap& other);
     
   // steps forward the "current site" position
   void increment_site_marker();

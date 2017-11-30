@@ -17,10 +17,10 @@ private:
     
 public:
   // stores a probability calculation DP state
-  haplotypeMatrix* state = nullptr;  
-  // const haplotypeMatrix* get_state() const;
-  // void set_state(haplotypeMatrix* state);
-  // void replace_site(haplotypeMatrix* state);
+  fastFwdAlgState* state = nullptr;  
+  // const fastFwdAlgState* get_state() const;
+  // void set_state(fastFwdAlgState* state);
+  // void replace_site(fastFwdAlgState* state);
 
   ~haplotypeStateNode();
   haplotypeStateNode();

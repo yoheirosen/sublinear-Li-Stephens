@@ -21,7 +21,7 @@ const vector<size_t>& extensionSet::get_active_rows(size_t i) const  {
   return active_rows[i];
 }
 
-void extensionSet::extend_probability_by_allele(haplotypeMatrix* hap_mat,
+void extensionSet::extend_probability_by_allele(fastFwdAlgState* hap_mat,
             size_t i) {
   hap_mat->extend_probability_at_site(current_map[i], active_rows[i],
               match_is_rare[i], get_allele(i));

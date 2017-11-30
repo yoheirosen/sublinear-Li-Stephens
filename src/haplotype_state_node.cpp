@@ -30,7 +30,7 @@ haplotypeStateNode::haplotypeStateNode(const haplotypeStateNode& other) {
   allele = other.allele;
   parent = other.parent;
   children = {};
-  state = new haplotypeMatrix(*state);
+  state = new fastFwdAlgState(*state);
   marked_for_deletion = false;
 }
 
@@ -169,7 +169,7 @@ void haplotypeStateNode::release_state() {
 
 void haplotypeStateNode::copy_state_from_node(const haplotypeStateNode* other) {
   clear_state();
-  state = new haplotypeMatrix(*(other->state));
+  state = new fastFwdAlgState(*(other->state));
 }
 
 void haplotypeStateNode::compress_state() {

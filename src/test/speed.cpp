@@ -49,7 +49,7 @@ int main() {
           vector<size_t> augmentations (lengths[k] + 1, 0);
           inputHaplotype haplotype(reference_values, augmentations, &reference);
           penaltySet penalties(pow(10, -6), pow(10, -9), populations[l]);
-          haplotypeMatrix hm(&reference, &penalties, &cohort);
+          fastFwdAlgState hm(&reference, &penalties, &cohort);
           auto begin = chrono::high_resolution_clock::now();
           double prob = hm.calculate_probability(&haplotype);
           auto end = chrono::high_resolution_clock::now();

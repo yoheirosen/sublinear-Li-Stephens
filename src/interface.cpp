@@ -148,7 +148,7 @@ haplotypeManager* haplotypeManager_build_from_idx(
             char* read_DP_sequence) {
   penaltySet* penalties = new penaltySet(recombination_penalty, 
                                          mutation_penalty, 
-                                         cohort->get_haplotype_count());
+                                         cohort->get_n_haplotypes());
   vector<size_t> read_sites(read_DP_site_offsets,
                             read_DP_site_offsets + read_DP_site_count);
 
@@ -244,7 +244,7 @@ size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort) {
 }
 
 size_t number_of_sites(haplotypeCohort* cohort) {
-  return cohort->size();
+  return cohort->get_n_sites();
 }
 
 siteIndex* siteIndex_init_empty(size_t global_offset) {
@@ -341,7 +341,7 @@ void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
 }
 
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
-  return cohort->get_haplotype_count();
+  return cohort->get_n_haplotypes();
 }
 
 size_t siteIndex_n_sites(siteIndex* reference) {
@@ -380,18 +380,18 @@ void inputHaplotype_delete(inputHaplotype* in_hap) {
   delete in_hap;
 }
 
-haplotypeMatrix* haplotypeMatrix_initialize(siteIndex* reference,
+fastFwdAlgState* fastFwdAlgState_initialize(siteIndex* reference,
                                             penaltySet* penalties,
                                             haplotypeCohort* cohort) {
-  haplotypeMatrix* to_return = new haplotypeMatrix(reference, penalties, cohort);
+  fastFwdAlgState* to_return = new fastFwdAlgState(reference, penalties, cohort);
   return to_return;
 }
 
-void haplotypeMatrix_delete(haplotypeMatrix* hap_matrix) {
+void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix) {
   delete hap_matrix;
 }
 
-double haplotypeMatrix_score(haplotypeMatrix* hap_matrix, inputHaplotype* query) {
+double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* query) {
   double to_return = hap_matrix->calculate_probability(query);
   return to_return;
 }

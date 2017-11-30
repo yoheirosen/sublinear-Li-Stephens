@@ -52,6 +52,10 @@ siteIndex::~siteIndex() {
   
 }
 
+size_t haplotypeCohort::get_n_sites() const {
+  return allele_counts_by_site_index.size();
+}
+
 bool siteIndex::is_site(size_t actual_position) const {
   return (position_to_site_index.count(actual_position) == 1);
 }
@@ -195,7 +199,7 @@ void haplotypeCohort::populate_allele_counts() {
   finalized = true;
 }
 
-size_t haplotypeCohort::size() const {
+size_t haplotypeCohort::get_n_haplotypes() const {
   return number_of_haplotypes;
 }
 
@@ -246,7 +250,7 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
   return nonmatchlist;
 }
 
-const vector<alleleValue>& haplotypeCohort::get_alleles_at_site(size_t site_index) const {
+const vector<alleleValue>& haplotypeCohort::allele_vector_at_site(size_t site_index) const {
   return haplotype_alleles_by_site_index[site_index];
 }
 
@@ -527,7 +531,7 @@ size_t haplotypeCohort::get_MAC(size_t site) const {
 
 size_t haplotypeCohort::sum_MACs() const {
   size_t sum = 0;
-  for(size_t i = 0; i < size(); i++) {
+  for(size_t i = 0; i < get_n_sites(); i++) {
     sum += get_MAC(i);
   }
   return sum;
@@ -624,12 +628,8 @@ void haplotypeCohort::simulate_read_query(
   }
 }
 
-size_t haplotypeCohort::get_haplotype_count() const {
-  return number_of_haplotypes;
-}
-
 void haplotypeCohort::set_column(const vector<alleleValue>& values) {
-  set_column(values, size() - 1);
+  set_column(values, get_n_sites() - 1);
 }
 
 void haplotypeCohort::set_column(const vector<alleleValue>& values, size_t site) {
@@ -641,9 +641,9 @@ const siteIndex* haplotypeCohort::get_reference() const {
 }
 
 haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency) const {
-  size_t biggest_major = size() * (1 - frequency);
+  size_t biggest_major = get_n_sites() * (1 - frequency);
   vector<size_t> remaining_sites; 
-  for(size_t i = 0; i < size(); i++) {
+  for(size_t i = 0; i < get_n_sites(); i++) {
     bool passes = true;
     for(size_t j = 0; j < 5; j++) {
       if(allele_counts_by_site_index[i][j] > biggest_major) {

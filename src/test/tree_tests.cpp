@@ -87,13 +87,13 @@ TEST_CASE( "Tree interfaces with probability DP state matrices", "[tree][DP]") {
     haplotypeStateTree hsTree = haplotypeStateTree(&reference, &penalties, 
                 &cohort);
     haplotypeStateNode* n;
-    haplotypeMatrix correct_state = haplotypeMatrix(
+    fastFwdAlgState correct_state = fastFwdAlgState(
                 &reference,
                 &penalties,
                 &cohort);
     correct_state.initialize_probability_at_site(0, A);
     n = hsTree.root->add_child(A);
-    n->state = new haplotypeMatrix(&reference, &penalties, &cohort);
+    n->state = new fastFwdAlgState(&reference, &penalties, &cohort);
     n->state->initialize_probability_at_site(0, A);
     REQUIRE(correct_state.S == n->state->S);
     n = n->add_child_copying_state(C);
@@ -169,7 +169,7 @@ TEST_CASE( "Haplotype manager correctly handles tree-of-states", "[manager][tree
   vector<size_t> read_sites = {0,1,2,3};
   
   SECTION( "HaplotypeManager maintains correct states for simple sets of sites" ) {
-    haplotypeMatrix correct_state = haplotypeMatrix(
+    fastFwdAlgState correct_state = fastFwdAlgState(
                 &reference,
                 &penalties,
                 &cohort);
@@ -267,10 +267,10 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
     penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
     
-    haplotypeMatrix AAA_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix ACG_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix TGA_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix TCG_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    fastFwdAlgState AAA_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState ACG_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState TGA_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState TCG_state = fastFwdAlgState(&reference, &penalties, &cohort);
     vector<alleleValue> AAA = {A, A, A};
     vector<alleleValue> ACG = {A, C, G};
     vector<alleleValue> TGA = {T, G, A};
@@ -376,11 +376,11 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
     penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
     
-    haplotypeMatrix twoAs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix twoTs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix twoGs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix AT_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix root_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    fastFwdAlgState twoAs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState twoTs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState twoGs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState AT_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState root_state = fastFwdAlgState(&reference, &penalties, &cohort);
     
     twoAs_state.initialize_probability_at_span(1, 0);
     twoAs_state.extend_probability_at_site(1, A);
@@ -484,11 +484,11 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
     penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
     
-    haplotypeMatrix twoAs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix twoTs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix twoGs_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix AT_state = haplotypeMatrix(&reference, &penalties, &cohort);
-    haplotypeMatrix root_state = haplotypeMatrix(&reference, &penalties, &cohort);
+    fastFwdAlgState twoAs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState twoTs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState twoGs_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState AT_state = fastFwdAlgState(&reference, &penalties, &cohort);
+    fastFwdAlgState root_state = fastFwdAlgState(&reference, &penalties, &cohort);
     
     twoAs_state.initialize_probability_at_span(1, 0);
     twoAs_state.extend_probability_at_site(1, A);

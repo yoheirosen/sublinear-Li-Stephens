@@ -1,15 +1,15 @@
 #include <cmath>
 #include "probability.hpp"
 
-haplotypeMatrix::haplotypeMatrix(const siteIndex* ref, const penaltySet* pen,
+fastFwdAlgState::fastFwdAlgState(const siteIndex* ref, const penaltySet* pen,
           const haplotypeCohort* cohort) :
           reference(ref), cohort(cohort), penalties(pen),
-          map(delayMap(cohort->size(), 0)) {
+          map(lazyEvalMap(cohort->get_n_sites(), 0)) {
   S = 0;
-  R = vector<double>(cohort->size(), 0);
+  R = vector<double>(cohort->get_n_sites(), 0);
 }
 
-haplotypeMatrix::haplotypeMatrix(const haplotypeMatrix &other, 
+fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other, 
             bool copy_map = true) {
 	reference = other.reference;
 	cohort = other.cohort;
@@ -20,34 +20,34 @@ haplotypeMatrix::haplotypeMatrix(const haplotypeMatrix &other,
 	S = other.S;
 	R = other.R;
 	if(copy_map) {
-		map = delayMap(other.map);
+		map = lazyEvalMap(other.map);
 	} else {
-		map = delayMap(cohort->size(), last_extended);
+		map = lazyEvalMap(cohort->get_n_sites(), last_extended);
 	}
 }
 
-haplotypeMatrix::~haplotypeMatrix() {
+fastFwdAlgState::~fastFwdAlgState() {
   
 }
 
-void haplotypeMatrix::record_last_extended(alleleValue a) {
+void fastFwdAlgState::record_last_extended(alleleValue a) {
   last_extended++;
   last_allele = a;
 }
 
-bool haplotypeMatrix::last_extended_is_span() const {
+bool fastFwdAlgState::last_extended_is_span() const {
   return (last_extended == last_span_extended);
 }
 
-size_t haplotypeMatrix::get_last_site() const {
+size_t fastFwdAlgState::get_last_site() const {
   return last_extended;
 }
 
-delayMap& haplotypeMatrix::get_maps() {
+lazyEvalMap& fastFwdAlgState::get_maps() {
   return map;
 }
 
-void haplotypeMatrix::initialize_probability(const inputHaplotype* q) {
+void fastFwdAlgState::initialize_probability(const inputHaplotype* q) {
   if(q->has_sites()) {
     if(q->has_left_tail()) {
       initialize_probability(q->get_site_index(0), q->get_allele(0),
@@ -61,17 +61,17 @@ void haplotypeMatrix::initialize_probability(const inputHaplotype* q) {
   }
 }
 
-void haplotypeMatrix::extend_probability_at_site(const inputHaplotype* q, size_t j) {
+void fastFwdAlgState::extend_probability_at_site(const inputHaplotype* q, size_t j) {
   extend_probability_at_site(q->get_site_index(j), q->get_allele(j));
 }
 
-void haplotypeMatrix::extend_probability_at_span_after(const inputHaplotype* q, 
+void fastFwdAlgState::extend_probability_at_span_after(const inputHaplotype* q, 
             size_t j) {
   extend_probability_at_span_after(q->get_site_index(j), 
             q->get_augmentations(j));
 }
 
-double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
+double fastFwdAlgState::calculate_probability(const inputHaplotype* q) {
   initialize_probability(q);
   if(q->has_span_after(0)) {
     extend_probability_at_span_after(q, 0);
@@ -86,7 +86,7 @@ double haplotypeMatrix::calculate_probability(const inputHaplotype* q) {
   return S;
 }
 
-void haplotypeMatrix::initialize_probability(size_t site_index, alleleValue a,
+void fastFwdAlgState::initialize_probability(size_t site_index, alleleValue a,
             size_t left_tail_length, size_t mismatch_count) {
   if(left_tail_length != 0) {
     initialize_probability_at_span(left_tail_length, mismatch_count);
@@ -96,7 +96,7 @@ void haplotypeMatrix::initialize_probability(size_t site_index, alleleValue a,
   }
 }
 
-void haplotypeMatrix::initialize_probability_at_span(size_t length, 
+void fastFwdAlgState::initialize_probability_at_span(size_t length, 
               size_t mismatch_count) {
   // There is a uniform 1/|H| probability of starting on any given haplotype.
   // All emission probabilities are the same. So all R-values are the same
@@ -113,7 +113,7 @@ void haplotypeMatrix::initialize_probability_at_span(size_t length,
   last_span_extended = -1;
 }
 
-void haplotypeMatrix::initialize_probability_at_site(size_t site_index, 
+void fastFwdAlgState::initialize_probability_at_site(size_t site_index, 
             alleleValue a) {
   vector<size_t> matches = cohort->get_matches(site_index, a);
   vector<size_t> non_matches = 
@@ -145,7 +145,7 @@ void haplotypeMatrix::initialize_probability_at_site(size_t site_index,
   record_last_extended(a);
 }
 
-void haplotypeMatrix::update_subset_of_Rs(const vector<size_t>& indices,
+void fastFwdAlgState::update_subset_of_Rs(const vector<size_t>& indices,
               bool active_is_match) {
   double correction = penalties->get_minority_map_correction(active_is_match);
   for(size_t i = 0; i < indices.size(); i++) {
@@ -154,7 +154,7 @@ void haplotypeMatrix::update_subset_of_Rs(const vector<size_t>& indices,
   }
 }
 
-void haplotypeMatrix::update_subset_of_Rs(const rowSet& indices,
+void fastFwdAlgState::update_subset_of_Rs(const rowSet& indices,
               bool active_is_match) {
   double correction = penalties->get_minority_map_correction(active_is_match);
   for(size_t i = 0; i < indices.size(); i++) {
@@ -163,7 +163,7 @@ void haplotypeMatrix::update_subset_of_Rs(const rowSet& indices,
   }
 }
 
-void haplotypeMatrix::fast_update_S(const vector<size_t>& indices,
+void fastFwdAlgState::fast_update_S(const vector<size_t>& indices,
               bool active_is_match) {
   vector<double> summands = vector<double>(indices.size(), 0);
   for(size_t i = 0; i < indices.size(); i++) {
@@ -172,7 +172,7 @@ void haplotypeMatrix::fast_update_S(const vector<size_t>& indices,
   penalties->update_S(S, summands, active_is_match);
 }
 
-void haplotypeMatrix::fast_update_S(const rowSet& indices,
+void fastFwdAlgState::fast_update_S(const rowSet& indices,
               bool active_is_match) {
   vector<double> summands = vector<double>(indices.size(), 0);
   for(size_t i = 0; i < indices.size(); i++) {
@@ -181,7 +181,7 @@ void haplotypeMatrix::fast_update_S(const rowSet& indices,
   penalties->update_S(S, summands, active_is_match);
 }
 
-void haplotypeMatrix::extend_probability_at_site(size_t site_index,
+void fastFwdAlgState::extend_probability_at_site(size_t site_index,
             alleleValue a) {
   bool match_is_rare = cohort->match_is_rare(site_index, a);
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
@@ -189,22 +189,22 @@ void haplotypeMatrix::extend_probability_at_site(size_t site_index,
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
-void haplotypeMatrix::extend_probability_at_span_after(size_t site_index,
+void fastFwdAlgState::extend_probability_at_span_after(size_t site_index,
             size_t mismatch_count = 0) {
   size_t length = reference->span_length_after(site_index);
   extend_probability_at_span_after_anonymous(length, mismatch_count);
 }
 
-void haplotypeMatrix::take_snapshot() {
+void fastFwdAlgState::take_snapshot() {
   if(last_extended >= 0) {
-    // step forward all delayMap slots which are not up to date
+    // step forward all lazyEvalMap slots which are not up to date
     map.hard_update_all();
     size_t j = last_extended;
     bool reference_is_homogenous = 
               (cohort->number_matching(j, last_allele) == 0 ||
               cohort->number_not_matching(j, last_allele) == 0);
     if(reference_is_homogenous || last_extended_is_span()) {
-      for(size_t i = 0; i < cohort->size(); i++) {
+      for(size_t i = 0; i < cohort->get_n_sites(); i++) {
         R[i] = calculate_R(R[i], map.get_map(i));
       }
     } else if(cohort->match_is_rare(j, last_allele)) {
@@ -222,17 +222,17 @@ void haplotypeMatrix::take_snapshot() {
                   calculate_R(R[matches[i]], map.get_map(matches[i]));
       }
     }
-    // since all R-values are up to date, we do not need entries in the delayMap
+    // since all R-values are up to date, we do not need entries in the lazyEvalMap
     // therefore we can clear them all and replace them with the identity map
     map.hard_clear_all();
   }
 } 
 
-double haplotypeMatrix::prefix_likelihood() const {
+double fastFwdAlgState::prefix_likelihood() const {
   return S;
 }
 
-double haplotypeMatrix::partial_likelihood_by_row(size_t row) const {
+double fastFwdAlgState::partial_likelihood_by_row(size_t row) const {
   return R[row];
 }
 
@@ -244,7 +244,7 @@ double calculate_R(double oldR, double coefficient, double constant) {
   return calculate_R(oldR, DPUpdateMap(coefficient, constant));
 }
 
-void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map, 
+void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map, 
             const vector<size_t>& active_rows, bool match_is_rare, 
             alleleValue a) {
   map.add_map_for_site(current_map);
@@ -264,7 +264,7 @@ void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map,
   return;
 }
 
-void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map, 
+void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map, 
             const rowSet& active_rows, bool match_is_rare, 
             alleleValue a) {
   map.add_map_for_site(current_map);
@@ -284,21 +284,21 @@ void haplotypeMatrix::extend_probability_at_site(const DPUpdateMap& current_map,
   return;
 }
 
-void haplotypeMatrix::extend_probability_at_site(
+void fastFwdAlgState::extend_probability_at_site(
             const vector<size_t>& active_rows, bool match_is_rare, 
             alleleValue a) {
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
-void haplotypeMatrix::extend_probability_at_site(
+void fastFwdAlgState::extend_probability_at_site(
             const rowSet& active_rows, bool match_is_rare, 
             alleleValue a) {
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
-void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l, 
+void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l, 
             size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);
   map.update_map_with_span(m + penalties->alpha(l), 
@@ -307,13 +307,13 @@ void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l,
   last_span_extended = last_extended;
 }
 
-forward_solver::forward_solver(const siteIndex* ref, const penaltySet* pen,
+slowFwdSolver::slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes) : reference(ref), penalties(pen), cohort(haplotypes) {
 }
             
-double forward_solver::calculate_probability_quadratic(const vector<alleleValue>& q,
+double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q,
           size_t start_site = 0) {
-  vector<double> R(cohort->get_haplotype_count(), -penalties->log_H);
+  vector<double> R(cohort->get_n_haplotypes(), -penalties->log_H);
   vector<double> last_R;
   double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
@@ -334,9 +334,9 @@ double forward_solver::calculate_probability_quadratic(const vector<alleleValue>
   return log_big_sum(R);
 }
 
-double forward_solver::calculate_probability_linear(const vector<alleleValue>& q,
+double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
           size_t start_site = 0) {
-  vector<double> R(cohort->get_haplotype_count(), -penalties->log_H);
+  vector<double> R(cohort->get_n_haplotypes(), -penalties->log_H);
   vector<double> last_R;
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
