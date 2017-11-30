@@ -35,6 +35,7 @@ public:
             const string& reference_values);
   linearReferenceStructure(const vector<size_t>& positions, size_t length,
             const vector<alleleValue>& reference_values);
+  linearReferenceStructure(const vector<size_t>& positions, size_t length, size_t global_offset);
   linearReferenceStructure(const vector<size_t>& positions,
             const string& reference_sequence);
   linearReferenceStructure(size_t global_offset);
@@ -48,8 +49,6 @@ public:
   bool has_span_after(size_t site_index) const;
   size_t span_length_before(size_t site_index) const;
   size_t span_length_after(size_t site_index) const;
-  
-  bool is_augmentation(alleleValue a, size_t position) const;
   
   size_t number_of_sites() const;
   size_t absolute_length();
@@ -102,6 +101,15 @@ public:
   haplotypeCohort(size_t cohort_size, const linearReferenceStructure* reference);
   ~haplotypeCohort();
   
+  // Removes sites where the minor allele frequency is below [double frequency].
+  // For multiallelic sites, the minor allele frequency is taken to be the sum
+  // of the minor allele frequencies with respect to the most common allele.
+  // This constructs both a new (dynamically allocated) haplotypeCohort as well
+  // as a new linearReferenceStructure, which is implicitly returned as
+
+  haplotypeCohort* remove_sites_below_frequency(double frequency) const;
+  const linearReferenceStructure* get_reference() const;  
+  
   void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
   
   size_t size() const;
@@ -127,6 +135,9 @@ public:
   // 0 : cohort locked
   // -1 : already assigned
   int set_sample_allele(size_t site, size_t sample, alleleValue a);
+  
+  void set_column(const vector<alleleValue>& values);
+  void set_column(const vector<alleleValue>& values, size_t site);
   
   void simulate_read_query(const char* ref_seq,
                            double mutation_rate,

@@ -16,9 +16,7 @@ struct penaltySet{
   double one_minus_mu;
   double one_minus_2mu;
   
-  // log of (1 - 2*rho)
   double alpha_value;
-  // log of (1 - 2*rho + H*rho)
   double beta_value;
   
   penaltySet(double logRho, double logMu, int H);

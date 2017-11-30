@@ -306,3 +306,48 @@ void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l,
   S = m + S + penalties->beta(l);
   last_span_extended = last_extended;
 }
+
+forward_solver::forward_solver(const linearReferenceStructure* ref, const penaltySet* pen,
+            const haplotypeCohort* haplotypes) : reference(ref), penalties(pen), cohort(haplotypes) {
+}
+            
+double forward_solver::calculate_probability_quadratic(const vector<alleleValue>& q,
+          size_t start_site = 0) {
+  vector<double> R(cohort->get_haplotype_count(), -penalties->log_H);
+  vector<double> last_R;
+  double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
+  for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
+    last_R = R;
+    vector<double> temp = last_R;
+    // do span stuff
+    for(size_t j = 0; j < R.size(); j++) {
+      for(size_t k = 0; k < temp.size(); k++) {
+        temp[k] += penalties->rho;
+      }
+      temp[j] = same_transition;
+      R[j] = log_big_sum(temp);
+      bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
+      double emission = matches ? penalties->one_minus_mu : penalties->mu;
+      R[j] += emission;
+    }
+  }
+  return log_big_sum(R);
+}
+
+double forward_solver::calculate_probability_linear(const vector<alleleValue>& q,
+          size_t start_site = 0) {
+  vector<double> R(cohort->get_haplotype_count(), -penalties->log_H);
+  vector<double> last_R;
+  for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
+    last_R = R;
+    double S = log_big_sum(last_R) + penalties->rho;
+    // do span stuff
+    for(size_t j = 0; j < R.size(); j++) {
+      R[j] = logsum(S, last_R[j] + penalties->alpha_value); 
+      bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
+      double emission = matches ? penalties->one_minus_mu : penalties->mu;
+      R[j] += emission;
+    }
+  }
+  return log_big_sum(R);
+}

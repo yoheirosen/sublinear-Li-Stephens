@@ -663,3 +663,55 @@ void haplotypeCohort::simulate_read_query(
 size_t haplotypeCohort::get_haplotype_count() const {
   return number_of_haplotypes;
 }
+
+void haplotypeCohort::set_column(const vector<alleleValue>& values) {
+  set_column(values, size() - 1);
+}
+
+void haplotypeCohort::set_column(const vector<alleleValue>& values, size_t site) {
+  haplotype_alleles_by_site_index[site] = values;
+}
+
+const linearReferenceStructure* haplotypeCohort::get_reference() const {
+  return reference;
+}
+
+linearReferenceStructure::linearReferenceStructure(
+        const vector<size_t>& positions, size_t length, size_t global_offset) :
+  site_index_to_position(positions), length(length), global_offset(global_offset) {
+  site_index_to_reference_allele = vector<alleleValue>(positions.size(), unassigned);
+  calculate_final_span_length(length);
+}
+
+haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency) const {
+  size_t biggest_major = size() * (1 - frequency);
+  vector<size_t> remaining_sites; 
+  for(size_t i = 0; i < size(); i++) {
+    bool passes = true;
+    for(size_t j = 0; j < 5; j++) {
+      if(allele_counts_by_site_index[i][j] > biggest_major) {
+        passes = false;
+      }
+    }
+    if(passes) {
+      remaining_sites.push_back(i);
+    }
+  }
+  vector<size_t> remaining_site_positions(remaining_sites.size());
+  for(size_t i = 0; i < remaining_sites.size(); i++) {
+    remaining_site_positions[i] = reference->get_position(remaining_sites[i]);
+  }
+  linearReferenceStructure* new_reference = 
+            new linearReferenceStructure(remaining_site_positions,
+                                         reference->absolute_length(),
+                                         reference->start_position() +
+                                                  reference->absolute_length());
+  haplotypeCohort* to_return = 
+            new haplotypeCohort(number_of_haplotypes, new_reference);
+  for(size_t i = 0; i < remaining_sites.size(); i++) {
+    to_return->add_record(i);
+    to_return->set_column(haplotype_alleles_by_site_index[remaining_sites[i]]);
+  }
+  to_return->populate_allele_counts();
+  return to_return;
+}

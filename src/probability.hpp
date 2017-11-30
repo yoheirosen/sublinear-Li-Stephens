@@ -90,6 +90,16 @@ public:
   void fast_update_S(const rowSet& indices, bool active_is_match);
 };
 
+struct forward_solver{
+  const linearReferenceStructure* reference;
+  const penaltySet* penalties;
+  const haplotypeCohort* cohort;
+  forward_solver(const linearReferenceStructure* ref, const penaltySet* pen,
+            const haplotypeCohort* haplotypes);
+  double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
+  double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
+};
+
 double calculate_R(double oldR, const DPUpdateMap& map);
 double calculate_R(double oldR, double coefficient, double constant);
 

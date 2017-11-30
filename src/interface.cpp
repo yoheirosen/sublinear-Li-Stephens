@@ -391,7 +391,6 @@ void haplotypeMatrix_delete(haplotypeMatrix* hap_matrix) {
 
 double haplotypeMatrix_score(haplotypeMatrix* hap_matrix, inputHaplotype* query) {
   double to_return = hap_matrix->calculate_probability(query);
-  cout << to_return << endl;
   return to_return;
 }
 
