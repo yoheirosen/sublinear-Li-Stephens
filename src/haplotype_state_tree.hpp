@@ -10,7 +10,7 @@ using namespace std;
 
 struct haplotypeStateTree{
 private:
-  const linearReferenceStructure* reference;
+  const siteIndex* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
 
@@ -20,7 +20,7 @@ private:
 public:
   haplotypeStateTree();
   haplotypeStateTree(
-              const linearReferenceStructure* reference, 
+              const siteIndex* reference, 
               const penaltySet* penalties, 
               const haplotypeCohort* cohort);
   ~haplotypeStateTree();

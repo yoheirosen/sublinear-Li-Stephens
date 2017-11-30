@@ -11,14 +11,14 @@
 using namespace std;
 
 // A haplotypeMatrix is the matrix which iteratively calculates haplotype
-// likelihood. It takes in a haplotypeCohort and a linearReferenceStructure, an
-// inputHaplotype built against the linearReferenceStructure, and a penaltySet
+// likelihood. It takes in a haplotypeCohort and a siteIndex, an
+// inputHaplotype built against the siteIndex, and a penaltySet
 // of mutation and recombination penalties. It calculates and returns the
 // likelihood of the inputHaplotype relative to the haplotypeCohort when
 // calculate_probability is called
 struct haplotypeMatrix{
 private:
-  const linearReferenceStructure* reference;
+  const siteIndex* reference;
   const haplotypeCohort* cohort;
   const penaltySet* penalties;
   // TODO (10/3/17) streamline memory use here
@@ -34,7 +34,7 @@ private:
     void record_last_extended(alleleValue a);
   
 public:
-  haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,
+  haplotypeMatrix(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
   haplotypeMatrix(const haplotypeMatrix& other, bool copy_map);
   ~haplotypeMatrix();
@@ -91,10 +91,10 @@ public:
 };
 
 struct forward_solver{
-  const linearReferenceStructure* reference;
+  const siteIndex* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
-  forward_solver(const linearReferenceStructure* ref, const penaltySet* pen,
+  forward_solver(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);

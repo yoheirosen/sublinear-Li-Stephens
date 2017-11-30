@@ -11,21 +11,17 @@
 
 using namespace std;
 
-linearReferenceStructure build_ref(string ref_seq, vector<size_t> positions) {
-  vector<alleleValue> ref_values;
-  for(size_t i = 0; i < positions.size(); i++) {
-    ref_values.push_back(char_to_allele(ref_seq[positions[i]]));
-  }
-  return linearReferenceStructure(positions, ref_seq.length(), ref_values);
+siteIndex build_ref(const string& ref_seq, vector<size_t>& positions) {
+  return siteIndex(positions, ref_seq.length());
 }
 
-TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
+TEST_CASE( "siteIndex structure and accessors", "[reference]" ) {
   // indices        0123456
   // sites           x  xx
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
-  SECTION( "linearReferenceStructure accessor correctness" ) {
+  siteIndex ref_struct = build_ref(ref_seq, positions);
+  SECTION( "siteIndex accessor correctness" ) {
     REQUIRE(ref_struct.number_of_sites() == 3);
     REQUIRE(ref_struct.is_site(0) == false);
     REQUIRE(ref_struct.is_site(1) == true);
@@ -47,8 +43,7 @@ TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
       "GCTTA-A",
       "GATT-CA"
     };
-    linearReferenceStructure ref_struct_from_strings =
-              linearReferenceStructure(haplotypes, ref_seq);
+    siteIndex ref_struct_from_strings = siteIndex(haplotypes);
     REQUIRE(ref_struct_from_strings.is_site(0) == false);
     REQUIRE(ref_struct_from_strings.is_site(1) == true);
     REQUIRE(ref_struct_from_strings.is_site(2) == false);
@@ -73,7 +68,7 @@ TEST_CASE( "linearReferenceStructure structure and accessors", "[reference]" ) {
 TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  siteIndex ref_struct = build_ref(ref_seq, positions);
   vector<vector<alleleValue> > haplotypes = {
     {A,A,A},
     {T,A,A},
@@ -115,7 +110,7 @@ TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
 TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  siteIndex ref_struct = build_ref(ref_seq, positions);
   SECTION( "build-from-vectors" ) {
     // ref    GATTACA
     // sites   0  12
@@ -223,7 +218,7 @@ TEST_CASE( "inputHaplotype", "[haplotype]" ) {
   // sites           x  xx
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  siteIndex ref_struct = build_ref(ref_seq, positions);
   
   SECTION( "augmentations are indexed as desired " ) {
     vector<alleleValue> alleles = {A, A};
@@ -307,7 +302,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
 
     string ref_seq = "A";
     vector<size_t> positions = {0};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
 
     vector<string> allA = vector<string>(2, "A");
     vector<string> allT = vector<string>(2, "T");
@@ -357,7 +352,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     string ref_seq = "AA";
     vector<size_t> positions = {0,1};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
     
     vector<string> allA = {"AA","TA","AA","TA"};
     vector<string> allT = {"AT","TT","AT","TT"};
@@ -430,7 +425,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     string ref_seq = "AAAAAA";
     vector<size_t> positions = {0};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
     
     vector<string> haplotypes = {
       "AAAAAA",
@@ -496,7 +491,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     string ref_seq = "AAAAAA";
     vector<size_t> positions = {5};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
     
     vector<string> haplotypes = {
       "AAAAAA",
@@ -561,7 +556,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     // 11100
     
     vector<size_t> positions = {0,1,2,3,4};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
     haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
     inputHaplotype query = inputHaplotype(query_string, ref_seq, &ref_struct);
     haplotypeMatrix matrix = haplotypeMatrix(&ref_struct, &penalties, 
@@ -673,11 +668,11 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     string ref_seq = "AAAAA";
     vector<size_t> positions_span = {0};
-    linearReferenceStructure ref_struct_span = build_ref(ref_seq, 
+    siteIndex ref_struct_span = build_ref(ref_seq, 
                 positions_span);
 
     vector<size_t> positions = {0,1,2,3,4};
-    linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+    siteIndex ref_struct = build_ref(ref_seq, positions);
         
     vector<string> haplotypes = {
       "AAAAA",
@@ -719,7 +714,7 @@ TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
   //                01234567890123456789
   
   vector<size_t> positions = {4, 9, 14};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  siteIndex ref_struct = build_ref(ref_seq, positions);
   
   SECTION( "relative indices are produced as desired " ) {
     string eight = "TTTTTTTT";
@@ -883,7 +878,7 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
   
   string ref_seq = "AAAAA";
   vector<size_t> positions = {0,1,2,3,4};
-  linearReferenceStructure ref_struct = build_ref(ref_seq, positions);
+  siteIndex ref_struct = build_ref(ref_seq, positions);
   
   vector<string> haplotypes = {
     "AAAAA",

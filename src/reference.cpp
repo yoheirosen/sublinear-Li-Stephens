@@ -8,76 +8,17 @@
 
 using namespace std;
 
-linearReferenceStructure::~linearReferenceStructure() {
-  
+
+siteIndex::siteIndex(size_t global_offset) : global_offset(global_offset) {
 }
 
-bool linearReferenceStructure::is_site(size_t actual_position) const {
-  return (position_to_site_index.count(actual_position) == 1);
-}
-
-size_t linearReferenceStructure::get_site_index(size_t actual_position) const {
-  return position_to_site_index.at(actual_position);
-}
-
-size_t linearReferenceStructure::get_position(size_t site_index) const {
-  return site_index_to_position[site_index];
-}
-
-bool linearReferenceStructure::has_span_before(size_t site_index) const {
-  if(site_index == 0) {
-    return (leading_span_length != 0);
-  } else {
-    return (span_lengths[site_index - 1] != 0);
-  }
-}
-
-bool linearReferenceStructure::has_span_after(size_t site_index) const {
-  return (span_lengths[site_index] != 0);
-}
-
-size_t linearReferenceStructure::span_length_before(size_t site_index) const {
-  if(site_index == 0) {
-    return leading_span_length;
-  } else {
-    return span_lengths[site_index - 1];
-  }
-}
-
-size_t linearReferenceStructure::span_length_after(size_t site_index) const {
-  return span_lengths[site_index];
-}
-
-size_t linearReferenceStructure::number_of_sites() const {
-  return site_index_to_position.size();
-}
-
-size_t linearReferenceStructure::absolute_length() {
-  if(final_span_calculated) {
-    if(length == 0) {
-      length = site_index_to_position.back() + span_lengths.back() + 1;
-    }
-    return length;
-  } else {
-    return 0;
-  }
-}
-
-size_t linearReferenceStructure::absolute_length() const {
-  return length;
-}
-
-linearReferenceStructure::linearReferenceStructure(
-            const vector<string>& haplotypes,
-            const string& reference_values) {
+siteIndex::siteIndex(const vector<string>& haplotypes) {
   size_t number_of_haplotypes = haplotypes.size();
   size_t length_of_haplotypes = haplotypes[0].size();
   for(size_t i = 0; i < length_of_haplotypes; i++) {
     vector<alleleValue> alleles_seen;
-    alleleValue ref_at_i = char_to_allele(reference_values[i], A);
-    alleles_seen.push_back(ref_at_i);
     for(size_t j = 0; j < number_of_haplotypes; j++) {
-      alleleValue allele_at_j = char_to_allele(haplotypes[j][i], ref_at_i);
+      alleleValue allele_at_j = allele::from_char(haplotypes[j][i]);
       bool allele_seen = false;
       for(size_t k = 0; k < alleles_seen.size(); k++) {
         if(allele_at_j == alleles_seen[k]) {
@@ -89,36 +30,73 @@ linearReferenceStructure::linearReferenceStructure(
       }
     }
     if(alleles_seen.size() > 1) {
-      add_site(i, ref_at_i);
+      add_site(i);
     }
   }
   calculate_final_span_length(length_of_haplotypes);
 }
 
-linearReferenceStructure::linearReferenceStructure(
-            const vector<size_t>& positions,
-            size_t length, const vector<alleleValue>& reference_values) {
+siteIndex::siteIndex(const vector<size_t>& positions, size_t length) {
   for(size_t i = 0; i < positions.size(); i++) {
-    add_site(positions[i], reference_values[i]);
+    add_site(positions[i]);
   }
   calculate_final_span_length(length);
 }
 
-linearReferenceStructure::linearReferenceStructure(
-            const vector<size_t>& positions,
-            const string& reference_sequence) {
-  alleleValue allele;
-  for(size_t i = 0; i < positions.size(); i++) {
-    allele = char_to_allele(reference_sequence[positions[i]]);
-    add_site(positions[i], allele);
-  }
-  calculate_final_span_length(reference_sequence.length());
+siteIndex::siteIndex(const vector<size_t>& positions, size_t length, size_t global_offset) :
+  site_index_to_position(positions), length(length), global_offset(global_offset) {
+  calculate_final_span_length(length);
 }
 
-int64_t linearReferenceStructure::add_site(size_t position) {
-  if(final_span_calculated) {
-    return -3;
+siteIndex::~siteIndex() {
+  
+}
+
+bool siteIndex::is_site(size_t actual_position) const {
+  return (position_to_site_index.count(actual_position) == 1);
+}
+
+size_t siteIndex::get_site_index(size_t actual_position) const {
+  return position_to_site_index.at(actual_position);
+}
+
+size_t siteIndex::get_position(size_t site_index) const {
+  return site_index_to_position[site_index];
+}
+
+bool siteIndex::has_span_before(size_t site_index) const {
+  if(site_index == 0) {
+    return (leading_span_length != 0);
+  } else {
+    return (span_lengths[site_index - 1] != 0);
   }
+}
+
+bool siteIndex::has_span_after(size_t site_index) const {
+  return (span_lengths[site_index] != 0);
+}
+
+size_t siteIndex::span_length_before(size_t site_index) const {
+  if(site_index == 0) {
+    return leading_span_length;
+  } else {
+    return span_lengths[site_index - 1];
+  }
+}
+
+size_t siteIndex::span_length_after(size_t site_index) const {
+  return span_lengths[site_index];
+}
+
+size_t siteIndex::number_of_sites() const {
+  return site_index_to_position.size();
+}
+
+size_t siteIndex::absolute_length() const {
+  return length;
+}
+
+int64_t siteIndex::add_site(size_t position) {
   size_t new_index = site_index_to_position.size();
   if(new_index > 0) {
     if(position < site_index_to_position.back()) {
@@ -132,29 +110,17 @@ int64_t linearReferenceStructure::add_site(size_t position) {
   }
   site_index_to_position.push_back(position);
   position_to_site_index.emplace(position, new_index);
-  site_index_to_reference_allele.push_back(unassigned);
   return site_index_to_position.size() - 1;
 }
 
-void linearReferenceStructure::add_site(size_t position, 
-            alleleValue reference_value) {
-  add_site(position);
-  site_index_to_reference_allele.back() = reference_value;
-}
-
-void linearReferenceStructure::calculate_final_span_length(
+void siteIndex::calculate_final_span_length(
             size_t reference_length) {
   size_t previous_position = site_index_to_position.back();
   span_lengths.push_back(reference_length - previous_position - 1);
-  final_span_calculated = true;
-  absolute_length();
+  length = site_index_to_position.back() + span_lengths.back() + 1;
 }
 
-alleleValue linearReferenceStructure::get_reference_allele_at_site(size_t site_index) const {
-  return site_index_to_reference_allele[site_index];
-}
-
-size_t linearReferenceStructure::find_site_above(size_t position) const {
+size_t siteIndex::find_site_above(size_t position) const {
   if(is_site(position)) {
     return get_site_index(position);
   } else {
@@ -166,7 +132,7 @@ size_t linearReferenceStructure::find_site_above(size_t position) const {
   }
 }
 
-size_t linearReferenceStructure::find_site_below(size_t position) const {
+size_t siteIndex::find_site_below(size_t position) const {
   if(is_site(position)) {
     return get_site_index(position);
   } else {
@@ -239,22 +205,22 @@ const vector<size_t>& haplotypeCohort::get_matches(size_t site_index, alleleValu
 }
 
 haplotypeCohort::haplotypeCohort(const vector<string>& haplotypes, 
-            const linearReferenceStructure* reference) : reference(reference) {
+            const siteIndex* reference) : reference(reference) {
   number_of_haplotypes = haplotypes.size();
   size_t num_sites = reference->number_of_sites();
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     haplotype_alleles_by_site_index.push_back(vector<alleleValue>(num_sites));
     for(size_t j = 0; j < num_sites; j++) {
       size_t pos = reference->get_position(j);
-      haplotype_alleles_by_site_index[i][j] = char_to_allele(haplotypes[i][pos],
-                  reference->get_reference_allele_at_site(j));
+      haplotype_alleles_by_site_index[i][j] = allele::from_char(haplotypes[i][pos],
+                  unassigned);
     }
   }
   populate_allele_counts();
 }
 
 haplotypeCohort::haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
-          const linearReferenceStructure* reference) : reference(reference),
+          const siteIndex* reference) : reference(reference),
           haplotype_alleles_by_site_index(haplotypes) {
   number_of_haplotypes = haplotypes.size();
   populate_allele_counts();
@@ -293,7 +259,7 @@ vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) cons
 }
 
 haplotypeCohort::haplotypeCohort(size_t cohort_size, 
-            const linearReferenceStructure* reference) : reference(reference) {
+            const siteIndex* reference) : reference(reference) {
   size_t num_sites = reference->number_of_sites();
   number_of_haplotypes = cohort_size;
   haplotype_alleles_by_site_index = vector<vector<alleleValue> >(
@@ -330,43 +296,18 @@ rowSet haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
   }
 }
 
-size_t linearReferenceStructure::pos_ref2global(size_t p) const {
+size_t siteIndex::pos_ref2global(size_t p) const {
   return p + global_offset;
 }
 
-int64_t linearReferenceStructure::pos_global2ref(int64_t p) const {
+int64_t siteIndex::pos_global2ref(int64_t p) const {
   return p - global_offset;
 }
 
-size_t linearReferenceStructure::start_position() const {
+size_t siteIndex::start_position() const {
   return global_offset;
 }
 
-void linearReferenceStructure::set_allele_at_site(size_t site, alleleValue allele) {
-  site_index_to_reference_allele[site] = allele;
-}
-
-bool linearReferenceStructure::set_allele_at_pos(size_t p, alleleValue allele) {
-  if(is_site(p)) {
-    site_index_to_reference_allele[get_site_index(p)] = allele;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-int linearReferenceStructure::set_allele_at_global_pos(size_t p, alleleValue allele) {
-  if(p < global_offset || p >= global_offset + length) {
-    return -1;
-  } else {
-    p = pos_global2ref(p);
-    return set_allele_at_pos(p, allele);
-  }
-}
-
-linearReferenceStructure::linearReferenceStructure(size_t global_offset) : global_offset(global_offset) {
-  
-}
 
 int haplotypeCohort::add_record(size_t site) {
   if(finalized) {
@@ -401,7 +342,7 @@ int haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a
   }
 }
 
-void linearReferenceStructure::set_initial_span(size_t length) {
+void siteIndex::set_initial_span(size_t length) {
   leading_span_length = length;
 }
 
@@ -449,16 +390,16 @@ void haplotypeCohort::simulate_read_query_2(
   //   char a_1, a_2;
   //   if(reference->is_site(p)) {
   //     size_t site = reference->get_site_index(p);
-  //     a_1 = allele_to_char(allele_at(site, h_1));
-  //     a_2 = allele_to_char(allele_at(site, h_2));
+  //     a_1 = allele::to_char(allele_at(site, h_1));
+  //     a_2 = allele::to_char(allele_at(site, h_2));
   //   } else {
   //     a_1 = a_2 = ref_seq[p - start_offset];
   //   }
   //   if(rand_mutate(generator)) {
-  //     a_1 = allele_to_char((alleleValue)which_allele(generator));
+  //     a_1 = allele::to_char((alleleValue)which_allele(generator));
   //   }
   //   if(rand_mutate(generator)) {
-  //     a_2 = allele_to_char((alleleValue)which_allele(generator));
+  //     a_2 = allele::to_char((alleleValue)which_allele(generator));
   //   }
   //   if(a_1 == a_2) {
   //     str_to_return[p - start_offset] = a_1;
@@ -491,12 +432,12 @@ void haplotypeCohort::simulate_read_query_2(
       char a;
       if(reference->is_site(p)) {
         size_t site = reference->get_site_index(p);
-        a = allele_to_char(allele_at(site, h_new));
+        a = allele::to_char(allele_at(site, h_new));
       } else {
         a = ref_seq[p - start_offset];
       }
       if(rand_mutate(generator)) {
-        a = allele_to_char((alleleValue)which_allele(generator));
+        a = allele::to_char((alleleValue)which_allele(generator));
       }
       new_haplotype[p - start_offset] = a;
     }
@@ -516,7 +457,7 @@ void haplotypeCohort::simulate_read_query_2(
         char a;
         a = (parents[h])[p - start_offset];
         if(rand_mutate(generator)) {
-          a = allele_to_char((alleleValue)which_allele(generator));
+          a = allele::to_char((alleleValue)which_allele(generator));
         }
         if(rand_recombine(generator)) {
           h = (h + 1) % 2;
@@ -653,13 +594,13 @@ void haplotypeCohort::simulate_read_query(
   for(pos = start_offset; pos < reference->get_position(0); pos++) {
     if(rand_mutate(generator)) {  
       int mutate_to = which_allele(generator);
-      str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
+      str_to_return[pos - start_offset] = allele::to_char((alleleValue)mutate_to);
     }
   }
   // will piece together haplotype using Li-Stephens approximation
   size_t h_index = which_haplotype(generator);
   for(size_t site = 0; site < ref_sites; site++) {
-    str_to_return[reference->get_position(site) - start_offset] = allele_to_char(allele_at(site, h_index));
+    str_to_return[reference->get_position(site) - start_offset] = allele::to_char(allele_at(site, h_index));
     if(rand_recombine(generator)) {
       h_index = which_haplotype(generator);
     }
@@ -672,7 +613,7 @@ void haplotypeCohort::simulate_read_query(
     for(size_t pos = reference->get_position(site) + 1; pos < pos_limit; pos++) {
       if(rand_mutate(generator)) {
         int mutate_to = which_allele(generator);
-        str_to_return[pos - start_offset] = allele_to_char((alleleValue)mutate_to);
+        str_to_return[pos - start_offset] = allele::to_char((alleleValue)mutate_to);
       } else {
         str_to_return[pos - start_offset] = ref_seq[pos - start_offset];
       }
@@ -695,15 +636,8 @@ void haplotypeCohort::set_column(const vector<alleleValue>& values, size_t site)
   haplotype_alleles_by_site_index[site] = values;
 }
 
-const linearReferenceStructure* haplotypeCohort::get_reference() const {
+const siteIndex* haplotypeCohort::get_reference() const {
   return reference;
-}
-
-linearReferenceStructure::linearReferenceStructure(
-        const vector<size_t>& positions, size_t length, size_t global_offset) :
-  site_index_to_position(positions), length(length), global_offset(global_offset) {
-  site_index_to_reference_allele = vector<alleleValue>(positions.size(), unassigned);
-  calculate_final_span_length(length);
 }
 
 haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency) const {
@@ -724,8 +658,8 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
   for(size_t i = 0; i < remaining_sites.size(); i++) {
     remaining_site_positions[i] = reference->get_position(remaining_sites[i]);
   }
-  linearReferenceStructure* new_reference = 
-            new linearReferenceStructure(remaining_site_positions,
+  siteIndex* new_reference = 
+            new siteIndex(remaining_site_positions,
                                          reference->absolute_length(),
                                          reference->start_position() +
                                                   reference->absolute_length());

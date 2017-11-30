@@ -1,5 +1,5 @@
 // A population reference cohort is expressed using two elements:
-// 1. a linearReferenceStructure which stores positions of sites of variation
+// 1. a siteIndex which stores positions of sites of variation
 //    in a population
 // 2. a haplotypeCohort which stores vectors of haplotype indices containing a
 //    given allele at a given site. This is essential for rapid calculation of
@@ -16,99 +16,107 @@
 
 using namespace std;
 
-struct linearReferenceStructure{
+//------------------------------------------------------------------------------
+struct siteIndex{
+
 private:
-  size_t global_offset = 0;
-  size_t length = 0;
-  bool final_span_calculated = false;
-  bool alleles_set = false;
+  size_t global_offset = 0;   // relative to the position on the chromosome
+  size_t length = 0;          // length of spanned region in bp
+  
+  //-- site position data ------------------------------------------------------
   unordered_map<size_t, size_t> position_to_site_index;
   vector<size_t> site_index_to_position;
-  vector<alleleValue> site_index_to_reference_allele;
   
-  void add_site(size_t position, alleleValue reference_value);
-  
-  vector<size_t> span_lengths;
-  size_t leading_span_length;
+  //-- distances between sites or boundaries -----------------------------------
+  vector<size_t> span_lengths;    // bp between sites, indexed by preceding site
+                                  // final span is bp to end of region
+  size_t leading_span_length;     // bp from beginning of region to first site
+
 public:
-  linearReferenceStructure(const vector<string>& haplotypes,
-            const string& reference_values);
-  linearReferenceStructure(const vector<size_t>& positions, size_t length,
-            const vector<alleleValue>& reference_values);
-  linearReferenceStructure(const vector<size_t>& positions, size_t length, size_t global_offset);
-  linearReferenceStructure(const vector<size_t>& positions,
-            const string& reference_sequence);
-  linearReferenceStructure(size_t global_offset);
-  ~linearReferenceStructure();
+  siteIndex(size_t global_offset);
+  siteIndex(const vector<string>& haplotypes);
+  siteIndex(const vector<size_t>& positions, size_t length);
+  siteIndex(const vector<size_t>& positions, size_t length, size_t global_offset);
+  ~siteIndex();
   
+  //-- site-by-site construction -----------------------------------------------
+  void set_initial_span(size_t length);
+  // >= 0 : successful, returns site-index
+  // -1 : out of order
+  // -2 : collision
+  int64_t add_site(size_t position);
+  void calculate_final_span_length(size_t reference_length);
+
+  //-- sizes -------------------------------------------------------------------
+  size_t number_of_sites() const;
+  size_t absolute_length() const;
+
+  //-- sites -------------------------------------------------------------------
   bool is_site(size_t actual_position) const;
   size_t get_site_index(size_t actual_position) const;
   size_t get_position(size_t site_index) const;
   
+  //-- positions ---------------------------------------------------------------
+  size_t pos_ref2global(size_t p) const;
+  size_t start_position() const;
+  int64_t pos_global2ref(int64_t p) const;
+  
+  //-- spans -------------------------------------------------------------------
   bool has_span_before(size_t site_index) const;
   bool has_span_after(size_t site_index) const;
   size_t span_length_before(size_t site_index) const;
   size_t span_length_after(size_t site_index) const;
   
-  size_t number_of_sites() const;
-  size_t absolute_length();
-  size_t absolute_length() const;
-  
-  alleleValue get_reference_allele_at_site(size_t site_index) const;
-  
-  // behavior when there is no site above: returns the 1-past-the-end index
+  //-- search ------------------------------------------------------------------
+  // implemented as binary search
+  // returns 1-past-the-end index if there is no site above
   size_t find_site_above(size_t position) const;
-  // behavior when there is no site below: returns SIZE_MAX
+  // returns SIZE_MAX if there is no site below
   size_t find_site_below(size_t position) const;
-  
-  // >= 0 : successful, returns site-index
-  // -1 : out of order
-  // -2 : collision
-  // -3 : site-vector locked
-  int64_t add_site(size_t position);
-  void set_initial_span(size_t length);
-  
-  void calculate_final_span_length(size_t reference_length);
-  
-  size_t pos_ref2global(size_t p) const;
-  size_t start_position() const;
-  int64_t pos_global2ref(int64_t p) const;
-  
-  // 1: success
-  // 0: not a site
-  // -1: out of bounds
-  int set_allele_at_global_pos(size_t p, alleleValue allele);
-  bool set_allele_at_pos(size_t p, alleleValue allele);
-  void set_allele_at_site(size_t site, alleleValue allele);
 };
 
+//------------------------------------------------------------------------------
 struct haplotypeCohort{
+  
 private:
-  const linearReferenceStructure* reference;
+  const siteIndex* reference;
   size_t number_of_haplotypes;
   bool finalized = false;
-  // dim 1: haplotype, dim 2: allele value at site
+
+  //----------------------------------------------------------------------------
+  // maps [haplotypes] x [sites] -> alleles
+  //      haplotype i           vector[i][ ]
+  //      site j                vector[ ][j]
   vector<vector<alleleValue> > haplotype_alleles_by_site_index;
-  // dim 1: site, dim 2: allele value
-  vector<vector<size_t> > allele_counts_by_site_index;
+
+  // maps [sites] x [alleles] -> vectors of haplotype ids
+  //      site i                vector[i][ ][ ]
+  //      allele j              vector[ ][j][ ]
+  //      haplotype rank k      vector[ ][ ][k]
   vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
+
+  // maps [sites] -> vectors of allele counts
+  //      site i                vector[i][ ]
+  //      allele j              vector[ ][j]
+  vector<vector<size_t> > allele_counts_by_site_index;
 public:
-  void populate_allele_counts();
   haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
-            const linearReferenceStructure* reference);
+            const siteIndex* reference);
   haplotypeCohort(const vector<string>& haplotypes, 
-            const linearReferenceStructure* reference);
-  haplotypeCohort(size_t cohort_size, const linearReferenceStructure* reference);
+            const siteIndex* reference);
+  haplotypeCohort(size_t cohort_size, const siteIndex* reference);
   ~haplotypeCohort();
+  
+  void populate_allele_counts();
   
   // Removes sites where the minor allele frequency is below [double frequency].
   // For multiallelic sites, the minor allele frequency is taken to be the sum
   // of the minor allele frequencies with respect to the most common allele.
   // This constructs both a new (dynamically allocated) haplotypeCohort as well
-  // as a new linearReferenceStructure, which is implicitly returned as
+  // as a new siteIndex, which is implicitly returned as
 
   haplotypeCohort* remove_sites_below_frequency(double frequency) const;
-  const linearReferenceStructure* get_reference() const;  
+  const siteIndex* get_reference() const;  
   
   void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
   

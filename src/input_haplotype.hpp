@@ -9,7 +9,7 @@ using namespace std;
 
 struct inputHaplotype{
 private:
-  linearReferenceStructure *reference = NULL;
+  siteIndex *reference = NULL;
   vector<alleleValue> alleles;
   vector<size_t> augmentations;
   
@@ -30,14 +30,14 @@ private:
   
   void build_relative_positions();
 public:
-  inputHaplotype(linearReferenceStructure* reference);
+  inputHaplotype(siteIndex* reference);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
-            linearReferenceStructure *reference, size_t ih_start_position = 1, 
+            siteIndex *reference, size_t ih_start_position = 1, 
             size_t length = 0);
             
   inputHaplotype(const char* query, const char* reference_sequence, 
-            linearReferenceStructure* reference, size_t ih_start_position = 1, 
+            siteIndex* reference, size_t ih_start_position = 1, 
             size_t length = 0);
   ~inputHaplotype();
               

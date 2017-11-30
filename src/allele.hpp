@@ -5,6 +5,8 @@
 
 using namespace std;
 
+const char N_VALID_ALLELES = 5;
+
 typedef enum alleleValue{
   A,
   C,
@@ -14,12 +16,13 @@ typedef enum alleleValue{
   unassigned
 } alleleValue;
 
-char allele_to_char(alleleValue a);
-// converts unexpected input to ref
-alleleValue char_to_allele(char c, alleleValue ref);
-// does not handle unexpected input
-alleleValue char_to_allele(char c);
-alleleValue str_to_allele(string& s);
+namespace allele{
+  char to_char(alleleValue a);
+  // converts unexpected input to ref
+  alleleValue from_char(char c, alleleValue ref);
+  // does not handle unexpected input
+  alleleValue from_char(char c);
+}
 
 struct alleleAtSite{
   size_t site_index;

@@ -11,12 +11,8 @@
 
 using namespace std;
 
-linearReferenceStructure build_ref(string ref_seq, vector<size_t> positions) {
-  vector<alleleValue> ref_values;
-  for(size_t i = 0; i < positions.size(); i++) {
-    ref_values.push_back(char_to_allele(ref_seq[positions[i]]));
-  }
-  return linearReferenceStructure(positions, ref_seq.length(), ref_values);
+siteIndex build_ref(const string& ref_seq, vector<size_t>& positions) {
+  return siteIndex(positions, ref_seq.length());
 }
 
 TEST_CASE( "Node construction and destruction works as intended", "[node]") {
@@ -37,7 +33,7 @@ TEST_CASE( "Node construction and destruction works as intended", "[node]") {
 }
 
 TEST_CASE( "Tree navigation works as intended", "[tree][navigation]" ) {
-  linearReferenceStructure reference = build_ref("AAA", {0,1,2});
+  siteIndex reference = build_ref("AAA", {0,1,2});
   vector<vector<alleleValue> > haplotypes = {
     {A, A, A},
     {C, C, C},
@@ -73,7 +69,7 @@ TEST_CASE( "Tree navigation works as intended", "[tree][navigation]" ) {
 }
 
 TEST_CASE( "Tree interfaces with probability DP state matrices", "[tree][DP]") {
-  linearReferenceStructure reference = build_ref("AAAA", {0,1,2,3});
+  siteIndex reference = build_ref("AAAA", {0,1,2,3});
   vector<vector<alleleValue> > haplotypes = {
     {A, A, A, A},
     {A, T, A, A},
@@ -112,7 +108,7 @@ TEST_CASE( "Haplotype Manager can translate positions and identify and translate
   string read_refstring = "AAAAAAAAAAAAAAAAAA";
   vector<size_t> ref_sites = {1,3,4,8,13,19};
   vector<size_t> read_sites = {3,5,6,13,17};
-  linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+  siteIndex reference = build_ref(ref_refstring, ref_sites);
   vector<vector<alleleValue> > haplotypes = {
    {A, A, A, A, A, A}
   };
@@ -158,7 +154,7 @@ TEST_CASE( "Haplotype Manager can translate positions and identify and translate
 }
 
 TEST_CASE( "Haplotype manager correctly handles tree-of-states", "[manager][tree]" ) {
-  linearReferenceStructure reference = build_ref("AAAA", {0,1,2,3});
+  siteIndex reference = build_ref("AAAA", {0,1,2,3});
   vector<vector<alleleValue> > haplotypes = {
     {A, A, A, A},
     {A, T, A, A},
@@ -212,7 +208,7 @@ TEST_CASE( "Rowset extraction", "[rowset]" ) {
   vector<size_t> ref_sites = {0, 2, 5};
   vector<size_t> read_sites = {0, 2, 5};
   
-  linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+  siteIndex reference = build_ref(ref_refstring, ref_sites);
   vector<vector<alleleValue> > haplotypes = {
     {A, A, A},
     {A, A, A},
@@ -260,7 +256,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     vector<size_t> ref_sites = {0, 2, 5};
     vector<size_t> read_sites = {0, 2, 5};
     
-    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    siteIndex reference = build_ref(ref_refstring, ref_sites);
     vector<vector<alleleValue> > haplotypes = {
       {A, A, A},
       {A, A, A},
@@ -336,7 +332,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     vector<size_t> ref_sites = {0, 1, 9};
     vector<size_t> read_sites = {4};
     
-    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    siteIndex reference = build_ref(ref_refstring, ref_sites);
     vector<vector<alleleValue> > haplotypes = {
       {A, A, A},
       {A, A, A},
@@ -368,7 +364,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     string read_refstring = "AAAAAAAAAAAAAAAAAA";
     vector<size_t> ref_sites = {1,3,4,8,13,19};
     vector<size_t> read_sites = {3,5,6,13,17};
-    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    siteIndex reference = build_ref(ref_refstring, ref_sites);
     vector<vector<alleleValue> > haplotypes = {
      {A, A, A, A, A, A},
      {C, T, A, A, A, A},
@@ -476,7 +472,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     string read_refstring = "AAAAAAAAAAAAAAAAAA";
     vector<size_t> ref_sites = {1,3,4,8,13,19};
     vector<size_t> read_sites = {3,5,6,13,17};
-    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    siteIndex reference = build_ref(ref_refstring, ref_sites);
     vector<vector<alleleValue> > haplotypes = {
      {A, A, A, A, A, A},
      {C, T, A, A, A, A},
@@ -573,7 +569,7 @@ TEST_CASE( "Haplotype manager performs correct calculations in the presence of u
     string read_refstring = "AAAAAAAAAAAAAAAAAA";
     vector<size_t> ref_sites = {1,3,4,8,13,19};
     vector<size_t> read_sites = {3,5,6,13,17};
-    linearReferenceStructure reference = build_ref(ref_refstring, ref_sites);
+    siteIndex reference = build_ref(ref_refstring, ref_sites);
     vector<vector<alleleValue> > haplotypes = {
      {A, A, A, A, A, A},
      {C, T, A, A, A, A},

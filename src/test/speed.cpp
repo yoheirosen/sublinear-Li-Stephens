@@ -30,7 +30,7 @@ int main() {
             positions.push_back(positions.back() + next_interval);
             total_length += next_interval;
           }
-          linearReferenceStructure reference(positions, total_length, 
+          siteIndex reference(positions, total_length, 
                       reference_values);
           vector<vector<alleleValue> > cohort_alleles;
           for(int i = 0; i < populations[l]; i++) {

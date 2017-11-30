@@ -6,7 +6,7 @@ inputHaplotype::~inputHaplotype() {
   
 }
 
-inputHaplotype::inputHaplotype(linearReferenceStructure* reference) : 
+inputHaplotype::inputHaplotype(siteIndex* reference) : 
           reference(reference) {
   
 }
@@ -19,7 +19,7 @@ inputHaplotype::inputHaplotype(const vector<alleleValue>& query,
 
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
             const vector<size_t>& augmentation_count, 
-            linearReferenceStructure* reference, size_t ih_start, 
+            siteIndex* reference, size_t ih_start, 
             size_t length) : reference(reference), alleles(query), 
             augmentations(augmentation_count), ih_start_position(ih_start)
             {
@@ -82,7 +82,7 @@ void inputHaplotype::build_relative_positions() {
 }
 
 inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
-            linearReferenceStructure* reference, size_t ih_start, 
+            siteIndex* reference, size_t ih_start, 
             size_t length) : reference(reference), ih_start_position(ih_start) {
   ih_end_position = ih_start + length - 1;
   ih_start_offset = ih_start_position - reference->start_position();
@@ -98,7 +98,7 @@ inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence
   if(left_tail_length > 0) {
     size_t counter = 0;
     for(size_t i = 0; i < left_tail_length; i++) {
-      if(char_to_allele(query[i]) != char_to_allele(reference_sequence[i + ih_start_offset])) {
+      if(allele::from_char(query[i]) != allele::from_char(reference_sequence[i + ih_start_offset])) {
         counter++;
       }
     }
@@ -110,7 +110,7 @@ inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence
     for(size_t i = 0; i < number_of_sites; i++) {
       size_t p_q = 
                 reference->get_position(get_site_index(i)) - ih_start_position;
-      alleles.push_back(char_to_allele(query[p_q]));
+      alleles.push_back(allele::from_char(query[p_q]));
       if(reference->has_span_after(get_site_index(i))) {
         size_t span_end_q;
         if(i == number_of_sites - 1) {
@@ -144,7 +144,7 @@ void inputHaplotype::edit(size_t index, alleleValue a) {
 void inputHaplotype::edit(size_t position, char new_c, char old_c, char ref) {
   if(reference->is_site(position)) {
     alleles[reference->get_site_index(position)] = 
-              char_to_allele(new_c, char_to_allele(ref));
+              allele::from_char(new_c, allele::from_char(ref));
   } else {
     int delta_aug;
     // does the number of augmentations in the span change?

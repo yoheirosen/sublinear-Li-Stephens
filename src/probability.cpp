@@ -1,7 +1,7 @@
 #include <cmath>
 #include "probability.hpp"
 
-haplotypeMatrix::haplotypeMatrix(const linearReferenceStructure* ref, const penaltySet* pen,
+haplotypeMatrix::haplotypeMatrix(const siteIndex* ref, const penaltySet* pen,
           const haplotypeCohort* cohort) :
           reference(ref), cohort(cohort), penalties(pen),
           map(delayMap(cohort->size(), 0)) {
@@ -307,7 +307,7 @@ void haplotypeMatrix::extend_probability_at_span_after_anonymous(size_t l,
   last_span_extended = last_extended;
 }
 
-forward_solver::forward_solver(const linearReferenceStructure* ref, const penaltySet* pen,
+forward_solver::forward_solver(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes) : reference(ref), penalties(pen), cohort(haplotypes) {
 }
             

@@ -6,7 +6,7 @@ haplotypeStateTree::haplotypeStateTree() {
   root = new haplotypeStateNode();
 }
 
-haplotypeStateTree::haplotypeStateTree(const linearReferenceStructure* reference, 
+haplotypeStateTree::haplotypeStateTree(const siteIndex* reference, 
             const penaltySet* penalties, const haplotypeCohort* cohort) :
             reference(reference), penalties(penalties), cohort(cohort) {
   root = new haplotypeStateNode();

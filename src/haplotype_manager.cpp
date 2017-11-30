@@ -22,8 +22,8 @@ optionIndex::optionIndex(char* unphased_chars_1, char* unphased_chars_2,
   unphased_option_2 = vector<alleleValue>(shared_sites, unassigned);
     
   for(size_t i = 0; i < shared_sites; i++) {
-    alleleValue a_1 = char_to_allele(unphased_chars_1[i]);
-    alleleValue a_2 = char_to_allele(unphased_chars_2[i]);
+    alleleValue a_1 = allele::from_char(unphased_chars_1[i]);
+    alleleValue a_2 = allele::from_char(unphased_chars_2[i]);
     if(a_1 != unassigned && a_2 != unassigned) {
       size_t site = shared_index_ref_indices[i];
       if(cohort->number_matching(site, a_2) > 
@@ -75,7 +75,7 @@ void haplotypeManager::set_option_index(char* unphased_chars_1, char* unphased_c
 }
 
 haplotypeManager::haplotypeManager(
-        const linearReferenceStructure* reference, const haplotypeCohort* cohort, 
+        const siteIndex* reference, const haplotypeCohort* cohort, 
               const penaltySet* penalties, const char* reference_bases,
         vector<size_t> site_positions_within_read,
         const char* read_bases, size_t start_reference_position) : 
@@ -285,7 +285,7 @@ const haplotypeStateTree* haplotypeManager::get_tree() const {
   return tree;
 }
 
-const linearReferenceStructure* haplotypeManager::get_reference() const {
+const siteIndex* haplotypeManager::get_reference() const {
   return reference;
 }
 
@@ -315,7 +315,7 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
 
     for(size_t i = lower_ref_index; i < upper_ref_index; i++) {
       to_add.push_back(alleleAtSite(i, 
-              char_to_allele(read_reference.at(read_position(
+              allele::from_char(read_reference.at(read_position(
                       reference->get_position(i))))));
     }
     ref_sites_in_initial_span = to_add;
@@ -329,7 +329,7 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
         to_add.clear();
         for(size_t j = lower_ref_index; j < upper_ref_index; j++) {
           to_add.push_back(alleleAtSite(j, 
-                  char_to_allele(read_reference.at(read_position(
+                  allele::from_char(read_reference.at(read_position(
                           reference->get_position(j))))));
         }
         ref_sites_after_shared_sites.push_back(to_add);
@@ -341,7 +341,7 @@ void haplotypeManager::find_ref_only_sites_and_alleles() {
       to_add.clear();
       for(size_t j = lower_ref_index; j < upper_ref_index; j++) {
         to_add.push_back(alleleAtSite(j, 
-                char_to_allele(read_reference.at(read_position(
+                allele::from_char(read_reference.at(read_position(
                         reference->get_position(j))))));
       }
       ref_sites_after_shared_sites.push_back(to_add);
@@ -391,7 +391,7 @@ void haplotypeManager::count_invariant_penalties() {
     }
     for(size_t p = count_from; p < count_until; p++) {
       if(!reference_sequence.matches(p, 
-              char_to_allele(read_reference.at(read_position(p))))) {
+              allele::from_char(read_reference.at(read_position(p))))) {
         running_count++;
       }
     }
@@ -404,7 +404,7 @@ void haplotypeManager::count_invariant_penalties() {
         count_until = get_read_site_ref_position(i + 1);
         for(size_t p = count_from; p < count_until; p++) {
           if(!reference_sequence.matches(p, 
-                  char_to_allele(read_reference.at(read_position(p))))) {
+                  allele::from_char(read_reference.at(read_position(p))))) {
             running_count++;
           }
         }
@@ -416,7 +416,7 @@ void haplotypeManager::count_invariant_penalties() {
       count_until = end_position + 1;
       for(size_t p = count_from; p < count_until; p++) {
         if(!reference_sequence.matches(p, 
-                char_to_allele(read_reference.at(read_position(p))))) {
+                allele::from_char(read_reference.at(read_position(p))))) {
           running_count++;
         }
       }
@@ -435,7 +435,7 @@ void haplotypeManager::count_invariant_penalties() {
     }
     for(size_t p = count_from; p < count_until; p++) {
       if(!reference_sequence.matches(p, 
-              char_to_allele(read_reference.at(read_position(p))))) {
+              allele::from_char(read_reference.at(read_position(p))))) {
         running_count++;
       }
     }
@@ -448,7 +448,7 @@ void haplotypeManager::count_invariant_penalties() {
         count_until = reference->get_position(i + 1) - 1;
         for(size_t p = count_from; p < count_until; p++) {
           if(!reference_sequence.matches(p, 
-                  char_to_allele(read_reference.at(read_position(p))))) {
+                  allele::from_char(read_reference.at(read_position(p))))) {
             running_count++;
           }
         }
@@ -460,7 +460,7 @@ void haplotypeManager::count_invariant_penalties() {
       count_until = end_position + 1;
       for(size_t p = count_from; p < count_until; p++) {
         if(!reference_sequence.matches(p, 
-                char_to_allele(read_reference.at(read_position(p))))) {
+                allele::from_char(read_reference.at(read_position(p))))) {
           running_count++;
         }
       }
@@ -879,7 +879,7 @@ void haplotypeManager::fill_in_level_threshold(double threshold,
   
   for(size_t j = start_site; j < upper_bound_site; j++) {
     p = get_ref_site_read_position(j);
-    consensus_read_allele = char_to_allele(read_reference[p]);
+    consensus_read_allele = allele::from_char(read_reference[p]);
     rowSet current_rowSet = get_cohort()->get_active_rowSet(j, consensus_read_allele);
     for(size_t i = 0; i < current_leaves.size(); i++) {
       if(current_leaves[i]->prefix_likelihood() < threshold) {
@@ -903,7 +903,7 @@ void haplotypeManager::fill_in_level_no_threshold(size_t start_site, size_t uppe
   
   for(size_t j = start_site; j < upper_bound_site; j++) {
     p = get_ref_site_read_position(j);
-    consensus_read_allele = char_to_allele(read_reference[p]);
+    consensus_read_allele = allele::from_char(read_reference[p]);
     rowSet current_rowSet = get_cohort()->get_active_rowSet(j, consensus_read_allele);
     for(size_t i = 0; i < current_leaves.size(); i++) {
       n = current_leaves[i];
@@ -1053,7 +1053,7 @@ void haplotypeManager::print_tree() {
       if(!(this_level[i]->is_marked_for_deletion())) {   
         state_ID = tree->state_to_alleles(this_level[i]);
         for(size_t j = 0; j < state_ID.size(); j++) {
-          cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
+          cout << level_prefix[j] << "(" << allele::to_char(state_ID[j]) << ")";
         }
         // if(this_level[i]->is_marked_for_deletion()) {
           // cout << " : pruned" << endl;
@@ -1109,7 +1109,7 @@ void haplotypeManager::print_tree_transitions() {
       if(!(this_level[i]->is_marked_for_deletion())) {   
         state_ID = tree->state_to_alleles(this_level[i]);
         for(size_t j = 0; j < state_ID.size(); j++) {
-          cout << level_prefix[j] << "(" << allele_to_char(state_ID[j]) << ")";
+          cout << level_prefix[j] << "(" << allele::to_char(state_ID[j]) << ")";
         }
         // if(this_level[i]->is_marked_for_deletion()) {
           // cout << " : pruned" << endl;

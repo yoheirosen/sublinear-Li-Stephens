@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
       } else {
         if(bernoulli_alt_allele(generator)) {
           size_t replacement_allele = which_allele(generator);
-          read_alleles[i] = allele_to_char((alleleValue)replacement_allele);
+          read_alleles[i] = allele::to_char((alleleValue)replacement_allele);
         }
       }
     }
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     //     cout << "\t\t";
     //   }
     //   for(size_t j = 0; j < number_of_sites; j++) {
-    //     cout << allele_to_char(cohort_alleles[i][j]);
+    //     cout << allele::to_char(cohort_alleles[i][j]);
     //   }
     //   cout << endl;
     // }
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
       return 0;
     }
     
-    linearReferenceStructure reference(ref_sites, ref_alleles);
+    siteIndex reference(ref_sites, ref_alleles);
     haplotypeCohort cohort(cohort_alleles, &reference);
     penaltySet penalties(-6, -9, number_of_haplotypes);
     haplotypeManager hap_manager = haplotypeManager(

@@ -1,7 +1,7 @@
 #include "scored_node.hpp"
 
 scoredNode scoredNode::extend_search(char c) {
-  return extend_search(char_to_allele(c));
+  return extend_search(allele::from_char(c));
 }
 
 scoredNode scoredNode::extend_search(alleleValue a) {

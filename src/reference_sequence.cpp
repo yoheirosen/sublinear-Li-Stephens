@@ -10,13 +10,13 @@ referenceSequence::referenceSequence(const vector<alleleValue>& input, size_t of
 
 referenceSequence::referenceSequence(const char* input, size_t offset) : offset(offset) {
   for(size_t i = 0; input[i] != '\0'; i++) {
-    alleles.push_back(char_to_allele(input[i]));
+    alleles.push_back(allele::from_char(input[i]));
   }
 }
 
 referenceSequence::referenceSequence(const string& input, size_t offset) : offset(offset) {
   for(size_t i = 0; i < input.length(); i++) {
-    alleles.push_back(char_to_allele(input[i]));
+    alleles.push_back(allele::from_char(input[i]));
   }
 }
 
@@ -25,7 +25,7 @@ bool referenceSequence::matches(size_t i, alleleValue a) const {
 }
 
 bool referenceSequence::matches(size_t i, char a) const {
-  return alleles[i - offset] == char_to_allele(a, alleles[i - offset]);
+  return alleles[i - offset] == allele::from_char(a, alleles[i - offset]);
 }
 
 alleleValue referenceSequence::at(size_t i) const {

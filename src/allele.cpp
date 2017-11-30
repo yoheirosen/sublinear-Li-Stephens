@@ -1,6 +1,6 @@
 #include "allele.hpp"
 
-char allele_to_char(alleleValue a) {
+char allele::to_char(alleleValue a) {
   switch(a) {
     case A:
       return 'A';
@@ -17,7 +17,7 @@ char allele_to_char(alleleValue a) {
   }
 }
 
-alleleValue char_to_allele(char c, alleleValue ref) {
+alleleValue allele::from_char(char c, alleleValue ref) {
   switch (c) {
     case 'a':
     case 'A':
@@ -38,14 +38,9 @@ alleleValue char_to_allele(char c, alleleValue ref) {
   }
 }
 
-alleleValue char_to_allele(char c) {
-  return char_to_allele(c, unassigned);
+alleleValue allele::from_char(char c) {
+  return allele::from_char(c, unassigned);
 }
-
-alleleValue str_to_allele(string& s) {
-  return char_to_allele(s[0]);
-}
-
 
 alleleAtSite::alleleAtSite() {
   

@@ -10,7 +10,6 @@
 
 using namespace std;
 
-
 size_t haplotypeManager_get_num_shared_sites(haplotypeManager* hap_manager) {
   return hap_manager->shared_sites();
 }
@@ -47,15 +46,12 @@ haplotypeManager* haplotypeManager_build_abs_bound(
                                          number_of_haplotypes);
   vector<alleleValue> ref_site_allele_vector;
   for(size_t i = 0; i < number_of_ref_sites; i++) {
-    ref_site_allele_vector.push_back(char_to_allele(reference_sequence[positions_of_ref_sites[i]]));
+    ref_site_allele_vector.push_back(allele::from_char(reference_sequence[positions_of_ref_sites[i]]));
   }
   vector<size_t> ref_site_position_vector = 
             vector<size_t>(positions_of_ref_sites, positions_of_ref_sites + number_of_ref_sites);
   
-  linearReferenceStructure* reference =
-            new linearReferenceStructure(ref_site_position_vector, 
-                                         ref_seq_length,
-                                         ref_site_allele_vector);  
+  siteIndex* reference = new siteIndex(ref_site_position_vector, ref_seq_length);  
     
   vector<vector<alleleValue> > haplotypes = 
             vector<vector<alleleValue> >(number_of_haplotypes,
@@ -63,7 +59,7 @@ haplotypeManager* haplotypeManager_build_abs_bound(
                                          
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     for(size_t j = 0; j < number_of_ref_sites; j++) {
-      haplotypes[i][j] = char_to_allele(alleles_by_site_and_haplotype[i*number_of_haplotypes + j]);
+      haplotypes[i][j] = allele::from_char(alleles_by_site_and_haplotype[i*number_of_haplotypes + j]);
     }
   }
   
@@ -103,15 +99,14 @@ haplotypeManager* haplotypeManager_build_interval_bound(
                                          number_of_haplotypes);
   vector<alleleValue> ref_site_allele_vector;
   for(size_t i = 0; i < number_of_ref_sites; i++) {
-    ref_site_allele_vector.push_back(char_to_allele(reference_sequence[positions_of_ref_sites[i]]));
+    ref_site_allele_vector.push_back(allele::from_char(reference_sequence[positions_of_ref_sites[i]]));
   }
   vector<size_t> ref_site_position_vector = 
             vector<size_t>(positions_of_ref_sites, positions_of_ref_sites + number_of_ref_sites);
   
-  linearReferenceStructure* reference =
-            new linearReferenceStructure(ref_site_position_vector, 
-                                         ref_seq_length,
-                                         ref_site_allele_vector);  
+  siteIndex* reference =
+            new siteIndex(ref_site_position_vector, 
+                                         ref_seq_length);  
     
   vector<vector<alleleValue> > haplotypes = 
             vector<vector<alleleValue> >(number_of_haplotypes,
@@ -119,7 +114,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
                                          
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     for(size_t j = 0; j < number_of_ref_sites; j++) {
-      haplotypes[i][j] = char_to_allele(alleles_by_site_and_haplotype[i*number_of_haplotypes + j]);
+      haplotypes[i][j] = allele::from_char(alleles_by_site_and_haplotype[i*number_of_haplotypes + j]);
     }
   }
   
@@ -143,7 +138,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
 haplotypeManager* haplotypeManager_build_from_idx(
             char* reference_sequence,
             size_t ref_seq_length,
-            linearReferenceStructure* reference,
+            siteIndex* reference,
             haplotypeCohort* cohort,
             double mutation_penalty, 
             double recombination_penalty,
@@ -190,7 +185,7 @@ void haplotypeStateNode_get_next_options(
 haplotypeStateNode* haplotypeStateNode_get_child(
             haplotypeStateNode* parent,
             char allele) {
-  return parent->get_child(char_to_allele(allele));
+  return parent->get_child(allele::from_char(allele));
 }
 
 size_t haplotypeStateNode_number_of_children(haplotypeStateNode* n) {
@@ -209,7 +204,7 @@ double haplotypeStateNode_total_probability(haplotypeStateNode* n) {
 }
 
 char haplotypeStateNode_allele(haplotypeStateNode* n) {
-  return allele_to_char(n->get_allele());
+  return allele::to_char(n->get_allele());
 }
 
 void haplotypeManager_delete(haplotypeManager* to_delete) {
@@ -240,7 +235,7 @@ void haplotypeManager_print_terminal_nodes(haplotypeManager* hap_manager) {
   hap_manager->print_terminal_nodes();
 }
 
-haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref) {
+haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteIndex* ref) {
   return new haplotypeCohort(number_of_haplotypes, ref);
 }
 
@@ -252,12 +247,11 @@ size_t number_of_sites(haplotypeCohort* cohort) {
   return cohort->size();
 }
 
-linearReferenceStructure* linearReferenceStructure_init_empty(size_t global_offset) {
-  return new linearReferenceStructure(global_offset);
+siteIndex* siteIndex_init_empty(size_t global_offset) {
+  return new siteIndex(global_offset);
 }
 
-int64_t linearReferenceStructure_add_site(
-            linearReferenceStructure* reference, size_t position) {
+int64_t siteIndex_add_site(siteIndex* reference, size_t position) {
   return reference->add_site(position);
 }
 
@@ -267,10 +261,10 @@ int haplotypeCohort_add_record(haplotypeCohort* cohort, size_t site) {
 
 int haplotypeCohort_set_sample_allele(
             haplotypeCohort* cohort, size_t site, size_t sample, char allele) {
-  return cohort->set_sample_allele(site, sample, char_to_allele(allele));
+  return cohort->set_sample_allele(site, sample, allele::from_char(allele));
 }
 
-void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, size_t length) {
+void siteIndex_calc_spans(siteIndex* reference, size_t length) {
   reference->calculate_final_span_length(length);
 }
 
@@ -278,7 +272,7 @@ void haplotypeCohort_populate_counts(haplotypeCohort* cohort) {
   cohort->populate_allele_counts();
 }
 
-void linearReferenceStructure_set_initial_span(linearReferenceStructure* ref, size_t length) {
+void siteIndex_set_initial_span(siteIndex* ref, size_t length) {
   ref->set_initial_span(length);
 }
 
@@ -350,7 +344,7 @@ size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
   return cohort->get_haplotype_count();
 }
 
-size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference) {
+size_t siteIndex_n_sites(siteIndex* reference) {
   return reference->number_of_sites();
 }
 
@@ -374,7 +368,7 @@ void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
 
 inputHaplotype* inputHaplotype_build(const char* ref_seq, 
                           const char* query, 
-                          linearReferenceStructure* ref_struct,
+                          siteIndex* ref_struct,
                           size_t start_position) {
   inputHaplotype* to_return = new inputHaplotype(ref_seq, query, 
                                                  ref_struct, start_position, 
@@ -386,7 +380,7 @@ void inputHaplotype_delete(inputHaplotype* in_hap) {
   delete in_hap;
 }
 
-haplotypeMatrix* haplotypeMatrix_initialize(linearReferenceStructure* reference,
+haplotypeMatrix* haplotypeMatrix_initialize(siteIndex* reference,
                                             penaltySet* penalties,
                                             haplotypeCohort* cohort) {
   haplotypeMatrix* to_return = new haplotypeMatrix(reference, penalties, cohort);

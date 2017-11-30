@@ -7,7 +7,7 @@ typedef long unsigned size_t;
 typedef struct haplotypeManager haplotypeManager;
 typedef struct haplotypeStateNode haplotypeStateNode;
 typedef struct penaltySet penaltySet;
-typedef struct linearReferenceStructure linearReferenceStructure;
+typedef struct siteIndex siteIndex;
 typedef struct haplotypeCohort haplotypeCohort;
 typedef struct inputHaplotype inputHaplotype;
 typedef struct haplotypeMatrix haplotypeMatrix;
@@ -86,7 +86,7 @@ haplotypeManager* haplotypeManager_build_interval_bound(
 haplotypeManager* haplotypeManager_build_from_idx(
             char* reference_sequence,
             size_t ref_seq_length,
-            linearReferenceStructure* reference,
+            siteIndex* reference,
             haplotypeCohort* cohort,
             double mutation_penalty, 
             double recombination_penalty,
@@ -151,31 +151,31 @@ int haplotypeManager_read_index_is_shared(haplotypeManager* hap_manager, size_t 
 // double haplotypeManager_read_site_penalty(haplotypeManager* hap_manager, size_t read_site_index, char allele);
 
 // *****************************************************************************
-// functions below used to construct haplotypeCohort and linearReferenceStructure
+// functions below used to construct haplotypeCohort and siteIndex
 // from VCF
 // *****************************************************************************
 
-// initialize linearReferenceStructure with no sites
-linearReferenceStructure* linearReferenceStructure_init_empty(size_t global_offset);
+// initialize siteIndex with no sites
+siteIndex* siteIndex_init_empty(size_t global_offset);
 
 // initialize haplotypeCohort with no sites
-haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, linearReferenceStructure* ref);
+haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteIndex* ref);
 
 // CONDITIONS:
 //   must be called in ascending order of position, with no positions repeated
-//   must be called before calling linearReferenceStructure_calc_spans, which 
-//   locks the linearReferenceStructure
+//   must be called before calling siteIndex_calc_spans, which 
+//   locks the siteIndex
 // Return value:
 //   site index of just added site if conditions above are met 
 //   -1 : positions added in non-ascending order
 //   -2 : site with same position already
 //   -3 : site-vector locked
-int64_t linearReferenceStructure_add_site(
-            linearReferenceStructure* reference, size_t position);
+int64_t siteIndex_add_site(
+            siteIndex* reference, size_t position);
 
 // Adds an empty record at the site specified, with all alleles set to unassigned
 // CONDITIONS:
-//   a site with the index specified must exist in the linearReferenceStructure
+//   a site with the index specified must exist in the siteIndex
 //   associated with the haplotypeCohort
 //   this also must be the successor to the last site added to the haplotypeCohort
 // Return value:
@@ -191,14 +191,14 @@ int haplotypeCohort_set_sample_allele(
             haplotypeCohort* cohort, size_t site, size_t sample, char allele);
 
 // calculates final span length
-// also locks the linearReferenceStructure from being modified
-void linearReferenceStructure_calc_spans(linearReferenceStructure* reference, size_t length);
+// also locks the siteIndex from being modified
+void siteIndex_calc_spans(siteIndex* reference, size_t length);
 
 // builds allele-counts and lookup tables
 // also locks the haplotypeCohort from being modified
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
-void linearReferenceStructure_set_initial_span(linearReferenceStructure* ref, size_t length);
+void siteIndex_set_initial_span(siteIndex* ref, size_t length);
 
 void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
                                     const char* ref_seq,
@@ -226,7 +226,7 @@ size_t number_of_sites(haplotypeCohort* cohort);
 
 size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort);
 
-size_t linearReferenceStructure_n_sites(linearReferenceStructure* reference);
+size_t siteIndex_n_sites(siteIndex* reference);
 
 void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
                   								 char* r_alleles_1,
@@ -237,12 +237,12 @@ void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
 
 inputHaplotype* inputHaplotype_build(const char* ref_seq, 
                           const char* query, 
-                          linearReferenceStructure* ref_struct,
+                          siteIndex* ref_struct,
                           size_t start_position);
 
 void inputHaplotype_delete(inputHaplotype* in_hap);
 
-haplotypeMatrix* haplotypeMatrix_initialize(linearReferenceStructure* reference,
+haplotypeMatrix* haplotypeMatrix_initialize(siteIndex* reference,
                                             penaltySet* penalties,
                                             haplotypeCohort* cohort);
                                               
