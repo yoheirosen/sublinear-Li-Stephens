@@ -19,11 +19,20 @@ inputHaplotype::inputHaplotype(const vector<alleleValue>& query,
 
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
             const vector<size_t>& augmentation_count, 
-            siteIndex* reference, size_t ih_start, 
-            size_t length) : reference(reference), alleles(query), 
+            siteIndex* reference, size_t ih_start = 1, 
+            size_t length = 0) : reference(reference), alleles(query), 
             augmentations(augmentation_count), ih_start_position(ih_start)
             {
   ih_end_position = ih_start + length - 1;
+  build_relative_positions();
+}
+
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
+            const vector<size_t>& augmentation_count, 
+            siteIndex* reference) : reference(reference), alleles(query), 
+            augmentations(augmentation_count), ih_start_position(1)
+            {
+  ih_end_position = ih_start_position + 1;
   build_relative_positions();
 }
 
@@ -82,8 +91,8 @@ void inputHaplotype::build_relative_positions() {
 }
 
 inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference, size_t ih_start, 
-            size_t length) : reference(reference), ih_start_position(ih_start) {
+            siteIndex* reference, size_t ih_start = 1, 
+            size_t length = 0) : reference(reference), ih_start_position(ih_start) {
   ih_end_position = ih_start + length - 1;
   ih_start_offset = ih_start_position - reference->start_position();
   build_relative_positions();

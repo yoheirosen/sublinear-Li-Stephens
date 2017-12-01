@@ -175,6 +175,10 @@ public:
   size_t sum_MACs() const;                                            // O(n)
 
 //-- haplotype simulation ------------------------------------------------------
+  // random generators
+  vector<size_t> rand_haplos(size_t N);
+  vector<size_t> rand_sites(size_t N);
+  vector<size_t> rand_positions(size_t N);
   
   void simulate_read_query(const char* ref_seq,
                            double mutation_rate,
@@ -194,5 +198,10 @@ public:
                            char** r_s_alleles_1,
                            char** r_s_alleles_2) const; 
 };
+
+namespace haploRandom {
+  vector<size_t> n_unique_uints(size_t N, size_t supremum);
+  vector<size_t> n_unique_uints(size_t N, size_t supremum, vector<size_t>* blacklist);
+}
 
 #endif

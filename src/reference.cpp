@@ -4,10 +4,9 @@
 #include <random>
 #include <chrono>
 #include <algorithm>
-#include <iostream>
+#include <list>
 
 using namespace std;
-
 
 siteIndex::siteIndex(size_t global_offset) : global_offset(global_offset) {
 }
@@ -670,5 +669,76 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
     to_return->set_column(haplotype_alleles_by_site_index[remaining_sites[i]]);
   }
   to_return->populate_allele_counts();
+  return to_return;
+}
+
+vector<size_t> haplotypeCohort::rand_haplos(size_t N) {
+  return haploRandom::n_unique_uints(N, get_n_haplotypes());
+}
+
+vector<size_t> haplotypeCohort::rand_sites(size_t N) {
+  return haploRandom::n_unique_uints(N, get_n_sites());
+}
+
+vector<size_t> haplotypeCohort::rand_positions(size_t N) {
+  vector<size_t> site_positions(get_n_sites());
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    site_positions[i] = get_reference()->get_position(i);
+  }
+  return haploRandom::n_unique_uints(N, get_n_sites(), &site_positions);
+}
+
+vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum) {
+  return haploRandom::n_unique_uints(N, supremum, nullptr);
+}
+
+vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum, vector<size_t>* blacklist) {
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  uniform_real_distribution<double> unit_uniform(0.0, 1.0);
+  vector<size_t> draws(N);
+  for(size_t i = 0; i < N; i++) {
+    size_t draw = (size_t)(unit_uniform(generator) * supremum);
+    if(draw == supremum) { draw = supremum - 1; } // mathematically valid assuming true real numbers; good enough here
+    draws[i] = draw;
+    supremum--;
+  }
+  
+  list<size_t> actual_values;
+  
+  if(blacklist != nullptr) {
+    for(size_t i = 0; i < blacklist->size(); i++) {
+      actual_values.push_back(blacklist->at(i));
+    }
+    actual_values.sort();
+  }
+  
+  for(size_t i = 0; i < draws.size(); i++) {
+    auto it = actual_values.begin();
+    size_t j;
+    while(it != actual_values.end()) {
+      if(*it <= draws[i]) {
+        draws[i]++;
+        ++it;
+      } else {
+        break;
+      }
+    }
+    actual_values.insert(it, draws[i]);
+  }
+  
+  if(blacklist != nullptr) {
+    for(size_t i = 0; i < blacklist->size(); i++) {
+      actual_values.remove(blacklist->at(i));
+    }
+  }
+  
+  vector<size_t> to_return;
+  
+  auto it = actual_values.begin();
+  do {
+    to_return.push_back(*it);
+  } while (it != actual_values.end());
+  
   return to_return;
 }

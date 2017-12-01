@@ -33,12 +33,15 @@ public:
   inputHaplotype(siteIndex* reference);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
-            siteIndex *reference, size_t ih_start_position = 1, 
-            size_t length = 0);
-            
+            siteIndex *reference, size_t ih_start_position, 
+            size_t length);
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
+            siteIndex *reference);          
   inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference, size_t ih_start_position = 1, 
-            size_t length = 0);
+            siteIndex* reference, size_t ih_start_position, 
+            size_t length);
+  inputHaplotype(const char* query, const char* reference_sequence, 
+            siteIndex* reference);          
   ~inputHaplotype();
               
   void edit(size_t index, alleleValue a);

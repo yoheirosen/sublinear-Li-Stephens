@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
       return 0;
     }
     
-    siteIndex reference(ref_sites, ref_alleles);
+    siteIndex reference(ref_sites, number_of_sites);
     haplotypeCohort cohort(cohort_alleles, &reference);
     penaltySet penalties(-6, -9, number_of_haplotypes);
     haplotypeManager hap_manager = haplotypeManager(

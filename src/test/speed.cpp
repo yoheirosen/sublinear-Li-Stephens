@@ -30,8 +30,7 @@ int main() {
             positions.push_back(positions.back() + next_interval);
             total_length += next_interval;
           }
-          siteIndex reference(positions, total_length, 
-                      reference_values);
+          siteIndex reference(positions, total_length);
           vector<vector<alleleValue> > cohort_alleles;
           for(int i = 0; i < populations[l]; i++) {
             vector<alleleValue> haplotype_alleles;
