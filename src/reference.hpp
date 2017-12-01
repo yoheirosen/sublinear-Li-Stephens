@@ -77,7 +77,7 @@ public:
   
   //-- random generators -------------------------------------------------------
   
-  vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability) const;
+  vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability) const;
   vector<size_t> rand_sites(size_t N) const;
   vector<size_t> rand_positions(size_t N) const;
 };
@@ -185,31 +185,14 @@ public:
   vector<size_t> rand_haplos(size_t N) const;
   size_t rand_haplo_idx() const;
   size_t rand_haplo_idx(size_t current) const;
-  vector<alleleValue> rand_LS_haplo(double log_recomb_probability) const;
-  vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability) const;
-  
-  void simulate_read_query(const char* ref_seq,
-                           double mutation_rate,
-                           double recombination_rate,
-                           double uncertainty_rate,
-                           size_t* return_read_sites,
-                           char* return_read_seq) const;
-                           
-  void simulate_read_query_2(
-                           const char* ref_seq,
-                           double mutation_rate,
-                           double recombination_rate,
-                           double uncertainty_rate,
-                           size_t** return_read_sites,
-                           size_t* n_read_sites,
-                           char* return_read_seq,
-                           char** r_s_alleles_1,
-                           char** r_s_alleles_2) const; 
+  vector<alleleValue> rand_LS_haplo(double log_recomb_probability, double log_mutation_probability) const;
+  vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability) const;
 };
 
 namespace haploRandom {
   vector<size_t> n_unique_uints(size_t N, size_t supremum);
   vector<size_t> n_unique_uints(size_t N, size_t supremum, const vector<size_t>* blacklist);
+  alleleValue mutate(alleleValue a, double log_mutation_probability);
 }
 
 #endif
