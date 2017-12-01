@@ -672,27 +672,99 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
   return to_return;
 }
 
-vector<size_t> haplotypeCohort::rand_haplos(size_t N) {
+vector<size_t> haplotypeCohort::rand_haplos(size_t N) const {
   return haploRandom::n_unique_uints(N, get_n_haplotypes());
 }
 
-vector<size_t> haplotypeCohort::rand_sites(size_t N) {
-  return haploRandom::n_unique_uints(N, get_n_sites());
+vector<size_t> siteIndex::rand_sites(size_t N) const {
+  return haploRandom::n_unique_uints(N, number_of_sites());
 }
 
-vector<size_t> haplotypeCohort::rand_positions(size_t N) {
-  vector<size_t> site_positions(get_n_sites());
-  for(size_t i = 0; i < get_n_sites(); i++) {
-    site_positions[i] = get_reference()->get_position(i);
+vector<size_t> siteIndex::rand_positions(size_t N) const {
+  return haploRandom::n_unique_uints(N, number_of_sites(), &site_index_to_position);
+}
+
+size_t haplotypeCohort::rand_haplo_idx() const {
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  uniform_real_distribution<double> unit_uniform(0.0, 1.0);
+  size_t supremum = get_n_haplotypes();
+  size_t draw = (size_t)(unit_uniform(generator) * supremum);
+  if(draw == supremum) { draw = supremum - 1; }
+  return draw;
+}
+
+size_t haplotypeCohort::rand_haplo_idx(size_t current) const {
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  uniform_real_distribution<double> unit_uniform(0.0, 1.0);
+  size_t supremum = get_n_haplotypes() - 1;
+  size_t draw = (size_t)(unit_uniform(generator) * supremum);
+  if(draw == supremum) { draw = supremum - 1; }
+  if(draw >= current) { draw++; }
+  return draw;
+}
+
+vector<alleleValue> haplotypeCohort::rand_LS_haplo(double log_recomb_probability) const {
+  vector<alleleValue> to_return(get_n_sites());
+  size_t h_idx = rand_haplo_idx();
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  for(size_t i = 0; i < get_n_sites() - 1; i++) {
+    binomial_distribution<size_t> recombiner(get_reference()->span_length_after(i) + 1, exp(log_recomb_probability));
+    size_t n_recombinations = recombiner(generator);
+    to_return[i] = allele_at(i, h_idx);
+    for(size_t i = 0; i < n_recombinations; i++) {
+      h_idx = rand_haplo_idx(h_idx);
+    }
   }
-  return haploRandom::n_unique_uints(N, get_n_sites(), &site_positions);
+  to_return.back() = allele_at(get_n_sites() - 1, h_idx);
+  return to_return;
+}
+
+vector<alleleValue> haplotypeCohort::rand_desc_haplo(size_t generations, double log_recomb_probability) const {
+  vector<vector<alleleValue> > old_gen;
+  vector<vector<alleleValue> > new_gen;
+  
+  size_t gen_size = (size_t)pow(2, generations);
+  new_gen.clear();
+  for(size_t j = 0; j < gen_size; j++) {
+    new_gen.push_back(rand_LS_haplo(log_recomb_probability));
+  }
+  
+  for(size_t i = 1; i < generations; i++) {
+    gen_size = (size_t)pow(2, generations - i);
+    old_gen = new_gen;
+    new_gen.clear();
+    for(size_t j = 0; j < gen_size; j++) {
+      new_gen.push_back(get_reference()->make_child(old_gen[2*j], old_gen[2*j + 1], log_recomb_probability));
+    }
+  }
+  
+  return(get_reference()->make_child(old_gen[0], old_gen[1], log_recomb_probability));
+}
+
+vector<alleleValue> siteIndex::make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability) const {
+  vector<alleleValue> to_return(number_of_sites());
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  bernoulli_distribution hap_chooser(0.5);
+  bool h_idx = hap_chooser(generator);
+  for(size_t i = 0; i < number_of_sites() - 1; i++) {
+    binomial_distribution<size_t> recombiner(span_length_after(i) + 1, exp(log_recomb_probability));
+    size_t n_recombinations = recombiner(generator);
+    to_return[i] = h_idx ? parent_0[i] : parent_1[i];
+    h_idx = (bool)(((int)h_idx + n_recombinations) % 2);
+  }
+  to_return.back() = h_idx ? parent_0.back() : parent_1.back();
+  return to_return;
 }
 
 vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum) {
   return haploRandom::n_unique_uints(N, supremum, nullptr);
 }
 
-vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum, vector<size_t>* blacklist) {
+vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum, const vector<size_t>* blacklist) {
   default_random_engine generator;
   generator.seed(chrono::system_clock::now().time_since_epoch().count());
   uniform_real_distribution<double> unit_uniform(0.0, 1.0);

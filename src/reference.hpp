@@ -74,6 +74,12 @@ public:
   size_t find_site_above(size_t position) const;
   // returns SIZE_MAX if there is no site below
   size_t find_site_below(size_t position) const;
+  
+  //-- random generators -------------------------------------------------------
+  
+  vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability) const;
+  vector<size_t> rand_sites(size_t N) const;
+  vector<size_t> rand_positions(size_t N) const;
 };
 
 //------------------------------------------------------------------------------
@@ -176,9 +182,11 @@ public:
 
 //-- haplotype simulation ------------------------------------------------------
   // random generators
-  vector<size_t> rand_haplos(size_t N);
-  vector<size_t> rand_sites(size_t N);
-  vector<size_t> rand_positions(size_t N);
+  vector<size_t> rand_haplos(size_t N) const;
+  size_t rand_haplo_idx() const;
+  size_t rand_haplo_idx(size_t current) const;
+  vector<alleleValue> rand_LS_haplo(double log_recomb_probability) const;
+  vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability) const;
   
   void simulate_read_query(const char* ref_seq,
                            double mutation_rate,
@@ -201,7 +209,7 @@ public:
 
 namespace haploRandom {
   vector<size_t> n_unique_uints(size_t N, size_t supremum);
-  vector<size_t> n_unique_uints(size_t N, size_t supremum, vector<size_t>* blacklist);
+  vector<size_t> n_unique_uints(size_t N, size_t supremum, const vector<size_t>* blacklist);
 }
 
 #endif
