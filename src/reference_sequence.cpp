@@ -31,3 +31,17 @@ bool referenceSequence::matches(size_t i, char a) const {
 alleleValue referenceSequence::at(size_t i) const {
   return alleles[i - offset];
 }
+
+vector<size_t> referenceSequence::mismatches(const string& other) const {
+  return mismatches(other.c_str(), other.size());
+}
+
+vector<size_t> referenceSequence::mismatches(const char* other, size_t str_length) const {
+  vector<size_t> to_return;
+  for(size_t i = 0; i < str_length; i++) {
+    if(!matches(i, other[i])) {
+      to_return.push_back(i);
+    }
+  }
+  return to_return;
+}

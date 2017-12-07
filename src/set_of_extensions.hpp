@@ -9,6 +9,10 @@
 
 using namespace std;
 
+// An extensionSet holds the results of expensive but not haplotype-specific
+// calls. Faster lookup that using a rowSet and also holds the current_maps for
+// each allele
+
 struct extensionSet{
 private:
   vector<DPUpdateMap> current_map;
@@ -16,9 +20,11 @@ private:
   vector<bool> match_is_rare;
 public:
   extensionSet(haplotypeCohort* cohort, size_t site_index);
-  bool get_match_is_rare(size_t i) const;
-  alleleValue get_allele(size_t i) const;
+  
+  bool                  get_match_is_rare(size_t i) const;
+  alleleValue           get_allele(size_t i) const;
   const vector<size_t>& get_active_rows(size_t i) const;
+  
   void extend_probability_by_allele(fastFwdAlgState* hap_mat, size_t i);
 };
 

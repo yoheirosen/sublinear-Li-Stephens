@@ -1,12 +1,19 @@
 #include <cmath>
 #include "probability.hpp"
 
+struct referenceTriple{
+  referenceTriple(const siteIndex* reference, const penaltySet* penalties, const haplotypeCohort* cohort);
+  const siteIndex* reference;
+  const penaltySet* penalties;
+  const haplotypeCohort* cohort;
+};
+
 fastFwdAlgState::fastFwdAlgState(const siteIndex* ref, const penaltySet* pen,
           const haplotypeCohort* cohort) :
           reference(ref), cohort(cohort), penalties(pen),
-          map(lazyEvalMap(cohort->get_n_sites(), 0)) {
+          map(lazyEvalMap(cohort->get_n_haplotypes(), 0)) {
   S = 0;
-  R = vector<double>(cohort->get_n_sites(), 0);
+  R = vector<double>(cohort->get_n_haplotypes(), 0);
 }
 
 fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other, 
@@ -22,7 +29,7 @@ fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other,
 	if(copy_map) {
 		map = lazyEvalMap(other.map);
 	} else {
-		map = lazyEvalMap(cohort->get_n_sites(), last_extended);
+		map = lazyEvalMap(cohort->get_n_haplotypes(), last_extended);
 	}
 }
 
@@ -116,8 +123,7 @@ void fastFwdAlgState::initialize_probability_at_span(size_t length,
 void fastFwdAlgState::initialize_probability_at_site(size_t site_index, 
             alleleValue a) {
   vector<size_t> matches = cohort->get_matches(site_index, a);
-  vector<size_t> non_matches = 
-            cohort->get_non_matches(site_index, a);
+  vector<size_t> non_matches = cohort->get_non_matches(site_index, a);
   // There are only two possible R-values at this site. There is a uniform
   // 1/|H| probability of starting on any given haplotype; the emission
   // probabilities account for differences in R-value
@@ -204,7 +210,7 @@ void fastFwdAlgState::take_snapshot() {
               (cohort->number_matching(j, last_allele) == 0 ||
               cohort->number_not_matching(j, last_allele) == 0);
     if(reference_is_homogenous || last_extended_is_span()) {
-      for(size_t i = 0; i < cohort->get_n_sites(); i++) {
+      for(size_t i = 0; i < cohort->get_n_haplotypes(); i++) {
         R[i] = calculate_R(R[i], map.get_map(i));
       }
     } else if(cohort->match_is_rare(j, last_allele)) {

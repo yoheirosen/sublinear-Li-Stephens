@@ -15,15 +15,12 @@ PROBABILITY_DEPS := $(SRC_DIR)/probability.hpp $(SRC_DIR)/reference.hpp $(SRC_DI
 
 CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/input_haplotype.o $(OBJ_DIR)/delay_multiplier.o $(OBJ_DIR)/DP_map.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/allele.o $(OBJ_DIR)/row_set.o
 
-TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/scored_node.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
+TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-all : build_dirs speed speed_tree tests tree_tests interface
+all : build_dirs speed_tree tests tree_tests interface
 
 build_dirs:
 	mkdir -p obj/test && mkdir -p bin
-
-speed : $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/speed.o $(CORE_OBJ) -o $(BIN_DIR)/speed
 
 tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) -o $(BIN_DIR)/tests
@@ -88,9 +85,6 @@ $(OBJ_DIR)/reference_sequence.o : $(SRC_DIR)/reference_sequence.cpp $(SRC_DIR)/r
 $(OBJ_DIR)/row_set.o : $(SRC_DIR)/row_set.cpp $(SRC_DIR)/row_set.hpp $(SRC_DIR)/allele.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/row_set.cpp -o $(OBJ_DIR)/row_set.o
 
-$(OBJ_DIR)/scored_node.o : $(SRC_DIR)/scored_node.cpp $(SRC_DIR)/scored_node.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/scored_node.cpp -o $(OBJ_DIR)/scored_node.o
-
 $(OBJ_DIR)/set_of_extensions.o : $(SRC_DIR)/set_of_extensions.cpp $(SRC_DIR)/set_of_extensions.hpp  $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(SRC_DIR)/set_of_extensions.cpp -o $(OBJ_DIR)/set_of_extensions.o
 
@@ -99,6 +93,3 @@ $(TEST_OBJ_DIR)/test.o : $(TEST_SRC_DIR)/test.cpp $(PROBABILITY_DEPS)
 
 $(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(TEST_SRC_DIR)/tree_tests.cpp -o $(TEST_OBJ_DIR)/tree_tests.o
-
-$(TEST_OBJ_DIR)/speed.o : $(TEST_SRC_DIR)/speed.cpp $(PROBABILITY_DEPS)
-	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $(TEST_SRC_DIR)/speed.cpp -o $(TEST_OBJ_DIR)/speed.o

@@ -17,6 +17,11 @@ inputHaplotype::inputHaplotype(const vector<alleleValue>& query,
   
 }
 
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query) : alleles(query), 
+            augmentations(vector<size_t>(query.size(), 0)) {
+  
+}
+
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
             const vector<size_t>& augmentation_count, 
             siteIndex* reference, size_t ih_start = 1, 
@@ -90,10 +95,12 @@ void inputHaplotype::build_relative_positions() {
   return;
 }
 
-inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference, size_t ih_start = 1, 
-            size_t length = 0) : reference(reference), ih_start_position(ih_start) {
-  ih_end_position = ih_start + length - 1;
+size_t inputHaplotype::find_site_below(size_t p) const {
+  return reference->find_site_below(p);
+}
+
+void inputHaplotype::build(const char* query, const char* reference_sequence, size_t length) {
+  ih_end_position = ih_start_position + length - 1;
   ih_start_offset = ih_start_position - reference->start_position();
   build_relative_positions();
   
@@ -142,53 +149,19 @@ inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence
   }
 }
 
+inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
+            siteIndex* reference, size_t ih_start = 1, 
+            size_t length = 0) : reference(reference), ih_start_position(ih_start) {
+  build(query, reference_sequence, length);
+}
+
+inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
+            siteIndex* reference) : reference(reference), ih_start_position(reference->start_position()) {
+  build(query, reference_sequence, reference->absolute_length());
+}
+
 bool inputHaplotype::has_sites() const {
   return !has_no_sites;
-}
-
-void inputHaplotype::edit(size_t index, alleleValue a) {
-  alleles[index] = a;
-}
-
-void inputHaplotype::edit(size_t position, char new_c, char old_c, char ref) {
-  if(reference->is_site(position)) {
-    alleles[reference->get_site_index(position)] = 
-              allele::from_char(new_c, allele::from_char(ref));
-  } else {
-    int delta_aug;
-    // does the number of augmentations in the span change?
-    if(new_c != old_c) {
-      if(old_c == ref) {
-        delta_aug = 1;
-      } else {
-        if(new_c == ref) {
-          delta_aug = -1;
-        } else {
-          delta_aug = 0;
-        }
-      }
-    } else {
-      delta_aug = 0;
-    }
-    if(position < reference->get_position(0)) {
-      augmentations[0] += delta_aug;
-    } else {
-      size_t site_index = find_site_below(position);
-      augmentations[site_index + 1] += delta_aug;
-    }
-  }
-}
-
-size_t inputHaplotype::find_site_below(size_t p) const {
-  return reference->find_site_below(p);
-}
-
-void inputHaplotype::edit(size_t start_pos, size_t end_pos, string new_string, 
-          string old_string, string ref) {
-  size_t length = end_pos - start_pos + 1;
-  for(size_t i = 0; i < length; i++) {
-    edit(start_pos + i, new_string[i], old_string[i], ref[i]);
-  }
 }
 
 alleleValue inputHaplotype::get_allele(size_t j) const {
@@ -233,4 +206,7 @@ size_t inputHaplotype::number_of_sites() const {
   } else {
     return end_index - start_index + 1;
   }
+}
+
+alleleVector::alleleVector(const vector<alleleValue>& entries) : entries(entries) {
 }

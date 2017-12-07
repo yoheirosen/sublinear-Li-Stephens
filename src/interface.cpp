@@ -276,70 +276,6 @@ void siteIndex_set_initial_span(siteIndex* ref, size_t length) {
   ref->set_initial_span(length);
 }
 
-
-// Simulates an input from marginPhase consisting of:
-//      1. positions of "sites"
-//      2. consensus sequence at non-site positions
-// In this particular simulation,
-//      to generate 1., the parameter uncertainty_rate "U" is the probability 
-//      that a site which is variable in the haplotype cohort is also variable, 
-//      ie uncertain, from the perspective of the haplotype caller
-//        - each reference cohort-site is chosen to be variable using a 
-//          Bernoulli trial with p = U
-//        - in order to have the same number of sites as the reference cohort,
-//          additional sites are then chosen with uniform probability
-// and
-//       to generate the consensus sequence, a haplotype is copied, recombining
-//       and mutating at random according to the probabilities from the 
-//       penaltySet
-// Return objects are passed by pointer and are:
-//       return_read_sites -- the positions of sites "1"
-//       n_return_read_sites -- number of sites
-//       return_read_seq -- consensus sequence
-// These can then be fed directly into the haplotypeManager constructor
-void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
-                                    const char* ref_seq,
-                                    double mutation_rate,
-                                    double recombination_rate,
-                                    size_t cohort_size,
-                                    double uncertainty_rate,
-                                    size_t* return_read_sites,
-                                    char* return_read_seq) {
-  mutation_rate = pow(10, mutation_rate);
-  recombination_rate = pow(10, recombination_rate);
-
-  cohort->simulate_read_query(ref_seq,
-                              mutation_rate,
-                              recombination_rate,
-                              uncertainty_rate,
-                              return_read_sites,
-                              return_read_seq);
-}
-
-void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
-                                      const char* ref_seq,
-                                      double mutation_rate,
-                                      double recombination_rate,
-                                      double uncertainty_rate,
-                                      size_t** return_read_sites,
-                                      size_t* n_read_sites,
-                                      char* return_read_seq,
-                                      char** r_s_alleles_1,
-                                      char** r_s_alleles_2) {
-  mutation_rate = pow(10, mutation_rate);
-  recombination_rate = pow(10, recombination_rate);
-
-  cohort->simulate_read_query_2(ref_seq,
-                                mutation_rate,
-                                recombination_rate,
-                                uncertainty_rate,
-                                return_read_sites,
-                                n_read_sites,
-                                return_read_seq,
-                                r_s_alleles_1,
-                                r_s_alleles_2);
-}
-
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort) {
   return cohort->get_n_haplotypes();
 }
@@ -407,4 +343,41 @@ penaltySet* penaltySet_build(double recombination_penalty,
 
 void penaltySet_delete(penaltySet* penalty_set) {
   delete penalty_set;  
+}
+
+typedef struct alleleVector alleleVector;
+                              
+alleleVector* hC_rand_haplo(haplotypeCohort* cohort,
+                            size_t generations,
+                            double recombination_penalty,
+                            double mutation_penalty) {
+  vector<alleleValue> random_haplo = cohort->rand_desc_haplo(
+                                                     generations,
+                                                     recombination_penalty,
+                                                     mutation_penalty);
+  return new alleleVector(random_haplo);
+}
+
+slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, haplotypeCohort* cohort) {
+  return new slowFwdSolver(reference, penalties, cohort);
+}
+
+double slowFwd_solve_quadratic(slowFwdSolver* solver, alleleVector* q) {
+  return solver->calculate_probability_quadratic(q->entries, 0);
+}
+
+double slowFwd_solve_linear(slowFwdSolver* solver, alleleVector* q) {
+  return solver->calculate_probability_linear(q->entries, 0);
+}
+
+inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query) {
+  return new inputHaplotype(query->entries);
+}
+
+void alleleVector_delete(alleleVector* to_delete) {
+  delete to_delete;
+}
+
+void slowFwdSolver_delete(slowFwdSolver* to_delete) {
+  delete to_delete;
 }

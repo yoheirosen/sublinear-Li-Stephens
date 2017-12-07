@@ -19,6 +19,8 @@ public:
   bool matches(size_t i, alleleValue a) const;
   bool matches(size_t i, char a) const;
   alleleValue at(size_t i) const;
+  vector<size_t> mismatches(const string& other) const;
+  vector<size_t> mismatches(const char* other, size_t str_length) const;
 };
 
 #endif

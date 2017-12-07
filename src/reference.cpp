@@ -349,6 +349,18 @@ void siteIndex::set_initial_span(size_t length) {
   leading_span_length = length;
 }
 
+alleleValue haplotypeCohort::get_dominant_allele(size_t site) const {
+  size_t max_count = 0;
+  alleleValue dominant_allele = unassigned;
+  for(size_t i = 0; i < allele_counts_by_site_index[site].size(); i++) {
+    if(allele_counts_by_site_index[site][i] > max_count) {
+      max_count = allele_counts_by_site_index[site][i];
+      dominant_allele = (alleleValue)i;
+    }
+  }
+  return dominant_allele;
+}
+
 size_t haplotypeCohort::get_MAC(size_t site) const {
   return number_of_haplotypes - number_matching(site, get_dominant_allele(site));
 }

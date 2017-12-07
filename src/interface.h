@@ -4,18 +4,23 @@
 #include <stdint.h>
 
 typedef long unsigned size_t;
-typedef struct haplotypeManager haplotypeManager;
-typedef struct haplotypeStateNode haplotypeStateNode;
-typedef struct penaltySet penaltySet;
 typedef struct siteIndex siteIndex;
+typedef struct haplotypeManager haplotypeManager;
 typedef struct haplotypeCohort haplotypeCohort;
+typedef struct penaltySet penaltySet;
 typedef struct inputHaplotype inputHaplotype;
+typedef struct alleleVector alleleVector;
 typedef struct fastFwdAlgState fastFwdAlgState;
+typedef struct slowFwdSolver slowFwdSolver;
+typedef struct haplotypeStateNode haplotypeStateNode;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
+
+////////////////////////////////////////////////////////////////////////////////
+// haplotypeManager scoring
+////////////////////////////////////////////////////////////////////////////////
 // A haplotypeManager is the containter for all likelihood calculations
 // it requires specification of:
 //   - the base sequence of the reference
@@ -94,6 +99,13 @@ haplotypeManager* haplotypeManager_build_from_idx(
             size_t read_DP_site_count,
             size_t* read_DP_site_offsets,
             char* read_DP_sequence);
+            
+void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
+                  								 char* r_alleles_1,
+                  								 char* r_alleles_2);
+
+void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
+                                          double threshold);
 
 // takes in an array of haplotypeStateNode*s of size 5. Indexed A-C-T-G-gap. 
 // to this, it writes
@@ -150,16 +162,17 @@ int haplotypeManager_read_index_is_shared(haplotypeManager* hap_manager, size_t 
 
 // double haplotypeManager_read_site_penalty(haplotypeManager* hap_manager, size_t read_site_index, char allele);
 
-// *****************************************************************************
+////////////////////////////////////////////////////////////////////////////////
 // functions below used to construct haplotypeCohort and siteIndex
 // from VCF
-// *****************************************************************************
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// siteIndex building
+////////////////////////////////////////////////////////////////////////////////
 
 // initialize siteIndex with no sites
 siteIndex* siteIndex_init_empty(size_t global_offset);
-
-// initialize haplotypeCohort with no sites
-haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteIndex* ref);
 
 // CONDITIONS:
 //   must be called in ascending order of position, with no positions repeated
@@ -170,8 +183,20 @@ haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteInd
 //   -1 : positions added in non-ascending order
 //   -2 : site with same position already
 //   -3 : site-vector locked
-int64_t siteIndex_add_site(
-            siteIndex* reference, size_t position);
+int64_t siteIndex_add_site(siteIndex* reference, size_t position);
+
+void siteIndex_set_initial_span(siteIndex* ref, size_t length);
+
+// calculates final span length
+// also locks the siteIndex from being modified
+void siteIndex_calc_spans(siteIndex* reference, size_t length);
+
+////////////////////////////////////////////////////////////////////////////////
+// haplotypeCohort building
+////////////////////////////////////////////////////////////////////////////////
+
+// initialize haplotypeCohort with no sites
+haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteIndex* ref);
 
 // Adds an empty record at the site specified, with all alleles set to unassigned
 // CONDITIONS:
@@ -187,53 +212,31 @@ int haplotypeCohort_add_record(haplotypeCohort* cohort, size_t site);
 // 1 : successful
 // 0 : cohort locked
 // -1 : already assigned
-int haplotypeCohort_set_sample_allele(
-            haplotypeCohort* cohort, size_t site, size_t sample, char allele);
-
-// calculates final span length
-// also locks the siteIndex from being modified
-void siteIndex_calc_spans(siteIndex* reference, size_t length);
+int haplotypeCohort_set_sample_allele(haplotypeCohort* cohort, size_t site, size_t sample, char allele);
 
 // builds allele-counts and lookup tables
 // also locks the haplotypeCohort from being modified
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
-void siteIndex_set_initial_span(siteIndex* ref, size_t length);
-
-void haplotypeCohort_sim_read_query(haplotypeCohort* cohort,
-                                    const char* ref_seq,
-                                    double mutation_rate,
-                                    double recombination_rate,
-                                    size_t cohort_size,
-                                    double uncertainty_rate,
-                                    size_t* return_read_sites,
-                                    char* return_read_seq);
-                                    
-void haplotypeCohort_sim_read_query_2(haplotypeCohort* cohort,
-                                      const char* ref_seq,
-                                      double mutation_rate,
-                                      double recombination_rate,
-                                      double uncertainty_rate,
-                                      size_t** return_read_sites,
-                                      size_t* n_read_sites,
-                                      char* return_read_seq,
-                                      char** r_s_alleles_1,
-                                      char** r_s_alleles_2); 
+////////////////////////////////////////////////////////////////////////////////
+// haplotypeCohort queries
+////////////////////////////////////////////////////////////////////////////////
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 
-size_t number_of_sites(haplotypeCohort* cohort);
+size_t haplotypeCohort_n_sites(haplotypeCohort* cohort);
 
 size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort);
 
+////////////////////////////////////////////////////////////////////////////////
+// siteIndex queries
+////////////////////////////////////////////////////////////////////////////////
+
 size_t siteIndex_n_sites(siteIndex* reference);
 
-void haplotypeManager_init_opt_idx(haplotypeManager* hap_manager,
-                  								 char* r_alleles_1,
-                  								 char* r_alleles_2);
-
-void haplotypeManager_build_tree_interval(haplotypeManager* hap_manager,
-                                          double threshold);
+////////////////////////////////////////////////////////////////////////////////
+// haplotype query object building
+////////////////////////////////////////////////////////////////////////////////
 
 inputHaplotype* inputHaplotype_build(const char* ref_seq, 
                           const char* query, 
@@ -242,19 +245,52 @@ inputHaplotype* inputHaplotype_build(const char* ref_seq,
 
 void inputHaplotype_delete(inputHaplotype* in_hap);
 
-fastFwdAlgState* fastFwdAlgState_initialize(siteIndex* reference,
-                                            penaltySet* penalties,
-                                            haplotypeCohort* cohort);
-                                              
-void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix);
+inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query);
 
-double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* query);
+void alleleVector_delete(alleleVector* to_delete);
+
+////////////////////////////////////////////////////////////////////////////////
+// penaltySet building
+////////////////////////////////////////////////////////////////////////////////
 
 penaltySet* penaltySet_build(double recombination_penalty,
                              double mutation_penalty,
                              size_t number_of_haplotypes);
 
 void penaltySet_delete(penaltySet* penalty_set);
+
+////////////////////////////////////////////////////////////////////////////////
+// single haplotype probability calculation
+////////////////////////////////////////////////////////////////////////////////
+
+// fast forward algorithm
+//------------------------------------------------------------------------------
+
+fastFwdAlgState* fastFwdAlgState_initialize(siteIndex* reference,
+                                            penaltySet* penalties,
+                                            haplotypeCohort* cohort);
+
+double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* query);
+
+void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix);
+
+// conventional forward algorithm
+//------------------------------------------------------------------------------
+
+slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, haplotypeCohort* cohort);
+
+double slowFwd_solve_quadratic(slowFwdSolver* solver, alleleVector* q);
+
+double slowFwd_solve_linear(slowFwdSolver* solver, alleleVector* q);
+
+////////////////////////////////////////////////////////////////////////////////
+// random methods
+////////////////////////////////////////////////////////////////////////////////
+
+alleleVector* hC_rand_haplo(haplotypeCohort* cohort, size_t generations,
+  double recomb_p,
+  double mut_p);
+
 
 #ifdef __cplusplus
 }

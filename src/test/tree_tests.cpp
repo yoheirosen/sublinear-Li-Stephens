@@ -11,7 +11,7 @@
 
 using namespace std;
 
-siteIndex build_ref(const string& ref_seq, vector<size_t>& positions) {
+siteIndex build_ref(const string& ref_seq, const vector<size_t>& positions) {
   return siteIndex(positions, ref_seq.length());
 }
 

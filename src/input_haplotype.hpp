@@ -28,27 +28,28 @@ private:
   size_t left_tail_length;
   size_t right_tail_length;
   
+  void build(const char* query, const char* reference_sequence, size_t length);
   void build_relative_positions();
+  
+  // binary search for site coming before position p. In order to give a
+  // meaningful answer, there must be a site below p
+  size_t find_site_below(size_t p) const;
 public:
   inputHaplotype(siteIndex* reference);
+  inputHaplotype(const vector<alleleValue>& query);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
+            siteIndex *reference);          
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
             siteIndex *reference, size_t ih_start_position, 
             size_t length);
-  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
-            siteIndex *reference);          
+  inputHaplotype(const char* query, const char* reference_sequence, 
+            siteIndex* reference);          
   inputHaplotype(const char* query, const char* reference_sequence, 
             siteIndex* reference, size_t ih_start_position, 
             size_t length);
-  inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference);          
   ~inputHaplotype();
               
-  void edit(size_t index, alleleValue a);
-  void edit(size_t position, char new_c, char old_c, char ref);
-  void edit(size_t start_pos, size_t end_pos, string new_string, 
-            string old_string, string ref);
-  
   alleleValue get_allele(size_t j) const;
   
   size_t get_augmentations(int j) const;
@@ -58,13 +59,14 @@ public:
   size_t get_span_after(size_t i) const;
   bool has_span_after(size_t i) const;
   
-  // binary search for site coming before position p. In order to give a
-  // meaningful answer, there must be a site below p
-  size_t find_site_below(size_t p) const;
-  
   size_t get_site_index(size_t j) const;
   bool has_sites() const;
   size_t number_of_sites() const;
+};
+
+struct alleleVector{
+  vector<alleleValue> entries;
+  alleleVector(const vector<alleleValue>& entries);
 };
 
 #endif
