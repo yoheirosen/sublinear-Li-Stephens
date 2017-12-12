@@ -171,7 +171,7 @@ haplotypeCohort::~haplotypeCohort() {
 }
 
 alleleValue haplotypeCohort::allele_at(size_t site_index, size_t haplotype_index) const {
-  return haplotype_alleles_by_site_index[haplotype_index][site_index];
+  return alleles_by_haplotype_and_site[haplotype_index][site_index];
 }
 
 size_t haplotypeCohort::number_matching(size_t site_index, alleleValue a) const {
@@ -190,7 +190,7 @@ void haplotypeCohort::populate_allele_counts() {
               num_sites, vector<vector<size_t> >(5, vector<size_t>()));
   for(size_t i = 0; i < number_of_haplotypes; i++) {
     for(int j = 0; j < num_sites; j++) {
-      int allele_rank = (int)haplotype_alleles_by_site_index[i][j];
+      int allele_rank = (int)alleles_by_haplotype_and_site[i][j];
       allele_counts_by_site_index[j][allele_rank]++;
       haplotype_indices_by_site_and_allele[j][allele_rank].push_back(i);
     }
@@ -212,10 +212,10 @@ haplotypeCohort::haplotypeCohort(const vector<string>& haplotypes,
   number_of_haplotypes = haplotypes.size();
   size_t num_sites = reference->number_of_sites();
   for(size_t i = 0; i < number_of_haplotypes; i++) {
-    haplotype_alleles_by_site_index.push_back(vector<alleleValue>(num_sites));
+    alleles_by_haplotype_and_site.push_back(vector<alleleValue>(num_sites));
     for(size_t j = 0; j < num_sites; j++) {
       size_t pos = reference->get_position(j);
-      haplotype_alleles_by_site_index[i][j] = allele::from_char(haplotypes[i][pos],
+      alleles_by_haplotype_and_site[i][j] = allele::from_char(haplotypes[i][pos],
                   unassigned);
     }
   }
@@ -224,7 +224,7 @@ haplotypeCohort::haplotypeCohort(const vector<string>& haplotypes,
 
 haplotypeCohort::haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
           const siteIndex* reference) : reference(reference),
-          haplotype_alleles_by_site_index(haplotypes) {
+          alleles_by_haplotype_and_site(haplotypes) {
   number_of_haplotypes = haplotypes.size();
   populate_allele_counts();
 }
@@ -249,9 +249,9 @@ vector<size_t> haplotypeCohort::get_non_matches(size_t site_index, alleleValue a
   return nonmatchlist;
 }
 
-const vector<alleleValue>& haplotypeCohort::allele_vector_at_site(size_t site_index) const {
-  return haplotype_alleles_by_site_index[site_index];
-}
+// const vector<alleleValue>& haplotypeCohort::allele_vector_at_site(size_t site_index) const {
+
+// }
 
 vector<size_t> haplotypeCohort::get_active_rows(size_t site, alleleValue a) const {
   if(match_is_rare(site, a)) {
@@ -265,15 +265,15 @@ haplotypeCohort::haplotypeCohort(size_t cohort_size,
             const siteIndex* reference) : reference(reference) {
   size_t num_sites = reference->number_of_sites();
   number_of_haplotypes = cohort_size;
-  haplotype_alleles_by_site_index = vector<vector<alleleValue> >(
+  alleles_by_haplotype_and_site = vector<vector<alleleValue> >(
               cohort_size,
-              vector<alleleValue>());
+              vector<alleleValue>(num_sites, unassigned));
 }
 
 void haplotypeCohort::assign_alleles_at_site(size_t i, 
             vector<alleleValue> alleles_at_site) {
   for(size_t j; j < alleles_at_site.size(); j++) {
-    haplotype_alleles_by_site_index[i][j] = alleles_at_site[j];
+    alleles_by_haplotype_and_site[i][j] = alleles_at_site[j];
   }
 }
 
@@ -319,9 +319,9 @@ int haplotypeCohort::add_record(size_t site) {
     if(reference->number_of_sites() != 0) {
       if(site == reference->number_of_sites() - 1) {
         for(size_t i = 0; i < number_of_haplotypes; i++) {
-          haplotype_alleles_by_site_index[i].push_back(unassigned);
+          alleles_by_haplotype_and_site[i].push_back(unassigned);
         }
-        // haplotype_alleles_by_site_index.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
+        // alleles_by_haplotype_and_site.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
         return 1;
       } else {
         return -1;
@@ -336,8 +336,8 @@ int haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a
   if(finalized) {
     return 0;
   } else {
-    if(haplotype_alleles_by_site_index[sample][site] == unassigned) {
-      haplotype_alleles_by_site_index[sample][site] = a;
+    if(alleles_by_haplotype_and_site[sample][site] == unassigned) {
+      alleles_by_haplotype_and_site[sample][site] = a;
       return 1;
     } else {
       return -1;
@@ -378,7 +378,9 @@ void haplotypeCohort::set_column(const vector<alleleValue>& values) {
 }
 
 void haplotypeCohort::set_column(const vector<alleleValue>& values, size_t site) {
-  haplotype_alleles_by_site_index[site] = values;
+  for(size_t i = 0; i < get_n_haplotypes(); i++) {
+    alleles_by_haplotype_and_site[i][site] = values[i];
+  }
 }
 
 const siteIndex* haplotypeCohort::get_reference() const {
@@ -412,7 +414,7 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
             new haplotypeCohort(number_of_haplotypes, new_reference);
   for(size_t i = 0; i < remaining_sites.size(); i++) {
     to_return->add_record(i);
-    to_return->set_column(haplotype_alleles_by_site_index[remaining_sites[i]]);
+    to_return->set_column(alleles_by_haplotype_and_site[remaining_sites[i]]);
   }
   to_return->populate_allele_counts();
   return to_return;
@@ -576,4 +578,142 @@ alleleValue haploRandom::mutate(alleleValue a, double log_mutation_probability) 
     return (alleleValue)draw;
   }
   return a;
+}
+
+haplotypeCohort* haplotypeCohort::remove_rare_sites(double max_rarity) const {
+  size_t maj_all_fq_limit = (size_t)(get_n_haplotypes() * (1 - max_rarity));
+  vector<size_t> sites_not_dropped; 
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    bool passes = true;
+    for(size_t j = 0; j < 5; j++) {
+      if(allele_counts_by_site_index[i][j] > maj_all_fq_limit) {
+        passes = false;
+      }
+    }
+    if(passes) {
+      sites_not_dropped.push_back(i);
+    }
+  }
+  vector<size_t> remaining_site_positions(sites_not_dropped.size());
+  for(size_t i = 0; i < sites_not_dropped.size(); i++) {
+    remaining_site_positions[i] = reference->get_position(sites_not_dropped[i]);
+  }
+  siteIndex* new_ref = new siteIndex(
+                       remaining_site_positions,
+                       reference->absolute_length(),
+                       reference->start_position() + reference->absolute_length());
+  haplotypeCohort* to_return = 
+            new haplotypeCohort(number_of_haplotypes, new_ref);
+  for(size_t i = 0; i < sites_not_dropped.size(); i++) {
+    vector<alleleValue> this_column(number_of_haplotypes, unassigned);
+    for(size_t j = 0; j < number_of_haplotypes; j++) {
+      this_column[j] = alleles_by_haplotype_and_site[j][sites_not_dropped[i]];
+    }
+    to_return->set_column(this_column, i);
+  }
+  to_return->populate_allele_counts();
+  return to_return;
+}
+
+haplotypeCohort* haplotypeCohort::remove_haplotypes(size_t n_to_remove) const {
+  if(n_to_remove > get_n_haplotypes()/2) {
+    return keep_haplotypes(n_to_remove - get_n_haplotypes()/2);
+  } else {
+    vector<size_t> ids_to_remove = rand_haplos(n_to_remove);
+    return remove_haplotypes(ids_to_remove);
+  }
+}
+
+
+haplotypeCohort* haplotypeCohort::remove_haplotypes(const vector<size_t>& ids_to_remove) const {
+  return downsample_haplotypes(ids_to_remove, false);
+}
+
+haplotypeCohort* haplotypeCohort::keep_haplotypes(size_t n_to_keep) const {
+  if(n_to_keep > get_n_haplotypes()/2) {
+    return remove_haplotypes(n_to_keep - get_n_haplotypes()/2);
+  } else {
+    vector<size_t> ids_to_keep = rand_haplos(n_to_keep);
+    return keep_haplotypes(ids_to_keep);
+  }
+}
+
+haplotypeCohort* haplotypeCohort::keep_haplotypes(const vector<size_t>& ids_to_keep) const {
+  return downsample_haplotypes(ids_to_keep, true);
+}
+
+haplotypeCohort* haplotypeCohort::downsample_haplotypes(const vector<size_t>& ids, bool keep) const {
+  vector<size_t> sites_not_dropped;
+  vector<size_t> remaining_site_positions;
+  vector<bool> allele_count_mask;
+  size_t kept_haplotypes = keep ? ids.size() : get_n_haplotypes() - ids.size();
+  if(!keep) {
+    allele_count_mask = vector<bool>(get_n_haplotypes(), true);
+    for(size_t j = 0; j < ids.size(); j++) {
+      allele_count_mask[ids[j]] = false;
+    }
+  }
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    vector<int> allele_seen(5, 0);
+    if(keep) {
+      for(size_t j = 0; j < ids.size(); j++) {
+        alleleValue a = alleles_by_haplotype_and_site[ids[j]][i];
+        allele_seen[a] = 1;
+      }
+    } else {
+      for(size_t j = 0; j < get_n_haplotypes(); j++) {
+        if(allele_count_mask[j]) {
+          alleleValue a = alleles_by_haplotype_and_site[j][i];
+          allele_seen[a] = 1;
+        }
+      }
+    }
+    int n_alleles_seen = allele_seen[0] + allele_seen[1] + allele_seen[2] + allele_seen[3] + allele_seen[4]; 
+    if(n_alleles_seen >= 2) {
+      sites_not_dropped.push_back(i);
+      remaining_site_positions.push_back(reference->get_position(i));
+    }
+  }
+  siteIndex* new_ref = new siteIndex(
+                       remaining_site_positions,
+                       reference->absolute_length(),
+                       reference->start_position() + reference->absolute_length());
+  haplotypeCohort* to_return = new haplotypeCohort(kept_haplotypes, new_ref);
+  for(size_t i = 0; i < sites_not_dropped.size(); i++) {
+    vector<alleleValue> this_column(kept_haplotypes, unassigned);
+    if(keep) {
+      for(size_t j = 0; j < ids.size(); j++) {
+        alleleValue a = alleles_by_haplotype_and_site[ids[j]][sites_not_dropped[i]];
+        this_column[j] = a;
+      }
+    } else {
+      size_t k = 0;
+      for(size_t j = 0; j < get_n_haplotypes(); j++) {
+        if(allele_count_mask[j]) {
+          alleleValue a = alleles_by_haplotype_and_site[j][sites_not_dropped[i]];
+          this_column[k] = a;
+          k++;
+        }
+      }
+    }
+    to_return->set_column(this_column, i);
+  }
+  to_return->populate_allele_counts();
+  return to_return;
+}
+
+vector<alleleValue> siteIndex::downsample_to(const vector<alleleValue>& input, const siteIndex* subset) const {
+  size_t k = 0;
+  vector<alleleValue> to_return;
+  for(size_t i = 0; i < number_of_sites(); i++) {
+    if(get_position(i) == subset->get_position(k)) {
+      to_return.push_back(input[i]);
+      k++;
+    }
+  }
+  return to_return;
+}
+
+bool haplotypeCohort::operator==(const haplotypeCohort& other) const {
+  return this->alleles_by_haplotype_and_site == other.alleles_by_haplotype_and_site;
 }

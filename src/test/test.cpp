@@ -981,3 +981,46 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
   }
 }
+
+TEST_CASE( " Downsampling functions ", "[downsampling]" ) {
+  vector<size_t> positions = {0,1,2};
+  siteIndex reference(positions, 3);
+  vector<vector<alleleValue> > haplotypes = {
+    {A,A,T},
+    {A,T,A},
+    {A,A,T},
+    {A,T,A},
+    {A,C,T},
+    {T,A,A}
+  };
+  haplotypeCohort cohort(haplotypes, &reference);
+  SECTION( "Downsampling deletes correct haplotypes" ) {
+    vector<vector<alleleValue> > test_haplotypes = {
+      {A,A,T},
+      {A,T,A},
+      {A,C,T},
+      {T,A,A}
+    };
+    haplotypeCohort test_cohort(test_haplotypes, &reference);
+    vector<size_t> to_remove = {0,1};
+    vector<size_t> to_keep = {2,3,4,5};
+    haplotypeCohort* cohort_remove = cohort.remove_haplotypes(to_remove); 
+    haplotypeCohort* cohort_keep = cohort.keep_haplotypes(to_keep);
+    REQUIRE(*cohort_remove == test_cohort);
+    REQUIRE(*cohort_remove == *cohort_keep);
+    delete cohort_remove;
+    delete cohort_keep;
+  }
+  SECTION( "Downsampling detects degenerate sites" ) {
+    vector<size_t> to_remove = {0,2,4};
+    haplotypeCohort* cohort_remove = cohort.remove_haplotypes(to_remove); 
+    REQUIRE(cohort_remove->get_n_sites() == 2);
+    delete cohort_remove;
+  }
+  SECTION( "Recognizes and remove rare sites" ) {
+    haplotypeCohort* cohort_remove = cohort.remove_rare_sites(0.2); 
+    REQUIRE(cohort_remove->get_n_sites() == 2);
+    REQUIRE(cohort_remove->get_reference()->get_position(0) == 1);
+    delete cohort_remove;
+  }
+}

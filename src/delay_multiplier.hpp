@@ -130,6 +130,11 @@ public:
   size_t row_updated_to(size_t row) const;
 	size_t last_update(size_t row);
   size_t get_mapclass(size_t row) const;
+	
+	// statistics for benchmarking
+	static size_t overall_traceback_steps;
+	static size_t overall_slot_calculations;
+	static size_t overall_vector_writes;
 };
 
 #endif

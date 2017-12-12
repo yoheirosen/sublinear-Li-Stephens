@@ -76,10 +76,12 @@ public:
   size_t find_site_below(size_t position) const;
   
   //-- random generators -------------------------------------------------------
-  
   vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability) const;
   vector<size_t> rand_sites(size_t N) const;
   vector<size_t> rand_positions(size_t N) const;
+
+  //-- downsampling ------------------------------------------------------------
+  vector<alleleValue> downsample_to(const vector<alleleValue>& input, const siteIndex* index) const;
 };
 
 //------------------------------------------------------------------------------
@@ -97,7 +99,7 @@ private:
   // maps [haplotypes] x [sites] -> alleles
   //      haplotype i           vector[i][ ]
   //      site j                vector[ ][j]
-  vector<vector<alleleValue> > haplotype_alleles_by_site_index;
+  vector<vector<alleleValue> > alleles_by_haplotype_and_site;
 
   // maps [sites] x [alleles] -> vectors of haplotype ids
   //      site i                vector[i][ ][ ]
@@ -109,6 +111,9 @@ private:
   //      site i                vector[i][ ]
   //      allele j              vector[ ][j]
   vector<vector<size_t> > allele_counts_by_site_index;
+
+//------------------------------------------------------------------------------
+  haplotypeCohort* downsample_haplotypes(const vector<size_t>& ids, bool keep) const;
 
 public:
 //-- construction --
@@ -145,6 +150,8 @@ public:
   const siteIndex* get_reference() const;  
   size_t get_n_sites() const;
   size_t get_n_haplotypes() const;
+  
+  bool operator==(const haplotypeCohort& other) const;
   
 //-- accessors -----------------------------------------------------------------
   
@@ -187,6 +194,13 @@ public:
   size_t rand_haplo_idx(size_t current) const;
   vector<alleleValue> rand_LS_haplo(double log_recomb_probability, double log_mutation_probability) const;
   vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability) const;
+  
+//-- cohort editing ------------------------------------------------------------
+  haplotypeCohort* remove_haplotypes(const vector<size_t>& ids_to_remove) const;
+  haplotypeCohort* remove_haplotypes(size_t n_to_remove) const;
+  haplotypeCohort* keep_haplotypes(const vector<size_t>& ids_to_keep) const;
+  haplotypeCohort* keep_haplotypes(size_t n_to_keep) const;
+  haplotypeCohort* remove_rare_sites(double max_rarity) const;
 };
 
 namespace haploRandom {
