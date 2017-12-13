@@ -207,6 +207,3 @@ size_t inputHaplotype::number_of_sites() const {
     return end_index - start_index + 1;
   }
 }
-
-alleleVector::alleleVector(const vector<alleleValue>& entries) : entries(entries) {
-}

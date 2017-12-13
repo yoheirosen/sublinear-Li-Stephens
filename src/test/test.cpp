@@ -661,7 +661,6 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     inputHaplotype query = inputHaplotype(ref_seq.c_str(), ref_seq.c_str(), &ref_struct);
     inputHaplotype query_span = inputHaplotype(ref_seq.c_str(), ref_seq.c_str(), 
                 &ref_struct_span);
-    //TODO: rebuild without inputHaplotypes
     
     fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
@@ -675,7 +674,33 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(fabs(matrix.R[1] - matrix_span.R[1]) < eps); 
     REQUIRE(fabs(matrix.R[2] - matrix_span.R[2]) < eps); 
     REQUIRE(fabs(probability - probability_span) < eps);
-  }  
+  }
+  SECTION( "Fast, linear and quadratic forward algorithms give same result " ) {
+    penaltySet penalties = penaltySet(-6, -9, 3);
+    vector<size_t> positions = {0, 1, 2, 3, 4};
+    vector<vector<alleleValue> > haplotypes = {
+      {A, A, A, T, G},
+      {A, C, A, A, G},
+      {C, A, A, T, G},
+      {A, C, C, A, G},
+      {A, A, A, A, G},
+    };
+    siteIndex reference(positions, 5);
+    haplotypeCohort cohort(haplotypes, &reference);
+    
+    slowFwdSolver linear_fwd(&reference, &penalties, &cohort);
+    slowFwdSolver quadratic_fwd(&reference, &penalties, &cohort);
+    fastFwdAlgState fast_fwd(&reference, &penalties, &cohort);
+    
+    vector<alleleValue> query = {A, A, A, A, A};
+    inputHaplotype query_ih(query, vector<size_t>(5, 0), &reference, 0, 5);
+    
+    double result_fast = fast_fwd.calculate_probability(&query_ih);
+    double result_linear = linear_fwd.calculate_probability_linear(query, 0);
+    double result_quad = quadratic_fwd.calculate_probability_quadratic(query, 0);
+    REQUIRE(fabs(result_fast - result_linear) < eps);
+    REQUIRE(fabs(result_quad - result_linear) < eps);
+  }
 }
 
 TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {

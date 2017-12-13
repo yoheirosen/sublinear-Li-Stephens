@@ -243,7 +243,7 @@ size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort) {
   return cohort->sum_MACs();
 }
 
-size_t number_of_sites(haplotypeCohort* cohort) {
+size_t haplotypeCohort_n_sites(haplotypeCohort* cohort) {
   return cohort->get_n_sites();
 }
 
@@ -270,6 +270,10 @@ void siteIndex_calc_spans(siteIndex* reference, size_t length) {
 
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort) {
   cohort->populate_allele_counts();
+}
+
+void haplotypeCohort_delete(haplotypeCohort* cohort) {
+  delete cohort;
 }
 
 void siteIndex_set_initial_span(siteIndex* ref, size_t length) {
@@ -348,13 +352,11 @@ void penaltySet_delete(penaltySet* penalty_set) {
 typedef struct alleleVector alleleVector;
                               
 alleleVector* hC_rand_haplo(haplotypeCohort* cohort,
-                            size_t generations,
-                            double recombination_penalty,
-                            double mutation_penalty) {
+                            size_t generations, penaltySet* penalties) {
   vector<alleleValue> random_haplo = cohort->rand_desc_haplo(
                                                      generations,
-                                                     recombination_penalty,
-                                                     mutation_penalty);
+                                                     penalties->rho,
+                                                     penalties->mu);
   return new alleleVector(random_haplo);
 }
 
@@ -370,8 +372,9 @@ double slowFwd_solve_linear(slowFwdSolver* solver, alleleVector* q) {
   return solver->calculate_probability_linear(q->entries, 0);
 }
 
-inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query) {
-  return new inputHaplotype(query->entries);
+inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query,
+                                               siteIndex* reference) {
+  return new inputHaplotype(query->entries, vector<size_t>(query->size(), 0), reference, reference->start_position(), reference->absolute_length());
 }
 
 void alleleVector_delete(alleleVector* to_delete) {
@@ -380,4 +383,25 @@ void alleleVector_delete(alleleVector* to_delete) {
 
 void slowFwdSolver_delete(slowFwdSolver* to_delete) {
   delete to_delete;
+}
+
+alleleVector* hC_separate_random(haplotypeCohort* cohort) {
+  vector<size_t> choose_haplo = cohort->rand_haplos(1);
+  alleleVector* to_return = new alleleVector(cohort->get_haplotype(choose_haplo[0]));
+  haplotypeCohort* new_cohort = cohort->remove_haplotypes(choose_haplo);
+  delete cohort;
+  cohort = new_cohort;
+  return to_return;
+}
+
+haplotypeCohort* hC_downsample_to(haplotypeCohort* cohort, size_t number) {
+  return cohort->keep_haplotypes(number);
+}
+
+void aV_rebase_down(alleleVector* alleles, siteIndex* old_index, siteIndex* new_index) {
+  alleleVector* new_alleles = new alleleVector;
+  *new_alleles = allele::rebase_down(*alleles, *new_index);
+  delete alleles;
+  alleles = new_alleles;
+  return;
 }

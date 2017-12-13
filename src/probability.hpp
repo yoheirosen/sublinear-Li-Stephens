@@ -109,6 +109,8 @@ struct slowFwdSolver{
   const siteIndex* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
+  vector<double> R;
+  double S;
   slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);

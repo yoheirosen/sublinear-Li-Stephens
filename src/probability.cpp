@@ -319,7 +319,7 @@ slowFwdSolver::slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
             
 double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q,
           size_t start_site = 0) {
-  vector<double> R(cohort->get_n_haplotypes(), -penalties->log_H);
+  R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
   vector<double> last_R;
   double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
@@ -337,12 +337,13 @@ double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>&
       R[j] += emission;
     }
   }
-  return log_big_sum(R);
+  S = log_big_sum(R);
+  return S;
 }
 
 double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
           size_t start_site = 0) {
-  vector<double> R(cohort->get_n_haplotypes(), -penalties->log_H);
+  R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
   vector<double> last_R;
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
@@ -355,5 +356,6 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
       R[j] += emission;
     }
   }
-  return log_big_sum(R);
+  S = log_big_sum(R);
+  return S;
 }

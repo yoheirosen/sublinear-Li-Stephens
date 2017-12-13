@@ -82,6 +82,15 @@ public:
 
   //-- downsampling ------------------------------------------------------------
   vector<alleleValue> downsample_to(const vector<alleleValue>& input, const siteIndex* index) const;
+  
+  //-- comparison --------------------------------------------------------------
+  bool operator==(const siteIndex& other) const;
+  bool operator!=(const siteIndex& other) const;
+  bool operator<(const siteIndex& other) const;
+  bool operator>(const siteIndex& other) const;
+  bool operator<=(const siteIndex& other) const;
+  bool operator>=(const siteIndex& other) const;
+  vector<size_t> extra_sites(const siteIndex& other) const;
 };
 
 //------------------------------------------------------------------------------
@@ -152,12 +161,16 @@ public:
   size_t get_n_haplotypes() const;
   
   bool operator==(const haplotypeCohort& other) const;
+  bool operator!=(const haplotypeCohort& other) const;
   
 //-- accessors -----------------------------------------------------------------
   
   // site x index -> allele
   alleleValue allele_at(size_t site_index, size_t haplotype_index) const;
   const vector<alleleValue>& allele_vector_at_site(size_t site_index) const;
+  
+  // index -> haplotype alleles
+  const vector<alleleValue>& get_haplotype(size_t idx) const;
 
   // site x allele -> indices
   const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;

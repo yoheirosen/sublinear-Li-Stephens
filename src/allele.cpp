@@ -1,5 +1,7 @@
 #include "allele.hpp"
 
+using namespace std;
+
 char allele::to_char(alleleValue a) {
   switch(a) {
     case A:
@@ -50,3 +52,16 @@ alleleAtSite::alleleAtSite(size_t site, alleleValue allele) :
             site_index(site), allele(allele) {
   
 }
+
+alleleVector::alleleVector() {};
+
+alleleVector::alleleVector(const vector<alleleValue>& entries) : entries(entries) {
+}
+
+alleleVector::alleleVector(const vector<alleleValue>& entries, const siteIndex* index) : entries(entries), base_index(index) {
+}
+
+size_t alleleVector::size() const {
+  return entries.size();
+}
+

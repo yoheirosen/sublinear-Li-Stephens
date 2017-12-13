@@ -64,9 +64,4 @@ public:
   size_t number_of_sites() const;
 };
 
-struct alleleVector{
-  vector<alleleValue> entries;
-  alleleVector(const vector<alleleValue>& entries);
-};
-
 #endif

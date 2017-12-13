@@ -218,6 +218,8 @@ int haplotypeCohort_set_sample_allele(haplotypeCohort* cohort, size_t site, size
 // also locks the haplotypeCohort from being modified
 void haplotypeCohort_populate_counts(haplotypeCohort* cohort);
 
+void haplotypeCohort_delete(haplotypeCohort* cohort);
+
 ////////////////////////////////////////////////////////////////////////////////
 // haplotypeCohort queries
 ////////////////////////////////////////////////////////////////////////////////
@@ -245,7 +247,7 @@ inputHaplotype* inputHaplotype_build(const char* ref_seq,
 
 void inputHaplotype_delete(inputHaplotype* in_hap);
 
-inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query);
+inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query, siteIndex* reference);
 
 void alleleVector_delete(alleleVector* to_delete);
 
@@ -289,10 +291,11 @@ void slowFwdSolver_delete(slowFwdSolver* solver);
 // random methods
 ////////////////////////////////////////////////////////////////////////////////
 
-alleleVector* hC_rand_haplo(haplotypeCohort* cohort, size_t generations,
-  double recomb_p,
-  double mut_p);
+alleleVector* hC_rand_haplo(haplotypeCohort* cohort, size_t generations, penaltySet* penalties);
 
+alleleVector* hC_separate_random(haplotypeCohort* cohort);
+
+haplotypeCohort* hC_downsample_to(haplotypeCohort* cohort, size_t number);
 
 #ifdef __cplusplus
 }

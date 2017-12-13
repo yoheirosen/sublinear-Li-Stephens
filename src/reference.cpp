@@ -174,6 +174,10 @@ alleleValue haplotypeCohort::allele_at(size_t site_index, size_t haplotype_index
   return alleles_by_haplotype_and_site[haplotype_index][site_index];
 }
 
+const vector<alleleValue>& haplotypeCohort::get_haplotype(size_t idx) const {
+  return alleles_by_haplotype_and_site[idx];
+}
+
 size_t haplotypeCohort::number_matching(size_t site_index, alleleValue a) const {
   return allele_counts_by_site_index[site_index][(int)a];
 }
@@ -717,3 +721,92 @@ vector<alleleValue> siteIndex::downsample_to(const vector<alleleValue>& input, c
 bool haplotypeCohort::operator==(const haplotypeCohort& other) const {
   return this->alleles_by_haplotype_and_site == other.alleles_by_haplotype_and_site;
 }
+
+bool haplotypeCohort::operator!=(const haplotypeCohort& other) const {
+  return !(*this == other);
+}
+
+bool siteIndex::operator==(const siteIndex& other) const {
+  if(this->number_of_sites() != other.number_of_sites()) {
+    return false;
+  } else {
+    for(size_t i = 0; i < other.number_of_sites(); i++) {
+      if(other.get_position(i) != this->get_position(i)) {
+        return false;
+      }
+    }
+    return true; 
+  }
+}
+
+bool siteIndex::operator!=(const siteIndex& other) const {
+  return !(*this == other);
+}
+
+bool siteIndex::operator<(const siteIndex& other) const {
+  if(this->number_of_sites() >= other.number_of_sites()) {
+    return false;
+  } else {
+    size_t k = 0;
+    for(size_t i = 0; i < other.number_of_sites(); i++) {
+      if(other.get_position(i) > this->get_position(k)) {
+        return false;
+      } else if(other.get_position(i) == this->get_position(k)) {
+        if(k == this->number_of_sites() - 1) {
+          break;
+        }
+        k++;
+      }
+    }
+    if(k < this->number_of_sites() - 1) {
+      return false;
+    }
+    return true;
+  }
+}
+
+bool siteIndex::operator>(const siteIndex& other) const {
+  return (other < *this);
+}
+
+bool siteIndex::operator<=(const siteIndex& other) const {
+  return (*this == other) || (*this < other);
+}
+
+bool siteIndex::operator>=(const siteIndex& other) const {
+  return (*this == other) || (*this > other);
+}
+
+vector<size_t> siteIndex::extra_sites(const siteIndex& other) const {
+  vector<size_t> to_return;
+  size_t k = 0;
+  for(size_t i = 0; i < number_of_sites(); i++) {
+    if(k < other.number_of_sites() && get_position(i) == other.get_position(k)) {
+      k++;
+    } else {
+      to_return.push_back(i);
+    }
+  }
+  return to_return;
+}
+
+namespace allele {
+  
+alleleVector rebase_down(const alleleVector& input, const siteIndex& new_index) {
+  std::vector<bool> to_keep = std::vector<bool>(input.size(), true);
+  std::vector<size_t> extra_sites = input.base_index->extra_sites(new_index);
+  for(size_t i = 0; i < extra_sites.size(); i++) {
+    to_keep[extra_sites[i] == false];
+  }
+  std::vector<alleleValue> new_alleles = std::vector<alleleValue>(new_index.number_of_sites());
+  size_t k = 0;
+  for(size_t i = 0; i < input.base_index->number_of_sites(); i++) {
+    if(to_keep[i]) {
+      new_alleles[k] = input.entries[i];
+      k++;
+    }
+  }
+  return alleleVector(new_alleles, &new_index);
+}
+
+} // namespace allele
