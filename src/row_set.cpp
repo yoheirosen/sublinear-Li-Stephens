@@ -19,6 +19,13 @@ rowSet::rowSet(vector<const vector<size_t>* > row_vectors,
   }
 }
 
+rowSet::rowSet(const vector<size_t>* row_vector, alleleValue allele) {
+  allele_count = 1;
+  elements = row_vector->size();
+  included_alleles = {allele};
+  row_vectors = {row_vector};
+}
+
 const size_t& rowSet::operator[](size_t i) const {
   for(size_t j = allele_count - 1; j >= 0; j--) {
     if(i >= lower_bounds[j]) {
@@ -30,34 +37,6 @@ const size_t& rowSet::operator[](size_t i) const {
 
 const size_t& rowSet::size() const {
   return elements;
-}
-
-size_t rowSet::max_element(const vector<double>& values) const {
-  double max = values[row_vectors[0]->at(0)];
-  size_t max_index = 0;
-  for(size_t i = 0; i < row_vectors.size(); i++) {
-    for(size_t j = 0; j < row_vectors[i]->size(); j++) {
-      if(values[row_vectors[i]->at(j)] > max) {
-        max_index = row_vectors[i]->at(j);
-        max = values[max_index];
-      }
-    }
-  }
-  return max_index;
-}
-
-size_t rowSet::min_element(const vector<double>& values) const {
-  double min = values[row_vectors[0]->at(0)];
-  size_t min_index = 0;
-  for(size_t i = 0; i < row_vectors.size(); i++) {
-    for(size_t j = 0; j < row_vectors[i]->size(); j++) {
-      if(values[row_vectors[i]->at(j)] < min) {
-        min_index = row_vectors[i]->at(j);
-        min = values[min_index];
-      }
-    }
-  }
-  return min_index;
 }
 
 rowSet::const_iterator rowSet::begin() const {

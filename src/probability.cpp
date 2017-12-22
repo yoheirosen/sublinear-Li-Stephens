@@ -109,14 +109,11 @@ void fastFwdAlgState::initialize_probability_at_span(size_t length,
   // All emission probabilities are the same. So all R-values are the same
   length--;
   double common_initial_R = 
-            penalties->span_mutation_penalty(length + 1, mismatch_count)
-            + penalties->beta(length) - penalties->log_H;
+            penalties->span_mutation_penalty(length + 1, mismatch_count) - penalties->log_H;
   for(size_t i = 0; i < R.size(); i++) {
     R[i] = common_initial_R;
   }
-  S = penalties->span_mutation_penalty(length + 1, mismatch_count)
-            + penalties->beta(length);
-  
+  S = penalties->span_mutation_penalty(length + 1, mismatch_count);  
   last_span_extended = -1;
 }
 
@@ -238,10 +235,10 @@ void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map,
   map.add_map_for_site(current_map);
   if(active_rows.size() == 0 && match_is_rare) {
     // separate case to avoid log-summing "log 0"
-    S = penalties->mu + S + penalties->beta_value;
+    S = penalties->mu + S;
   } else if(active_rows.size() == 0 && !match_is_rare) {
     // separate case to avoid log-summing "log 0"
-    S = penalties->one_minus_mu + S + penalties->beta_value;
+    S = penalties->one_minus_mu + S;
   } else {
     map.update_map_with_active_rows(active_rows);
     update_subset_of_Rs(active_rows, match_is_rare);
@@ -263,8 +260,8 @@ void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l,
             size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);
   map.update_map_with_span(DPUpdateMap(m + penalties->alpha(l), 
-              S + penalties->span_coefficient(l) - penalties->alpha(l)));
-  S = m + S + penalties->beta(l);
+              S - penalties->alpha(l)));
+  S = m + S;
   last_span_extended = last_extended;
 }
 
@@ -323,52 +320,3 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   S = log_big_sum(R);
   return S;
 }
-// 
-// viterbiState::viterbiState(haplotypeCohort* cohort) : cohort(cohort) {
-//   N = cohort->get_n_sites();
-//   K = cohort->get_n_haplotypes();
-//   score = vector<double>(K, -log(K));
-//   new_score = vector<double>(K);
-//   paths = vector<vector<size_t> >(K, vector<size_t>(N));
-// }
-// 
-// conventionalViterbiTraceback viterbiState::evaluate(const vector<alleleValue>& observed) {
-//   max_score = -2 * (m + p) - log(K);
-//   for(size_t i = 1; i < N; i++) {
-//     for(size_t j = 0; j < K; j++) {
-//       max_score = -2 * (m + p) + score[j];
-//       for(size_t k = 0; k < K; k++) {
-//         temp_score = j == k ? p_C + score[j] : p + score[k];
-//         temp_score *= cohort->matches(observed[i], i, j) ? m_C : m;
-//         if(temp_score > max_score) {
-//           max_score = temp_score;
-//           max_idx = k;
-//         }
-//       }
-//       new_score[j] = max_score;
-//       new_idx[j] = max_idx;
-//     }
-//     score = new_score;
-//   }
-//   max_score = ;
-//   for(size_t j = 0; j < K; j++) {
-//     if(score[j] > max_score) {
-//       max_idx = j;
-//     }
-//   }
-//   conventionalViterbiTraceback to_return(N, max_score);
-//   size_t last_idx = max_idx;
-//   for(size_t i = N-1; i >= 0; i--) {
-//     to_return.idx[i] = paths[last_idx][i];
-//     last_idx = to_return.idx[i];
-//   }
-//   return to_return;
-// }
-// 
-// fastViterbiTraceback fastViterbiState::evaluate(const vector<alleleValue>& observed) {
-//   // handle initial site matches and non-matches
-//   for(size_t i = 1; i < N; i++) {
-//     // handle matches
-//     
-//   }
-// }

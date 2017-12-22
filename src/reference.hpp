@@ -98,6 +98,9 @@ struct haplotypeCohort{
 //------------------------------------------------------------------------------
 
 private:
+  typedef size_t haplo_id_t;
+  typedef size_t site_idx_t;
+  
   const siteIndex* reference;
   size_t number_of_haplotypes;
   bool finalized = false;
@@ -114,7 +117,7 @@ private:
   //      site i                vector[i][ ][ ]
   //      allele j              vector[ ][j][ ]
   //      haplotype rank k      vector[ ][ ][k]
-  vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
+  vector<vector<vector<haplo_id_t> > > haplotype_indices_by_site_and_allele;
   // TODO vector<vector<bv_tr_t> > > haplotype_indices_by_site_and_allele;
   vector<vector<rowSet> > active_rowSets_by_site_and_allele;
 
@@ -124,7 +127,7 @@ private:
   vector<vector<size_t> > allele_counts_by_site_index;
 
 //------------------------------------------------------------------------------
-  haplotypeCohort* downsample_haplotypes(const vector<size_t>& ids, bool keep) const;
+  haplotypeCohort* downsample_haplotypes(const vector<haplo_id_t>& ids, bool keep) const;
 
 public:
 //-- construction --
@@ -137,25 +140,25 @@ public:
   ~haplotypeCohort();
   
   // all-at-once
-  void assign_alleles_at_site(size_t i, vector<alleleValue> alleles_at_site);
+  void assign_alleles_at_site(site_idx_t i, vector<alleleValue> alleles_at_site);
   
   // per-site
   void set_column(const vector<alleleValue>& values);
-  void set_column(const vector<alleleValue>& values, size_t site);
+  void set_column(const vector<alleleValue>& values, site_idx_t site);
   
   // per site x index
   //TODO update how this works
   // 1 : successful
   // 0 : locked
   // -1 : out of order
-  int add_record(size_t site);
+  int add_record(site_idx_t site);
   // 1 : successful
   // 0 : cohort locked
   // -1 : already assigned
-  int set_sample_allele(size_t site, size_t sample, alleleValue a);
+  int set_sample_allele(site_idx_t site, haplo_id_t sample, alleleValue a);
   
   void populate_allele_counts();
-  rowSet build_active_rowSet(size_t site, alleleValue a) const;
+  rowSet build_active_rowSet(site_idx_t site, alleleValue a) const;
   
 //-- basic attributes ----------------------------------------------------------
 
@@ -169,24 +172,24 @@ public:
 //-- accessors -----------------------------------------------------------------
   
   // site x index -> allele
-  alleleValue allele_at(size_t site_index, size_t haplotype_index) const;
-  const vector<alleleValue>& allele_vector_at_site(size_t site_index) const;
+  alleleValue allele_at(site_idx_t site_index, haplo_id_t haplotype_index) const;
+  const vector<alleleValue>& allele_vector_at_site(site_idx_t site_index) const;
   
   // index -> haplotype alleles
-  const vector<alleleValue>& get_haplotype(size_t idx) const;
+  const vector<alleleValue>& get_haplotype(haplo_id_t idx) const;
 
   // site x allele -> indices
-  const vector<size_t>& get_matches(size_t site_index, alleleValue a) const;
-  vector<size_t> get_non_matches(size_t site_index, alleleValue a) const;
+  const vector<size_t>& get_matches(site_idx_t site_index, alleleValue a) const;
+  vector<size_t> get_non_matches(site_idx_t site_index, alleleValue a) const;
 
   // site x allele -> counts
-  bool match_is_rare(size_t site_index, alleleValue a) const;
-  size_t number_matching(size_t site_index, alleleValue a) const;
-  size_t number_not_matching(size_t site_index, alleleValue a) const;
+  bool match_is_rare(site_idx_t site_index, alleleValue a) const;
+  size_t number_matching(site_idx_t site_index, alleleValue a) const;
+  size_t number_not_matching(site_idx_t site_index, alleleValue a) const;
 
   // site -> mask
-  vector<size_t> get_active_rows(size_t site, alleleValue a) const;
-  const rowSet& get_active_rowSet(size_t site, alleleValue a) const;
+  vector<size_t> get_active_rows(site_idx_t site, alleleValue a) const;
+  const rowSet& get_active_rowSet(site_idx_t site, alleleValue a) const;
 
 //-- downsampling --------------------------------------------------------------
 
@@ -199,15 +202,15 @@ public:
 
 //-- more complex statistics ---------------------------------------------------
 
-  alleleValue get_dominant_allele(size_t site) const;
-  size_t get_MAC(size_t site) const;                                  // O(1)
+  alleleValue get_dominant_allele(site_idx_t site) const;
+  size_t get_MAC(site_idx_t site) const;                                  // O(1)
   size_t sum_MACs() const;                                            // O(n)
 
 //-- haplotype simulation ------------------------------------------------------
   // random generators
   vector<size_t> rand_haplos(size_t N) const;
   size_t rand_haplo_idx() const;
-  size_t rand_haplo_idx(size_t current) const;
+  size_t rand_haplo_idx(site_idx_t current) const;
   vector<alleleValue> rand_LS_haplo(double log_recomb_probability, double log_mutation_probability) const;
   vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability) const;
   

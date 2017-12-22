@@ -192,7 +192,7 @@ double haplotypeStateNode::max_prefix_likelihood(const penaltySet* penalties) co
   if(is_root()) {
     return 0;
   } else {
-    return get_parent()->prefix_likelihood() - penalties->beta_value;
+    return get_parent()->prefix_likelihood();
   }
 }
 

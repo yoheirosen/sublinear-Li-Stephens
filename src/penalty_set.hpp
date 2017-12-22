@@ -17,14 +17,11 @@ struct penaltySet{
   double one_minus_2mu;
   
   double alpha_value;
-  double beta_value;
   
   penaltySet(double logRho, double logMu, int H);
   ~penaltySet();
   
-  double span_coefficient(size_t l) const;
   double alpha(size_t l) const;
-  double beta(size_t l) const;
   double span_mutation_penalty(size_t l, size_t a) const;
   
   DPUpdateMap get_match_map(double last_sum) const;

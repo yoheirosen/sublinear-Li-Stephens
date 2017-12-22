@@ -416,17 +416,15 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     double mu = penalties.mu;
     double mu_c = penalties.one_minus_mu;
-    double beta = penalties.beta_value;
     double alpha = penalties.alpha_value;
     double rho = penalties.rho;
-    double beta_l = 5 * beta;
     double alpha_l = 5 * alpha;
     
     double lR_i = mu_c - log(3);
     double lR_im = mu - log(3);
     double lS_i = logsum(lR_i + log(2), lR_im);
     
-    double RHS = lS_i - log(3) + logdiff(beta_l, alpha_l);
+    double RHS = lS_i - log(3) - alpha_l;
     
     double expected_R0_for_0_mismatch_haplotype = 
               mu_c*5 + logsum(alpha_l + lR_i, RHS);
@@ -437,9 +435,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double expected_R2_for_1_mismatch_haplotype =
               mu_c*4 + mu + logsum(alpha_l + lR_im, RHS);
     double expected_probability_for_0_mismatch_haplotype =
-              mu_c*5 + beta_l + lS_i;
+              mu_c*5 + lS_i;
     double expected_probability_for_1_mismatch_haplotype =
-              mu_c*4 + mu + beta_l + lS_i;
+              mu_c*4 + mu + lS_i;
     
     fastFwdAlgState matrix_0_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
@@ -487,14 +485,13 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     double mu = penalties.mu;
     double mu_c = penalties.one_minus_mu;
-    double beta = penalties.beta_value;
     
-    double expected_R0_for_0_mismatch_haplotype = 6*mu_c + 5*beta - log(3);
-    double expected_R2_for_0_mismatch_haplotype = 5*mu_c + 5*beta + mu - log(3);
-    double expected_R0_for_1_mismatch_haplotype = 5*mu_c + mu + 5*beta - log(3);
-    double expected_R2_for_1_mismatch_haplotype = 4*mu_c + 2*mu + 5*beta - log(3);
-    double expected_probability_for_0_mismatch_haplotype = 5*mu_c + 5*beta + logdiff(log(2), log(7) + mu) - log(3);
-    double expected_probability_for_1_mismatch_haplotype = 4*mu_c + mu + 5*beta + logdiff(log(2), log(7) + mu) - log(3);
+    double expected_R0_for_0_mismatch_haplotype = 6*mu_c - log(3);
+    double expected_R2_for_0_mismatch_haplotype = 5*mu_c + mu - log(3);
+    double expected_R0_for_1_mismatch_haplotype = 5*mu_c + mu - log(3);
+    double expected_R2_for_1_mismatch_haplotype = 4*mu_c + 2*mu - log(3);
+    double expected_probability_for_0_mismatch_haplotype = 5*mu_c + logdiff(log(2), log(7) + mu) - log(3);
+    double expected_probability_for_1_mismatch_haplotype = 4*mu_c + mu + logdiff(log(2), log(7) + mu) - log(3);
     
     matrix_0_aug.initialize_probability(&query_0_aug);
     matrix_0_aug.take_snapshot();
@@ -851,7 +848,6 @@ TEST_CASE( "PenaltySet gives right values", "[penaltyset]") {
   double mu = penalties.mu;
   double rho = penalties.rho;
   double alpha = penalties.alpha_value;
-  double beta = penalties.beta_value;
   double one_minus_2mu = penalties.one_minus_2mu;
   
   expected = mu + alpha;
@@ -864,10 +860,10 @@ TEST_CASE( "PenaltySet gives right values", "[penaltyset]") {
   REQUIRE(fabs(penalties.get_current_map(S, false).constant - expected) < eps);
   
   vector<double> summands = {-2, -3};
-  expected = logsum(mu + beta + S, one_minus_2mu - one_minus_mu + logsum(-2, -3));
+  expected = logsum(mu + S, one_minus_2mu - one_minus_mu + logsum(-2, -3));
   penalties.update_S(S, summands, true);
   REQUIRE(fabs(S - expected) < eps);
-  expected = logdiff(one_minus_mu + beta + S, one_minus_2mu - mu + logsum(-2, -3));
+  expected = logdiff(one_minus_mu + S, one_minus_2mu - mu + logsum(-2, -3));
   penalties.update_S(S, summands, false);
   REQUIRE(fabs(S - expected) < eps);
 }
@@ -900,7 +896,6 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
   double mu = penalties.mu;
   double rho = penalties.rho;
   double alpha = penalties.alpha_value;
-  double beta = penalties.beta_value;
   double S;
   double mu2 = penalties.one_minus_2mu;
   SECTION( "Delay map maintains correct states for all rows in matrix" ) {

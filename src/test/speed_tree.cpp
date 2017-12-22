@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
       read_alleles.c_str(), 
       0);
     
-    cout << endl << "penalties : rho - " << penalties.rho << " mu - " << penalties.mu << " log(H) - " << penalties.log_H << " alpha - " << penalties.alpha_value << " beta -" << penalties.beta_value << endl << endl;
+    cout << endl << "penalties : rho - " << penalties.rho << " mu - " << penalties.mu << " log(H) - " << penalties.log_H << " alpha - " << penalties.alpha_value <<  endl << endl;
     
     cout << endl << "building tree with " << hap_manager.shared_sites() << " shared sites" << endl;
     
