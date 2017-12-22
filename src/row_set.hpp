@@ -23,8 +23,28 @@ public:
   const size_t& operator[](size_t i) const;
   const size_t& size() const;
 
+  struct const_iterator{
+  public:
+    typedef vector<size_t>::const_iterator inner_itr_t;
+    typedef vector<const vector<size_t>* >::const_iterator outer_itr_t;
+    const_iterator(outer_itr_t outer_itr, inner_itr_t inner_itr, const rowSet* container);
+    const_iterator(const const_iterator& other);
+    const_iterator& operator++();
+    const_iterator operator++(int foo);
+    const size_t& operator*() const;
+    bool operator==(const rowSet::const_iterator& other) const;
+    bool operator!=(const rowSet::const_iterator& other) const;
+  private:
+    inner_itr_t inner_itr;
+    outer_itr_t outer_itr; 
+    const rowSet* container;
+  };
+
   size_t max_element(const vector<double>& values) const;
   size_t min_element(const vector<double>& values) const;
+  
+  const_iterator begin() const;
+  const_iterator end() const;
 };
 
 #endif

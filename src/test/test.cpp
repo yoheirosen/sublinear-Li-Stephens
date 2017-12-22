@@ -776,14 +776,14 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(map.get_map(0).is_identity() == true);
     // Can we add and then read a value?
     // Add a map with value (1.0, 1.0)
-    map.add_map(1.0, 1.0);
+    map.add_map(DPUpdateMap(1.0, 1.0));
     // Assign row 0 to map 1.0 at mapclass-index 0
     map.remove_row_from_mapclass(0);
     map.assign_row_to_newest_mapclass(0);
     REQUIRE((map.get_coefficient(0) - 1) < eps);
     // Can we add and then read a second value?
     // Add a map with value (2.0, 2.0)
-    map.add_map(2.0, 2.0);
+    map.add_map(DPUpdateMap(2.0, 2.0));
     // Assign row 1 to map 2.0 at mapclass-index 1
     map.remove_row_from_mapclass(1);
     map.assign_row_to_newest_mapclass(1);
@@ -802,7 +802,7 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     // now empty
     map.remove_row_from_mapclass(0);
     // This new map should go in mapclass-index 1, which was just emptied
-    map.add_map(3.0, 3.0);
+    map.add_map(DPUpdateMap(3.0, 3.0));
     // Add a new row to this map
     map.assign_row_to_newest_mapclass(3);
     // This row should get mapclass-index 0
@@ -811,7 +811,7 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
   }
   SECTION( "Updating maps performs correct arithmetic" ) {
     lazyEvalMap map = lazyEvalMap(3, 0);
-    map.add_map_for_site(-2.0, -3.0);
+    map.add_map_for_site(DPUpdateMap(-2.0, -3.0));
     REQUIRE(map.get_maps_by_site()[0].is_identity());
     REQUIRE(map.get_maps_by_site()[1] == DPUpdateMap(-2.0, -3.0));
     REQUIRE(map.row_updated_to(0) == 0);
@@ -826,15 +826,15 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
   SECTION( "We can track sites and times-of-update in lazyEvalMaps" ) {
     // build a dM with a non-zero start position
     lazyEvalMap map2 = lazyEvalMap(2, 2);
-    map2.add_map(-1.0, -1.0);
+    map2.add_map(DPUpdateMap(-1.0, -1.0));
     map2.assign_row_to_newest_mapclass(0);
     REQUIRE(map2.last_update(0) == 2);
     map2.increment_site_marker();
     // current_site is now 3
-    map2.add_map(-2.0, -2.0);
+    map2.add_map(DPUpdateMap(-2.0, -2.0));
     map2.assign_row_to_newest_mapclass(1);
     REQUIRE(map2.last_update(1) == 3);
-    map2.add_map_for_site(-3.0, -3.0);
+    map2.add_map_for_site(DPUpdateMap(-3.0, -3.0));
     // current_site is now 4
     map2.hard_update_all();
     REQUIRE(map2.last_update(0) == 4);

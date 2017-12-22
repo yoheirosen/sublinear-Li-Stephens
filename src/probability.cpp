@@ -130,7 +130,7 @@ void fastFwdAlgState::initialize_probability_at_site(size_t site_index,
   double match_initial_value = -penalties->log_H + penalties->one_minus_mu;
   double nonmatch_initial_value = -penalties->log_H + penalties->mu;
 
-  // Set the ones which match the query haplotype
+  // Set the ones which match the observed haplotype
   for(size_t i = 0; i < matches.size(); i++) {
     R[matches[i]] = match_initial_value;
   }
@@ -151,15 +151,6 @@ void fastFwdAlgState::initialize_probability_at_site(size_t site_index,
   record_last_extended(a);
 }
 
-void fastFwdAlgState::update_subset_of_Rs(const vector<size_t>& indices,
-              bool active_is_match) {
-  double correction = penalties->get_minority_map_correction(active_is_match);
-  for(size_t i = 0; i < indices.size(); i++) {
-    R[indices[i]] = correction + 
-                calculate_R(R[indices[i]], map.get_map(indices[i]));
-  }
-}
-
 void fastFwdAlgState::update_subset_of_Rs(const rowSet& indices,
               bool active_is_match) {
   double correction = penalties->get_minority_map_correction(active_is_match);
@@ -167,15 +158,6 @@ void fastFwdAlgState::update_subset_of_Rs(const rowSet& indices,
     R[indices[i]] = correction + 
                 calculate_R(R[indices[i]], map.get_map(indices[i]));
   }
-}
-
-void fastFwdAlgState::fast_update_S(const vector<size_t>& indices,
-              bool active_is_match) {
-  vector<double> summands = vector<double>(indices.size(), 0);
-  for(size_t i = 0; i < indices.size(); i++) {
-    summands[i] = R[indices[i]];
-  }
-  penalties->update_S(S, summands, active_is_match);
 }
 
 void fastFwdAlgState::fast_update_S(const rowSet& indices,
@@ -191,7 +173,7 @@ void fastFwdAlgState::extend_probability_at_site(size_t site_index,
             alleleValue a) {
   bool match_is_rare = cohort->match_is_rare(site_index, a);
   DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
-  vector<size_t> active_rows = cohort->get_active_rows(site_index, a);
+  const rowSet& active_rows = cohort->get_active_rowSet(site_index, a);
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
@@ -251,26 +233,6 @@ double calculate_R(double oldR, double coefficient, double constant) {
 }
 
 void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map, 
-            const vector<size_t>& active_rows, bool match_is_rare, 
-            alleleValue a) {
-  map.add_map_for_site(current_map);
-  if(active_rows.size() == 0 && match_is_rare) {
-    // separate case to avoid log-summing "log 0"
-    S = penalties->mu + S + penalties->beta_value;
-  } else if(active_rows.size() == 0 && !match_is_rare) {
-    // separate case to avoid log-summing "log 0"
-    S = penalties->one_minus_mu + S + penalties->beta_value;
-  } else {
-    map.update_map_with_active_rows(active_rows);
-    update_subset_of_Rs(active_rows, match_is_rare);
-    fast_update_S(active_rows, match_is_rare);
-    map.reset_rows(active_rows);
-  }
-  record_last_extended(a);
-  return;
-}
-
-void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map, 
             const rowSet& active_rows, bool match_is_rare, 
             alleleValue a) {
   map.add_map_for_site(current_map);
@@ -288,13 +250,6 @@ void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_map,
   }
   record_last_extended(a);
   return;
-}
-
-void fastFwdAlgState::extend_probability_at_site(
-            const vector<size_t>& active_rows, bool match_is_rare, 
-            alleleValue a) {
-  DPUpdateMap current_map = penalties->get_current_map(S, match_is_rare);
-  extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
 void fastFwdAlgState::extend_probability_at_site(
@@ -307,8 +262,8 @@ void fastFwdAlgState::extend_probability_at_site(
 void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l, 
             size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);
-  map.update_map_with_span(m + penalties->alpha(l), 
-              S + penalties->span_coefficient(l) - penalties->alpha(l));
+  map.update_map_with_span(DPUpdateMap(m + penalties->alpha(l), 
+              S + penalties->span_coefficient(l) - penalties->alpha(l)));
   S = m + S + penalties->beta(l);
   last_span_extended = last_extended;
 }
@@ -320,17 +275,21 @@ slowFwdSolver::slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
 double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q,
           size_t start_site = 0) {
   R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
+  for(size_t j = 0; j < R.size(); j++) {
+    bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
+    double emission = matches ? penalties->one_minus_mu : penalties->mu;
+    R[j] += emission;
+  }
   vector<double> last_R;
   double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
-    vector<double> temp = last_R;
     // do span stuff
     for(size_t j = 0; j < R.size(); j++) {
+      vector<double> temp = last_R;
       for(size_t k = 0; k < temp.size(); k++) {
-        temp[k] += penalties->rho;
+        temp[k] += j == k ? same_transition : penalties->rho;
       }
-      temp[j] = same_transition;
       R[j] = log_big_sum(temp);
       bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
       double emission = matches ? penalties->one_minus_mu : penalties->mu;
@@ -344,6 +303,11 @@ double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>&
 double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
           size_t start_site = 0) {
   R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
+  for(size_t j = 0; j < R.size(); j++) {
+    bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
+    double emission = matches ? penalties->one_minus_mu : penalties->mu;
+    R[j] += emission;
+  }
   vector<double> last_R;
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
@@ -359,3 +323,52 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   S = log_big_sum(R);
   return S;
 }
+// 
+// viterbiState::viterbiState(haplotypeCohort* cohort) : cohort(cohort) {
+//   N = cohort->get_n_sites();
+//   K = cohort->get_n_haplotypes();
+//   score = vector<double>(K, -log(K));
+//   new_score = vector<double>(K);
+//   paths = vector<vector<size_t> >(K, vector<size_t>(N));
+// }
+// 
+// conventionalViterbiTraceback viterbiState::evaluate(const vector<alleleValue>& observed) {
+//   max_score = -2 * (m + p) - log(K);
+//   for(size_t i = 1; i < N; i++) {
+//     for(size_t j = 0; j < K; j++) {
+//       max_score = -2 * (m + p) + score[j];
+//       for(size_t k = 0; k < K; k++) {
+//         temp_score = j == k ? p_C + score[j] : p + score[k];
+//         temp_score *= cohort->matches(observed[i], i, j) ? m_C : m;
+//         if(temp_score > max_score) {
+//           max_score = temp_score;
+//           max_idx = k;
+//         }
+//       }
+//       new_score[j] = max_score;
+//       new_idx[j] = max_idx;
+//     }
+//     score = new_score;
+//   }
+//   max_score = ;
+//   for(size_t j = 0; j < K; j++) {
+//     if(score[j] > max_score) {
+//       max_idx = j;
+//     }
+//   }
+//   conventionalViterbiTraceback to_return(N, max_score);
+//   size_t last_idx = max_idx;
+//   for(size_t i = N-1; i >= 0; i--) {
+//     to_return.idx[i] = paths[last_idx][i];
+//     last_idx = to_return.idx[i];
+//   }
+//   return to_return;
+// }
+// 
+// fastViterbiTraceback fastViterbiState::evaluate(const vector<alleleValue>& observed) {
+//   // handle initial site matches and non-matches
+//   for(size_t i = 1; i < N; i++) {
+//     // handle matches
+//     
+//   }
+// }

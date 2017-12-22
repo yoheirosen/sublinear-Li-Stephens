@@ -199,6 +199,12 @@ void haplotypeCohort::populate_allele_counts() {
       haplotype_indices_by_site_and_allele[j][allele_rank].push_back(i);
     }
   }
+  active_rowSets_by_site_and_allele = vector<vector<rowSet> >(num_sites, vector<rowSet>(5));
+  for(size_t i = 0; i < num_sites; i++) {
+    for(size_t a = 0; a < 5; a++) {
+      active_rowSets_by_site_and_allele[i][a] = build_active_rowSet(i, (alleleValue)a);
+    }
+  }
   finalized = true;
 }
 
@@ -281,7 +287,11 @@ void haplotypeCohort::assign_alleles_at_site(size_t i,
   }
 }
 
-rowSet haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
+const rowSet& haplotypeCohort::get_active_rowSet(size_t site, alleleValue a) const {
+  return active_rowSets_by_site_and_allele[site][(size_t)a];
+}
+
+rowSet haplotypeCohort::build_active_rowSet(size_t site, alleleValue a) const {
   vector<const vector<size_t>* > row_vectors;
   vector<alleleValue> alleles;
   if(match_is_rare(site, a)) {

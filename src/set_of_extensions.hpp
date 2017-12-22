@@ -16,14 +16,14 @@ using namespace std;
 struct extensionSet{
 private:
   vector<DPUpdateMap> current_map;
-  vector<vector<size_t> > active_rows;
+  vector<rowSet const*> active_rows;
   vector<bool> match_is_rare;
 public:
   extensionSet(haplotypeCohort* cohort, size_t site_index);
   
   bool                  get_match_is_rare(size_t i) const;
   alleleValue           get_allele(size_t i) const;
-  const vector<size_t>& get_active_rows(size_t i) const;
+  const rowSet&         get_active_rows(size_t i) const;
   
   void extend_probability_by_allele(fastFwdAlgState* hap_mat, size_t i);
 };

@@ -115,6 +115,8 @@ private:
   //      allele j              vector[ ][j][ ]
   //      haplotype rank k      vector[ ][ ][k]
   vector<vector<vector<size_t> > > haplotype_indices_by_site_and_allele;
+  // TODO vector<vector<bv_tr_t> > > haplotype_indices_by_site_and_allele;
+  vector<vector<rowSet> > active_rowSets_by_site_and_allele;
 
   // maps [sites] -> vectors of allele counts
   //      site i                vector[i][ ]
@@ -153,6 +155,7 @@ public:
   int set_sample_allele(size_t site, size_t sample, alleleValue a);
   
   void populate_allele_counts();
+  rowSet build_active_rowSet(size_t site, alleleValue a) const;
   
 //-- basic attributes ----------------------------------------------------------
 
@@ -183,7 +186,7 @@ public:
 
   // site -> mask
   vector<size_t> get_active_rows(size_t site, alleleValue a) const;
-  rowSet get_active_rowSet(size_t site, alleleValue a) const;
+  const rowSet& get_active_rowSet(size_t site, alleleValue a) const;
 
 //-- downsampling --------------------------------------------------------------
 

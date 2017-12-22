@@ -49,6 +49,10 @@ lazyEvalMap::lazyEvalMap() {
   
 }
 
+void lazyEvalMap::increment_site_marker() {
+  current_site++;
+}
+
 lazyEvalMap::lazyEvalMap(size_t rows, size_t start) : 
 	row_to_mapclass(vector<size_t>(rows, 0)), 
 	mapclass_size(vector<size_t>(1, rows)),
@@ -111,33 +115,24 @@ void lazyEvalMap::hard_update_all() {
   return;
 }
 
-vector<size_t> lazyEvalMap::rows_to_mapclasses(const vector<size_t>& rows) const {
-  vector<bool> seen = vector<bool>(mapclass_to_map.size(), false);
-  vector<size_t> to_return;
-  for(int i = 0; i < rows.size(); i++) {
-    if(!(seen[row_to_mapclass[rows[i]]])) {
-      to_return.push_back(row_to_mapclass[rows[i]]);
-    }
-    seen[row_to_mapclass[rows[i]]] = true;
-  }
-  return to_return;
-}
-
 vector<size_t> lazyEvalMap::rows_to_mapclasses(const rowSet& rows) const {
-  vector<bool> seen = vector<bool>(mapclass_to_map.size(), false);
+  size_t rows_size = rows.size();
+  vector<char> seen = vector<char>(mapclass_to_map.size(), 0);
   vector<size_t> to_return;
-  for(int i = 0; i < rows.size(); i++) {
-    if(!(seen[row_to_mapclass[rows[i]]])) {
-      to_return.push_back(row_to_mapclass[rows[i]]);
+  rowSet::const_iterator it = rows.begin();
+  for(it; it != rows.end(); ++it) {
+    if(seen[row_to_mapclass[*it]] == 0) {
+      to_return.push_back(row_to_mapclass[*it]);
     }
-    seen[row_to_mapclass[rows[i]]] = true;
+    seen[row_to_mapclass[*it]] = 1;
   }
   return to_return;
 }
 
 vector<bool> lazyEvalMap::rows_to_mapclassmask(const rowSet& rows) const {
+  size_t rows_size = rows.size();
   vector<bool> to_return = vector<bool>(mapclass_to_map.size(), false);
-  for(int i = 0; i < rows.size(); i++) {
+  for(int i = 0; i < rows_size; i++) {
     to_return[row_to_mapclass[rows[i]]] = true;
   }
   return to_return;
@@ -207,13 +202,8 @@ void lazyEvalMap::update_maps(const vector<size_t>& mapclasses) {
   return;
 }
 
-void lazyEvalMap::increment_site_marker() {
-  current_site++;
-  return;
-}
-
 void lazyEvalMap::delete_mapclass(size_t mapclass) {
-  mapclass_to_map[mapclass] = DPUpdateMap(0);
+  // mapclass_to_map[mapclass] = DPUpdateMap(0);
   mapclass_size[mapclass] = 0;
   mapclass_to_last_updated[mapclass] = current_site;
   empty_mapclass_indices.push_back(mapclass);
@@ -224,7 +214,7 @@ void lazyEvalMap::decrement_mapclass(size_t mapclass) {
   if(mapclass_size[mapclass] == 1) {
     delete_mapclass(mapclass);
   } else {
-    mapclass_size[mapclass]--;
+    --mapclass_size[mapclass];
   }
   return;
 }
@@ -252,11 +242,6 @@ void lazyEvalMap::add_map(const DPUpdateMap& map) {
     mapclass_to_last_updated[newest_mapclass] = current_site;
     return;
   }
-}
-
-void lazyEvalMap::add_map(double coefficient, double constant) {
-  add_map(DPUpdateMap(coefficient, constant));
-  return;
 }
 
 double lazyEvalMap::get_constant(size_t row) const {
@@ -288,23 +273,13 @@ void lazyEvalMap::update_map_with_span(const DPUpdateMap& span_map) {
   return;
 }
 
-void lazyEvalMap::update_map_with_span(double coefficient, double constant) {
-  update_map_with_span(DPUpdateMap(coefficient, constant));
-  return;
-}
-
 void lazyEvalMap::add_map_for_site(const DPUpdateMap& site_map) {
-  increment_site_marker();
+  current_site++;
   maps_by_site.push_back(site_map);
   return;
 }
 
-void lazyEvalMap::add_map_for_site(double coefficient, double constant) {
-  add_map_for_site(DPUpdateMap(coefficient, constant));
-  return;
-}
-
-size_t lazyEvalMap::last_update(size_t row) {
+size_t lazyEvalMap::last_update(size_t row) const {
   if(row_to_mapclass[row] != row_to_mapclass.size()) {
     return mapclass_to_last_updated[row_to_mapclass[row]];
   } else {
@@ -316,29 +291,15 @@ const vector<DPUpdateMap>& lazyEvalMap::get_maps_by_site() const {
   return maps_by_site.get_elements();
 }
 
-void lazyEvalMap::reset_rows(const vector<size_t>& rows) {
-  for(size_t i = 0; i < rows.size(); i++) {
-    remove_row_from_mapclass(rows[i]);
-  }
-  add_identity_map();
-  for(size_t i = 0; i < rows.size(); i++) {
-    assign_row_to_newest_mapclass(rows[i]);
-  }
-}
-
 void lazyEvalMap::reset_rows(const rowSet& rows) {
-  for(size_t i = 0; i < rows.size(); i++) {
+  size_t rows_size = rows.size();
+  for(size_t i = 0; i < rows_size; i++) {
     remove_row_from_mapclass(rows[i]);
   }
   add_identity_map();
-  for(size_t i = 0; i < rows.size(); i++) {
+  for(size_t i = 0; i < rows_size; i++) {
     assign_row_to_newest_mapclass(rows[i]);
   }
-}
-
-void lazyEvalMap::update_map_with_active_rows(const vector<size_t>& active_rows) {
-  vector<size_t> mapclasses = rows_to_mapclasses(active_rows);
-  update_maps(mapclasses);
 }
 
 void lazyEvalMap::update_map_with_active_rows(const rowSet& active_rows) {

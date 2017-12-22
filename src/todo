@@ -1,0 +1,7 @@
+Immediate:
+rowSet iterator based loops
+
+Later:
+DP_map.cpp -> implement operators
+remove all references to beta
+reference.*pp -> switch to bv_tr_t

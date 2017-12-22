@@ -69,11 +69,6 @@ public:
   
   void extend_probability_at_site(const inputHaplotype* q, size_t j);
   void extend_probability_at_site(const DPUpdateMap& current_map, 
-              const vector<size_t>& active_rows, bool match_is_rare, 
-              alleleValue a);
-  void extend_probability_at_site(const vector<size_t>& active_rows, 
-              bool match_is_rare, alleleValue a);
-  void extend_probability_at_site(const DPUpdateMap& current_map, 
               const rowSet& active_rows, bool match_is_rare, 
               alleleValue a);
   void extend_probability_at_site(const rowSet& active_rows, 
@@ -90,8 +85,6 @@ public:
 
 //-- arithmetic shorthand ------------------------------------------------------
   
-  void update_subset_of_Rs(const vector<size_t>& indices, bool active_is_match);
-  void fast_update_S(const vector<size_t>& indices, bool active_is_match);
   void update_subset_of_Rs(const rowSet& indices, bool active_is_match);
   void fast_update_S(const rowSet& indices, bool active_is_match);
   
@@ -116,6 +109,37 @@ struct slowFwdSolver{
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
 };
+// 
+// struct conventionalViterbiTraceback{
+//   vector<size_t> idx;
+//   double score;
+// };
+// 
+// struct fastViterbiTraceback{
+//   vector<size_t> current_idx;
+//   vector<size_t> jump_position;
+//   vector<size_t> extract() const;  
+// };
+// 
+// struct viterbiState{
+//   size_t N;     // sequence length
+//   size_t K;     // population size
+//   vector<double> score;
+//   vector<double> new_score;
+//   vector<vector<size_t> > paths;
+//   double max_score;
+//   size_t max_index;
+//   double temp_score;
+//   size_t temp_index;
+//   haplotypeCohort* cohort;
+// };
+// 
+// struct fastViterbiState{
+//   haplotypeCohort* cohort;
+//   size_t N;     // sequence length
+//   size_t K;     // population size
+//   vector<fastViterbiTraceback> paths;
+// }
 
 double calculate_R(double oldR, const DPUpdateMap& map);
 double calculate_R(double oldR, double coefficient, double constant);

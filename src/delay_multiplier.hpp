@@ -49,18 +49,16 @@ struct lazyEvalMap{
 private:
 	size_t current_site = 0;
   mapHistory maps_by_site;
-  // This vector has size |H| and stores which map index the row
-  // corresponds to
 
-	size_t newest_mapclass = 0;
-  vector<size_t> row_to_mapclass;
-  // The following vectors all have equal |mapclass|
-  vector<DPUpdateMap> mapclass_to_map;
-  vector<size_t> mapclass_size;
-  vector<size_t> mapclass_to_last_updated;
+  vector<size_t> row_to_mapclass;                         // size = # haplotypes
+
+  size_t newest_mapclass = 0;
+  vector<DPUpdateMap> mapclass_to_map;                    // size = # mapclasses
+  vector<size_t> mapclass_size;                           // size = # mapclasses
+  vector<size_t> mapclass_to_last_updated;                // size = # mapclasses
   // stores which map mapclasses have been emptied so that new map
   // mapclasses can be added in their place
-  vector<size_t> empty_mapclass_indices;
+  vector<size_t> empty_mapclass_indices;                  // size = # mapclasses
 	
 	// Assignes a row to the mapclass containing the last DPUpdateMap added
 	
@@ -77,25 +75,20 @@ public:
 	
 	void assign_row_to_newest_mapclass(size_t row);
 	void remove_row_from_mapclass(size_t row);
-	void increment_site_marker();
 	
   double evaluate(size_t row, double value) const;
 
-  vector<size_t> rows_to_mapclasses(const vector<size_t>& rows) const;
   vector<size_t> rows_to_mapclasses(const rowSet& rows) const;
 	vector<bool> rows_to_mapclassmask(const rowSet& rows) const;
     
 	void add_map_for_site(const DPUpdateMap& site_map);
-	void add_map_for_site(double coefficient, double constant);
-
   void update_map_with_span(const DPUpdateMap& span_map);
-  void update_map_with_span(double coefficient, double constant);
+
   // takes in a set of mapclass indices and extends their mapclass_to_map
   // time complexity is O(|indices| + n)
   void update_maps(const vector<size_t>& mapclasses);
 	void update_maps(const vector<bool>& mapclassmask);
 	
-  void update_map_with_active_rows(const vector<size_t>& active_rows);
   void update_map_with_active_rows(const rowSet& active_rows);
   
   // Updates all maps to current position in preparation for taking a
@@ -107,11 +100,9 @@ public:
   // resets all maps to identity, lying in a single mapclass
   void hard_clear_all();
 
-  void reset_rows(const vector<size_t>& rows);
 	void reset_rows(const rowSet& rows);
 
   // Adds a new mapclass containing the given DPUpdateMap
-  void add_map(double coefficient, double constant);
   void add_map(const DPUpdateMap& map);
   void add_identity_map();
 	
@@ -121,14 +112,16 @@ public:
 	const vector<DPUpdateMap>& 	get_maps_by_site() const;
   vector<DPUpdateMap>& 				get_maps();
   const vector<DPUpdateMap>& 	get_maps() const;
-	double get_coefficient(size_t row) const;  
-	double get_constant(size_t row) const;
+	double                      get_coefficient(size_t row) const;  
+	double                      get_constant(size_t row) const;
     
   size_t number_of_mapclasses() const;
 	size_t get_current_site() const;
+  
+  void increment_site_marker();
 
   size_t row_updated_to(size_t row) const;
-	size_t last_update(size_t row);
+	size_t last_update(size_t row) const;
   size_t get_mapclass(size_t row) const;
 	
 	// statistics for benchmarking

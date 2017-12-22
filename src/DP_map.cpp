@@ -74,7 +74,6 @@ bool DPUpdateMap::is_degenerate() const {
   return degenerate_constant;
 }
 
-
 bool DPUpdateMap::operator==(const DPUpdateMap &other) const {
   if(degenerate_constant && other.degenerate_constant) {
     return coefficient == other.coefficient;
@@ -88,3 +87,16 @@ bool DPUpdateMap::operator==(const DPUpdateMap &other) const {
 bool DPUpdateMap::operator!=(const DPUpdateMap &other) const {
   return !(*this == other);
 }
+// 
+// DPUpdateMap& operator+=(const DPUpdateMap& other) {
+//   
+// }
+// 
+// DPUpdateMap operator+(const DPUpdateMap& other) const {
+//   DPUpdateMap to_return = *this;
+//   to_return += other;
+//   return to_return;
+// }
+// 
+// DPUpdateMap& operator-=(const DPUpdateMap& other);
+// DPUpdateMap operator-(const DPUpdateMap& other) const;

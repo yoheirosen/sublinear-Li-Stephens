@@ -3,6 +3,8 @@
 
 #include "math.hpp"
 
+// one-dimensional linear map
+
 struct DPUpdateMap{
 private:
   bool degenerate_constant = false;
@@ -31,6 +33,15 @@ public:
   
   bool operator==(const DPUpdateMap &other) const;
   bool operator!=(const DPUpdateMap &other) const;
+  
+  DPUpdateMap& operator+=(const DPUpdateMap& other);
+  DPUpdateMap operator+(const DPUpdateMap& other) const;
+  DPUpdateMap& operator-=(const DPUpdateMap& other);
+  DPUpdateMap operator-(const DPUpdateMap& other) const;
+  DPUpdateMap& operator*=(const DPUpdateMap& other);
+  DPUpdateMap operator*(const DPUpdateMap& other) const;
+  DPUpdateMap& operator*=(const double& other);
+  DPUpdateMap operator*(const double& other) const;
 };
 
 #endif
