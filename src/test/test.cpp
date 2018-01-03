@@ -254,18 +254,21 @@ TEST_CASE( "inputHaplotype", "[input-haplotype]" ) {
 }
 
 TEST_CASE( "penaltySet math", "[math]" ) {
-  double eps = 0.0000001;
-  penaltySet penalties = penaltySet(-6, -9, 2);
   SECTION( "log-sum-exp implementation" ) {
     vector<double> R = {-1, -2, -3, -4};
     double naive_sum = logsum(logsum(-1, -2), logsum(-3, -4));
     double log_sum_exp = log_big_sum(R);
-    REQUIRE(fabs(naive_sum - log_sum_exp) < eps);
+    REQUIRE(naive_sum == Approx(log_sum_exp));
     // repeated values
     R = {-1, -1, -2, -2};
     naive_sum = logsum(logsum(-1, -1), logsum(-2, -2));
     log_sum_exp = log_big_sum(R);
-    REQUIRE(fabs(naive_sum - log_sum_exp) < eps);
+    REQUIRE(naive_sum == Approx(log_sum_exp));
+    // similar numbers
+    R = {-1.0000000001, -1, -2.000000001, -2};
+    naive_sum = logsum(logsum(-1.000000001, -1), logsum(-2.000000001, -2));
+    log_sum_exp = log_big_sum(R);
+    REQUIRE(naive_sum == Approx(log_sum_exp));
   }
 }
 
@@ -312,15 +315,15 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double expected_probability_in_mixed_cohort = 
               logsum(expected_R0_in_mixed_cohort,expected_R1_in_mixed_cohort);
 
-    REQUIRE(fabs(matrix_allA.R[0] - expected_R0_in_allA_cohort) < eps);
-    REQUIRE(fabs(matrix_allT.R[0] - expected_R0_in_allT_cohort) < eps);
+    REQUIRE(matrix_allA.R[0] == Approx(expected_R0_in_allA_cohort));
+    REQUIRE(matrix_allT.R[0] == Approx(expected_R0_in_allT_cohort));
 
-    REQUIRE(fabs(matrix_AT.R[0] - expected_R0_in_mixed_cohort) < eps);
-    REQUIRE(fabs(matrix_AT.R[1] - expected_R1_in_mixed_cohort) < eps);
+    REQUIRE(matrix_AT.R[0] == Approx(expected_R0_in_mixed_cohort));
+    REQUIRE(matrix_AT.R[1] == Approx(expected_R1_in_mixed_cohort));
 
-    REQUIRE(fabs(probability_allA - expected_probability_in_allA_cohort) < eps);
-    REQUIRE(fabs(probability_allT - expected_probability_in_allT_cohort) < eps);
-    REQUIRE(fabs(probability_AT - expected_probability_in_mixed_cohort) < eps);
+    REQUIRE(probability_allA == Approx(expected_probability_in_allA_cohort));
+    REQUIRE(probability_allT == Approx(expected_probability_in_allT_cohort));
+    REQUIRE(probability_AT == Approx(expected_probability_in_mixed_cohort));
   }
   SECTION( "Partial likelihoods at a second site" ) {
     penaltySet penalties = penaltySet(-6, -9, 4);
@@ -347,8 +350,8 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double R0A = log(0.25) + penalties.one_minus_mu;
     double R0T = log(0.25) + penalties.mu;
     double S0 = log(0.5) + logsum(penalties.mu, penalties.one_minus_mu);
-    double ftR0A = penalties.alpha_value + R0A;
-    double ftR0T = penalties.alpha_value + R0T;
+    double ftR0A = penalties.R_coefficient + R0A;
+    double ftR0T = penalties.R_coefficient + R0T;
     double pS = penalties.rho + S0;
     
     double expected_R0_in_allA_cohort = penalties.one_minus_mu 
@@ -374,27 +377,28 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     // matrix_allA.initialize_probability(&query);
     // matrix_allA.extend_probability_at_site(&query, 1);
     // matrix_allA.take_snapshot();
-    // REQUIRE(fabs(matrix_allA.R[0] - expected_R0_in_allA_cohort) < eps);
-    // REQUIRE(fabs(matrix_allA.R[1] - expected_R1_in_allA_cohort) < eps);
+    // REQUIRE(matrix_allA.R[0] == Approx(expected_R0_in_allA_cohort));
+    // REQUIRE(matrix_allA.R[1] == Approx(expected_R1_in_allA_cohort));
     // 
     // matrix_allT.initialize_probability(&query);
     // matrix_allT.extend_probability_at_site(&query, 1);
     // matrix_allT.take_snapshot();
-    // REQUIRE(fabs(matrix_allT.R[0] - expected_R0_in_allT_cohort) < eps);
-    // REQUIRE(fabs(matrix_allT.R[1] - expected_R1_in_allT_cohort) < eps);
+    // REQUIRE(matrix_allT.R[0] == Approx(expected_R0_in_allT_cohort));
+    // REQUIRE(matrix_allT.R[1] == Approx(expected_R1_in_allT_cohort));
     // 
     // matrix_AT.initialize_probability(&query);
     // matrix_AT.extend_probability_at_site(&query, 1);
     // matrix_AT.take_snapshot();
-    // REQUIRE(fabs(matrix_AT.R[0] - expected_R0_in_mixed_cohort) < eps);
-    // REQUIRE(fabs(matrix_AT.R[1] - expected_R1_in_mixed_cohort) < eps);
-    // REQUIRE(fabs(matrix_AT.R[2] - expected_R2_in_mixed_cohort) < eps);
-    // REQUIRE(fabs(matrix_AT.R[3] - expected_R3_in_mixed_cohort) < eps);
+    // REQUIRE(matrix_AT.R[0] == Approx(expected_R0_in_mixed_cohort));
+    // REQUIRE(matrix_AT.R[1] == Approx(expected_R1_in_mixed_cohort));
+    // REQUIRE(matrix_AT.R[2] == Approx(expected_R2_in_mixed_cohort));
+    // REQUIRE(matrix_AT.R[3] == Approx(expected_R3_in_mixed_cohort));
     // 
-    // REQUIRE(fabs(matrix_allA.S - expected_probability_in_allA_cohort) < eps);
-    // REQUIRE(fabs(matrix_allT.S - expected_probability_in_allT_cohort) < eps);
-    // REQUIRE(fabs(matrix_AT.S - expected_probability_in_mixed_cohort) < eps);
+    // REQUIRE(matrix_allA.S == Approx(expected_probability_in_allA_cohort));
+    // REQUIRE(matrix_allT.S == Approx(expected_probability_in_allT_cohort));
+    // REQUIRE(matrix_AT.S == Approx(expected_probability_in_mixed_cohort));
   }
+  
   SECTION( "Partial likelihoods at a span following a site" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     
@@ -416,7 +420,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     double mu = penalties.mu;
     double mu_c = penalties.one_minus_mu;
-    double alpha = penalties.alpha_value;
+    double alpha = penalties.R_coefficient;
     double rho = penalties.rho;
     double alpha_l = 5 * alpha;
     
@@ -424,7 +428,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double lR_im = mu - log(3);
     double lS_i = logsum(lR_i + log(2), lR_im);
     
-    double RHS = lS_i - log(3) - alpha_l;
+    double RHS = lS_i - log(3) + log1p(-exp(alpha_l));
     
     double expected_R0_for_0_mismatch_haplotype = 
               mu_c*5 + logsum(alpha_l + lR_i, RHS);
@@ -445,9 +449,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     matrix_0_aug.extend_probability_at_span_after(&query_0_aug, 0);
     matrix_0_aug.take_snapshot();
 
-    REQUIRE(fabs(matrix_0_aug.R[0] - expected_R0_for_0_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_0_aug.R[2] - expected_R2_for_0_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_0_aug.S- expected_probability_for_0_mismatch_haplotype) < eps);
+    REQUIRE(matrix_0_aug.R[0] == Approx(expected_R0_for_0_mismatch_haplotype));
+    REQUIRE(matrix_0_aug.R[2] == Approx(expected_R2_for_0_mismatch_haplotype));
+    REQUIRE(matrix_0_aug.S == Approx(expected_probability_for_0_mismatch_haplotype));
 
     fastFwdAlgState matrix_1_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
@@ -455,9 +459,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     matrix_1_aug.extend_probability_at_span_after(&query_1_aug, 0);
     matrix_1_aug.take_snapshot();
   
-    REQUIRE(fabs(matrix_1_aug.R[0] - expected_R0_for_1_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_1_aug.R[2] - expected_R2_for_1_mismatch_haplotype) < eps);  
-    REQUIRE(fabs(matrix_1_aug.S - expected_probability_for_1_mismatch_haplotype) < eps);
+    REQUIRE(matrix_1_aug.R[0] == Approx(expected_R0_for_1_mismatch_haplotype));
+    REQUIRE(matrix_1_aug.R[2] == Approx(expected_R2_for_1_mismatch_haplotype));  
+    REQUIRE(matrix_1_aug.S == Approx(expected_probability_for_1_mismatch_haplotype));
   }
   SECTION( "Partial likelihoods at an initial span" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
@@ -495,22 +499,22 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     
     matrix_0_aug.initialize_probability(&query_0_aug);
     matrix_0_aug.take_snapshot();
-    REQUIRE(fabs(matrix_0_aug.R[0] - expected_R0_for_0_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_0_aug.R[2] - expected_R2_for_0_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_0_aug.S - expected_probability_for_0_mismatch_haplotype) < eps);
+    REQUIRE(matrix_0_aug.R[0] == Approx(expected_R0_for_0_mismatch_haplotype));
+    REQUIRE(matrix_0_aug.R[2] == Approx(expected_R2_for_0_mismatch_haplotype));
+    REQUIRE(matrix_0_aug.S == Approx(expected_probability_for_0_mismatch_haplotype));
     
     matrix_1_aug.initialize_probability(&query_1_aug);
     matrix_1_aug.take_snapshot();
-    REQUIRE(fabs(matrix_1_aug.R[0] - expected_R0_for_1_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_1_aug.R[2] - expected_R2_for_1_mismatch_haplotype) < eps);
-    REQUIRE(fabs(matrix_1_aug.S - expected_probability_for_1_mismatch_haplotype) < eps);
+    REQUIRE(matrix_1_aug.R[0] == Approx(expected_R0_for_1_mismatch_haplotype));
+    REQUIRE(matrix_1_aug.R[2] == Approx(expected_R2_for_1_mismatch_haplotype));
+    REQUIRE(matrix_1_aug.S == Approx(expected_probability_for_1_mismatch_haplotype));
   }
   SECTION( "Partial likelihoods at a series of sites" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     double mu_c = penalties.one_minus_mu;
     double mu = penalties.mu;
     double rho = penalties.rho;
-    double alpha = penalties.alpha_value;
+    double alpha = penalties.R_coefficient;
     double l2_mu = logdiff(log(2), log(7) + mu);
     
     string ref_seq = "AAAAA";
@@ -585,10 +589,10 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     // 0 match / 1 not / 2 match
     // all active since initial site
     matrix.initialize_probability(&query);
-    REQUIRE(fabs(matrix.R[0] - Rs[0][0]) < eps);
-    REQUIRE(fabs(matrix.R[1] - Rs[0][1]) < eps); 
-    REQUIRE(fabs(matrix.R[2] - Rs[0][2]) < eps); 
-    REQUIRE(fabs(matrix.S - Ss[0]) < eps);
+    REQUIRE(matrix.R[0] == Approx(Rs[0][0]));
+    REQUIRE(matrix.R[1] == Approx(Rs[0][1])); 
+    REQUIRE(matrix.R[2] == Approx(Rs[0][2])); 
+    REQUIRE(matrix.S == Approx(Ss[0]));
     
     DPUpdateMap current_map;
     bool match_is_rare;
@@ -599,12 +603,12 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(match_is_rare == true);
 
     current_map = penalties.get_current_map(matrix.S, match_is_rare);
-    REQUIRE(fabs(current_map.coefficient - (mu + alpha)) < eps);
-    REQUIRE(fabs(current_map.constant - (rho + Ss[0] - alpha)) < eps);
+    REQUIRE(current_map.coefficient == Approx((mu + alpha)));
+    REQUIRE(current_map.constant == Approx((rho + Ss[0] - alpha)));
     
     matrix.extend_probability_at_site(&query, 1);
-    REQUIRE(fabs(matrix.R[2] - Rs[1][2]) < eps); 
-    REQUIRE(fabs(matrix.S - Ss[1]) < eps);
+    REQUIRE(matrix.R[2] == Approx(Rs[1][2])); 
+    REQUIRE(matrix.S == Approx(Ss[1]));
     
     // 0 match / 1 not / 2 match
     // match common / active = {1}
@@ -612,27 +616,27 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(match_is_rare == false);
 
     current_map = penalties.get_current_map(matrix.S, match_is_rare);
-    REQUIRE(fabs(current_map.coefficient - (mu_c + alpha)) < eps);
-    REQUIRE(fabs(current_map.constant - (rho + Ss[1] - alpha)) < eps);
+    REQUIRE(current_map.coefficient == Approx((mu_c + alpha)));
+    REQUIRE(current_map.constant == Approx((rho + Ss[1] - alpha)));
         
     matrix.extend_probability_at_site(&query, 2);
-    REQUIRE(fabs(matrix.R[1] - Rs[2][1]) < eps); 
-    REQUIRE(fabs(matrix.S - Ss[2]) < eps);
+    REQUIRE(matrix.R[1] == Approx(Rs[2][1])); 
+    REQUIRE(matrix.S == Approx(Ss[2]));
 
     // 0 match / 1 match / 2 not
     // match common / active = {2}
     matrix.extend_probability_at_site(&query, 3);
-    REQUIRE(fabs(matrix.R[2] - Rs[3][2]) < eps); 
-    REQUIRE(fabs(matrix.S - Ss[3]) < eps);
+    REQUIRE(matrix.R[2] == Approx(Rs[3][2])); 
+    REQUIRE(matrix.S == Approx(Ss[3]));
 
     // 0 not / 1 match / 2 not
     // not-match common / active = {1}
     matrix.extend_probability_at_site(&query, 4);
     matrix.take_snapshot();
-    REQUIRE(fabs(matrix.R[0] - Rs[4][0]) < eps);
-    REQUIRE(fabs(matrix.R[1] - Rs[4][1]) < eps); 
-    REQUIRE(fabs(matrix.R[2] - Rs[4][2]) < eps);
-    REQUIRE(fabs(matrix.S - Ss[4]) < eps);
+    REQUIRE(matrix.R[0] == Approx(Rs[4][0]));
+    REQUIRE(matrix.R[1] == Approx(Rs[4][1])); 
+    REQUIRE(matrix.R[2] == Approx(Rs[4][2]));
+    REQUIRE(matrix.S == Approx(Ss[4]));
   }
   
   SECTION( "Partial likelihood at a series of sites without variation equals the likelihood at a span of equivalent length" ) {
@@ -667,13 +671,16 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double probability = matrix.calculate_probability(&query);
     double probability_span = matrix_span.calculate_probability(&query_span);
 
-    REQUIRE(fabs(matrix.R[0] - matrix_span.R[0]) < eps);
-    REQUIRE(fabs(matrix.R[1] - matrix_span.R[1]) < eps); 
-    REQUIRE(fabs(matrix.R[2] - matrix_span.R[2]) < eps); 
-    REQUIRE(fabs(probability - probability_span) < eps);
+    REQUIRE(matrix.R[0] == Approx(matrix_span.R[0]));
+    REQUIRE(matrix.R[1] == Approx(matrix_span.R[1])); 
+    REQUIRE(matrix.R[2] == Approx(matrix_span.R[2])); 
+    REQUIRE(probability == Approx(probability_span));
   }
+}
+
+TEST_CASE( "Fast method gives same result as classical", "[compare-fast]" ) {
   SECTION( "Fast, linear and quadratic forward algorithms give same result " ) {
-    penaltySet penalties = penaltySet(-6, -9, 3);
+    penaltySet penalties = penaltySet(-6, -9, 5);
     vector<size_t> positions = {0, 1, 2, 3, 4};
     vector<vector<alleleValue> > haplotypes = {
       {A, A, A, T, G},
@@ -695,8 +702,8 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double result_fast = fast_fwd.calculate_probability(&query_ih);
     double result_linear = linear_fwd.calculate_probability_linear(query, 0);
     double result_quad = quadratic_fwd.calculate_probability_quadratic(query, 0);
-    REQUIRE(fabs(result_fast - result_linear) < eps);
-    REQUIRE(fabs(result_quad - result_linear) < eps);
+    REQUIRE(result_fast == Approx(result_linear));
+    REQUIRE(result_quad == Approx(result_linear));
   }
 }
 
@@ -759,13 +766,18 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(ID.of(test1) == test1);
     REQUIRE(test1.of(ID) == test1);
     REQUIRE(scale.of(scale) == DPUpdateMap(-4.0));
-    REQUIRE(fabs(scale.of(-1.0) + 3.0) < eps);
-    REQUIRE(fabs((test1.of(scale)).coefficient + 5.0) < eps);
-    REQUIRE(fabs((test1.of(scale)).constant + 2.0) < eps);
-    REQUIRE(fabs((scale.of(test1)).coefficient + 5.0) < eps);
-    REQUIRE(fabs((scale.of(test1)).constant + 4.0) < eps);
-    REQUIRE(fabs((test1.of(test2)).coefficient + 8.0) < eps);
-    REQUIRE(fabs((test1.of(test2)).constant - logsum(-6, 1)) < eps);
+    REQUIRE(scale.of(-1.0) == Approx(-3.0));
+    REQUIRE((test1.of(scale)).coefficient == Approx(-5.0));
+    REQUIRE((test1.of(scale)).constant == Approx(-2.0));
+    REQUIRE((scale.of(test1)).coefficient == Approx(-5.0));
+    REQUIRE((scale.of(test1)).constant == Approx(-4.0));
+    REQUIRE((test1.of(test2)).coefficient == Approx(-8.0));
+    REQUIRE((test1.of(test2)).constant == Approx(logsum(-6, 1)));
+    DPUpdateMap test3 = test1.compose(test2);
+    double expected_coefficient = -3 - 5;
+    double expected_constant = logsum(-6, -4 + 5);
+    REQUIRE(test3.coefficient == Approx(expected_coefficient));
+    REQUIRE(test3.constant == Approx(expected_constant));
   }
   SECTION( "Building and accessing lazyEvalMaps" ) {
     lazyEvalMap map = lazyEvalMap(5, 0);
@@ -777,19 +789,19 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     // Assign row 0 to map 1.0 at mapclass-index 0
     map.remove_row_from_mapclass(0);
     map.assign_row_to_newest_mapclass(0);
-    REQUIRE((map.get_coefficient(0) - 1) < eps);
+    REQUIRE(map.get_coefficient(0) == Approx(1));
     // Can we add and then read a second value?
     // Add a map with value (2.0, 2.0)
     map.add_map(DPUpdateMap(2.0, 2.0));
     // Assign row 1 to map 2.0 at mapclass-index 1
     map.remove_row_from_mapclass(1);
     map.assign_row_to_newest_mapclass(1);
-    REQUIRE((map.get_coefficient(1) - 2) < eps);
+    REQUIRE(map.get_coefficient(1) == Approx(2));
     // Can we overload a mapclass with two rows?
     // Assign row 2 to map 2.0 at mapclass-index 1
     map.remove_row_from_mapclass(2);
     map.assign_row_to_newest_mapclass(2);
-    REQUIRE((map.get_coefficient(2) - 2) < eps);
+    REQUIRE(map.get_coefficient(2) == Approx(2));
     // Can we remove a row from a mapclass?
     map.remove_row_from_mapclass(1);
     REQUIRE(map.get_map_indices()[1] == 5);
@@ -804,7 +816,7 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     map.assign_row_to_newest_mapclass(3);
     // This row should get mapclass-index 0
     REQUIRE(map.get_map_indices()[3] == 1);
-    REQUIRE((map.get_coefficient(3) - 3.0) < eps);
+    REQUIRE(map.get_coefficient(3) == Approx(3.0));
   }
   SECTION( "Updating maps performs correct arithmetic" ) {
     lazyEvalMap map = lazyEvalMap(3, 0);
@@ -847,25 +859,25 @@ TEST_CASE( "PenaltySet gives right values", "[penaltyset]") {
   double one_minus_mu = penalties.one_minus_mu;
   double mu = penalties.mu;
   double rho = penalties.rho;
-  double alpha = penalties.alpha_value;
+  double alpha = penalties.R_coefficient;
   double one_minus_2mu = penalties.one_minus_2mu;
   
   expected = mu + alpha;
-  REQUIRE(fabs(penalties.get_current_map(S, true).coefficient - expected) < eps);
+  REQUIRE(penalties.get_current_map(S, true).coefficient == Approx(expected));
   expected = rho - alpha + S;
-  REQUIRE(fabs(penalties.get_current_map(S, true).constant - expected) < eps);
+  REQUIRE(penalties.get_current_map(S, true).constant == Approx(expected));
   expected = one_minus_mu + alpha;
-  REQUIRE(fabs(penalties.get_current_map(S, false).coefficient - expected) < eps);
+  REQUIRE(penalties.get_current_map(S, false).coefficient == Approx(expected));
   expected = rho - alpha + S;
-  REQUIRE(fabs(penalties.get_current_map(S, false).constant - expected) < eps);
+  REQUIRE(penalties.get_current_map(S, false).constant == Approx(expected));
   
   vector<double> summands = {-2, -3};
   expected = logsum(mu + S, one_minus_2mu - one_minus_mu + logsum(-2, -3));
   penalties.update_S(S, summands, true);
-  REQUIRE(fabs(S - expected) < eps);
+  REQUIRE(S == Approx(expected));
   expected = logdiff(one_minus_mu + S, one_minus_2mu - mu + logsum(-2, -3));
   penalties.update_S(S, summands, false);
-  REQUIRE(fabs(S - expected) < eps);
+  REQUIRE(S == Approx(expected));
 }
 
 TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][probability]" ) {
@@ -895,7 +907,7 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
   double mu_c = penalties.one_minus_mu;
   double mu = penalties.mu;
   double rho = penalties.rho;
-  double alpha = penalties.alpha_value;
+  double alpha = penalties.R_coefficient;
   double S;
   double mu2 = penalties.one_minus_2mu;
   SECTION( "Delay map maintains correct states for all rows in matrix" ) {
@@ -968,31 +980,31 @@ TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][prob
     S = logdiff(log(2), log(7) + mu) - log(3);
     DPUpdateMap I = DPUpdateMap(0);
     DPUpdateMap m1 = penalties.get_non_match_map(S);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).constant - m1.constant) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).coefficient - m1.coefficient) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(1).constant - m1.constant) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(1).coefficient - m1.coefficient) < eps);
+    REQUIRE(matrix.get_maps().get_map(0).constant == Approx(m1.constant));
+    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx(m1.coefficient));
+    REQUIRE(matrix.get_maps().get_map(1).constant == Approx(m1.constant));
+    REQUIRE(matrix.get_maps().get_map(1).coefficient == Approx(m1.coefficient));
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
     // work done at 1; non-match is rare
     matrix.extend_probability_at_site(&query, 2);
     S = logsum(mu + S, mu2 + logsum(alpha + mu_c - log(3), rho + S));
     DPUpdateMap M2 = penalties.get_match_map(S);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).constant - (M2.of(m1)).constant) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).coefficient - (M2.of(m1)).coefficient) < eps);
+    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
     REQUIRE(matrix.get_maps().get_map(1).is_identity());
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
     S = matrix.S;
     matrix.extend_probability_at_site(&query, 3);
     DPUpdateMap M3 = penalties.get_match_map(S);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).constant - (M2.of(m1)).constant) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).coefficient - (M2.of(m1)).coefficient) < eps);
+    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
     REQUIRE(matrix.get_maps().get_map(1).is_identity());
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
     S = matrix.S;
     matrix.extend_probability_at_site(&query, 4);
     DPUpdateMap m4 = penalties.get_non_match_map(S);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).constant - (M2.of(m1)).constant) < eps);
-    REQUIRE(fabs(matrix.get_maps().get_map(0).coefficient - (M2.of(m1)).coefficient) < eps);
+    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
     REQUIRE(matrix.get_maps().get_map(1).is_identity());
     REQUIRE(matrix.get_maps().get_map(2).is_identity());
     matrix.take_snapshot();

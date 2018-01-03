@@ -15,14 +15,18 @@ struct penaltySet{
   double mu;
   double one_minus_mu;
   double one_minus_2mu;
+  double rho_over_R_coeff;
+  double one_minus_mu_times_R_coeff;
+  double mu_times_R_coeff;
   
-  double alpha_value;
+  double R_coefficient;
   
   penaltySet(double logRho, double logMu, int H);
   ~penaltySet();
   
-  double alpha(size_t l) const;
+  double composed_R_coefficient(size_t l) const;
   double span_mutation_penalty(size_t l, size_t a) const;
+  double span_coefficient(size_t l) const;
   
   DPUpdateMap get_match_map(double last_sum) const;
   DPUpdateMap get_non_match_map(double last_sum) const;

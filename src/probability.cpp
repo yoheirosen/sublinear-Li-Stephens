@@ -88,6 +88,7 @@ double fastFwdAlgState::calculate_probability(const inputHaplotype* q) {
     if(q->has_span_after(j)) {
       extend_probability_at_span_after(q, j);
     }
+    take_snapshot();
   }
   take_snapshot();
   return S;
@@ -259,8 +260,8 @@ void fastFwdAlgState::extend_probability_at_site(
 void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l, 
             size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);
-  map.update_map_with_span(DPUpdateMap(m + penalties->alpha(l), 
-              S - penalties->alpha(l)));
+  map.update_map_with_span(DPUpdateMap(m + penalties->composed_R_coefficient(l), 
+              penalties->span_coefficient(l) + S - penalties->composed_R_coefficient(l)));
   S = m + S;
   last_span_extended = last_extended;
 }
@@ -308,10 +309,10 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   vector<double> last_R;
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
-    double S = log_big_sum(last_R) + penalties->rho;
+    S = log_big_sum(last_R);
     // do span stuff
     for(size_t j = 0; j < R.size(); j++) {
-      R[j] = logsum(S, last_R[j] + penalties->alpha_value); 
+      R[j] = logsum(S + penalties->rho, last_R[j] + penalties->R_coefficient); 
       bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
       double emission = matches ? penalties->one_minus_mu : penalties->mu;
       R[j] += emission;
@@ -320,3 +321,5 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   S = log_big_sum(R);
   return S;
 }
+
+// TODO: is update S step missing something?

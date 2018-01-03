@@ -11,15 +11,18 @@ penaltySet::penaltySet(double rho_in, double mu, int H) : H(H),
   log_H = log(H);
   one_minus_mu = log1p(-4*exp(mu));
   one_minus_2mu = log1p(-5*exp(mu));
-  alpha_value = log1p(-H*exp(rho));
+  R_coefficient = log1p(-H*exp(rho));
+  rho_over_R_coeff = rho - R_coefficient;
+  one_minus_mu_times_R_coeff = one_minus_mu + R_coefficient;
+  mu_times_R_coeff = mu + R_coefficient;
 }
 
 DPUpdateMap penaltySet::get_match_map(double last_sum) const {
-  return DPUpdateMap(one_minus_mu + alpha_value, rho + last_sum - alpha_value);
+  return DPUpdateMap(one_minus_mu_times_R_coeff, rho_over_R_coeff + last_sum);
 }
 
 DPUpdateMap penaltySet::get_non_match_map(double last_sum) const {
-  return DPUpdateMap(mu + alpha_value, rho + last_sum - alpha_value);
+  return DPUpdateMap(mu_times_R_coeff, rho_over_R_coeff + last_sum);
 }
 
 DPUpdateMap penaltySet::get_current_map(double last_sum, bool match_is_rare) const {
@@ -51,10 +54,14 @@ void penaltySet::update_S(double& S, const vector<double>& summands,
   }
 }
 
-double penaltySet::alpha(size_t l) const {
-  return alpha_value * l;
+double penaltySet::composed_R_coefficient(size_t l) const {
+  return R_coefficient * l;
 }
 
 double penaltySet::span_mutation_penalty(size_t l, size_t a) const {
   return (l - a) * one_minus_mu + a * mu;
+}
+
+double penaltySet::span_coefficient(size_t l) const {
+  return log1p(-exp(composed_R_coefficient(l))) - log_H;
 }
