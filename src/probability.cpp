@@ -270,8 +270,7 @@ slowFwdSolver::slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes) : reference(ref), penalties(pen), cohort(haplotypes) {
 }
             
-double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q,
-          size_t start_site = 0) {
+double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site = 0) {
   R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
   for(size_t j = 0; j < R.size(); j++) {
     bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
@@ -282,7 +281,14 @@ double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>&
   double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
     last_R = R;
-    // do span stuff
+    if(reference->has_span_after(i - 1)) {
+      size_t l = reference->span_length_after(i - 1);
+      double coefficient = penalties->span_mutation_penalty(l, 0) + penalties->composed_R_coefficient(l);
+      double constant = penalties->span_coefficient(l) - penalties->composed_R_coefficient(l);
+      for(size_t j = 0; j < R.size(); j++) {
+        R[j] = coefficient + logsum(R[j], constant);
+      }
+    }
     for(size_t j = 0; j < R.size(); j++) {
       vector<double> temp = last_R;
       for(size_t k = 0; k < temp.size(); k++) {
@@ -298,8 +304,7 @@ double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>&
   return S;
 }
 
-double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
-          size_t start_site = 0) {
+double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q, size_t start_site = 0) {
   R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
   for(size_t j = 0; j < R.size(); j++) {
     bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
@@ -311,6 +316,14 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
     last_R = R;
     S = log_big_sum(last_R);
     // do span stuff
+    if(reference->has_span_after(i - 1)) {
+      size_t l = reference->span_length_after(i - 1);
+      double coefficient = penalties->span_mutation_penalty(l, 0) + penalties->composed_R_coefficient(l);
+      double constant = penalties->span_coefficient(l) - penalties->composed_R_coefficient(l);
+      for(size_t j = 0; j < R.size(); j++) {
+        R[j] = coefficient + logsum(R[j], constant);
+      }
+    }
     for(size_t j = 0; j < R.size(); j++) {
       R[j] = logsum(S + penalties->rho, last_R[j] + penalties->R_coefficient); 
       bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
@@ -321,5 +334,3 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   S = log_big_sum(R);
   return S;
 }
-
-// TODO: is update S step missing something?

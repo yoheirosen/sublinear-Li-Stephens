@@ -16,9 +16,10 @@
 
 using namespace std;
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// Index of site identifiers, positions, and the distances between them 
+//----------------------------------------------------------------------------------------------------------------------
 struct siteIndex{
-//------------------------------------------------------------------------------
 
 private:
   size_t global_offset = 0;   // relative to the position on the chromosome
@@ -50,7 +51,7 @@ public:
 
   //-- sizes -------------------------------------------------------------------
   size_t number_of_sites() const;
-  size_t absolute_length() const;
+  size_t length_in_bp() const;
 
   //-- sites -------------------------------------------------------------------
   bool is_site(size_t actual_position) const;
@@ -58,8 +59,8 @@ public:
   size_t get_position(size_t site_index) const;
   
   //-- positions ---------------------------------------------------------------
-  size_t pos_ref2global(size_t p) const;
   size_t start_position() const;
+  size_t pos_ref2global(size_t p) const;
   int64_t pos_global2ref(int64_t p) const;
   
   //-- spans -------------------------------------------------------------------
@@ -77,8 +78,10 @@ public:
   
   //-- random generators -------------------------------------------------------
   vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability) const;
+  vector<alleleValue> make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const;
   vector<size_t> rand_sites(size_t N) const;
-  vector<size_t> rand_positions(size_t N) const;
+  vector<size_t> rand_site_positions(size_t N) const;
+  size_t rand_interval_start(size_t len) const;
 
   //-- downsampling ------------------------------------------------------------
   vector<alleleValue> downsample_to(const vector<alleleValue>& input, const siteIndex* index) const;
@@ -91,6 +94,10 @@ public:
   bool operator<=(const siteIndex& other) const;
   bool operator>=(const siteIndex& other) const;
   vector<size_t> extra_sites(const siteIndex& other) const;
+  
+  //-- serialization -----------------------------------------------------------
+  void write(std::ofstream& out) const;
+  static siteIndex* read(std::ifstream& in);
 };
 
 //------------------------------------------------------------------------------
@@ -212,7 +219,9 @@ public:
   size_t rand_haplo_idx() const;
   size_t rand_haplo_idx(site_idx_t current) const;
   vector<alleleValue> rand_LS_haplo(double log_recomb_probability, double log_mutation_probability) const;
+  vector<alleleValue> rand_LS_haplo(double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const;
   vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability) const;
+  vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const;
   
 //-- cohort editing ------------------------------------------------------------
   haplotypeCohort* remove_haplotypes(const vector<size_t>& ids_to_remove) const;
@@ -220,6 +229,10 @@ public:
   haplotypeCohort* keep_haplotypes(const vector<size_t>& ids_to_keep) const;
   haplotypeCohort* keep_haplotypes(size_t n_to_keep) const;
   haplotypeCohort* remove_rare_sites(double max_rarity) const;
+  
+//-- serialization -------------------------------------------------------------
+  void write(std::ofstream& out) const;
+  void read_site(std::ifstream& in, site_idx_t site);
 };
 
 namespace haploRandom {

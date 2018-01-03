@@ -46,3 +46,28 @@ double log_big_sum(const vector<double>& R) {
     return max_summand + log1p(sum);
   }
 }
+
+double log_big_sum(rowSet::const_iterator begin, rowSet::const_iterator end,
+                   const vector<double>& R) {
+  rowSet::const_iterator it = begin;
+  ++it;
+  if(it == end) {
+    return R[*begin];
+  } else {
+    double max_summand = R[*begin];
+    rowSet::const_iterator max_index = begin;
+    for(it = begin; it != end; ++it){
+      if(R[*it] > max_summand) {
+        max_summand = R[*it];
+        max_index = it;
+      }
+    }
+    double sum = 0;
+    for(it = begin; it != end; ++it) {
+      if(it != max_index) {
+        sum += exp(R[*it] - max_summand);
+      }
+    }
+    return max_summand + log1p(sum);
+  }
+}

@@ -35,6 +35,7 @@ private:
   // meaningful answer, there must be a site below p
   size_t find_site_below(size_t p) const;
 public:
+  inputHaplotype();
   inputHaplotype(siteIndex* reference);
   inputHaplotype(const vector<alleleValue>& query);
   inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
@@ -51,6 +52,8 @@ public:
   ~inputHaplotype();
               
   alleleValue get_allele(size_t j) const;
+  const vector<alleleValue>& get_alleles() const;
+  size_t get_start_index() const;
   
   size_t get_augmentations(int j) const;
   

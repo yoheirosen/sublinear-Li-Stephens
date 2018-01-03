@@ -281,9 +281,9 @@ void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix);
 
 slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, haplotypeCohort* cohort);
 
-double slowFwd_solve_quadratic(slowFwdSolver* solver, alleleVector* q);
+double slowFwd_solve_quadratic(slowFwdSolver* solver, inputHaplotype* q);
 
-double slowFwd_solve_linear(slowFwdSolver* solver, alleleVector* q);
+double slowFwd_solve_linear(slowFwdSolver* solver, inputHaplotype* q);
 
 void slowFwdSolver_delete(slowFwdSolver* solver);
 
@@ -291,7 +291,7 @@ void slowFwdSolver_delete(slowFwdSolver* solver);
 // random methods
 ////////////////////////////////////////////////////////////////////////////////
 
-alleleVector* hC_rand_haplo(haplotypeCohort* cohort, size_t generations, penaltySet* penalties);
+inputHaplotype* haplotypeCohort_random_haplo(haplotypeCohort* cohort, siteIndex* reference, size_t generations, penaltySet* penalties, size_t length);
 
 alleleVector* hC_separate_random(haplotypeCohort* cohort);
 

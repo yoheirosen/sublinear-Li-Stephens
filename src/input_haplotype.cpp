@@ -11,6 +11,10 @@ inputHaplotype::inputHaplotype(siteIndex* reference) :
   
 }
 
+inputHaplotype::inputHaplotype() : has_no_sites(true) {
+  
+}
+
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
             const vector<size_t>& augmentation_count) : alleles(query), 
             augmentations(augmentation_count) {
@@ -47,7 +51,7 @@ void inputHaplotype::build_relative_positions() {
     // This is impossible and therefore is used as a flag for taking the
     // haplotype to cover the entire length of the reference
     ih_start_position = reference->start_position();
-    ih_end_position = reference->start_position() + reference->absolute_length() - 1;
+    ih_end_position = reference->start_position() + reference->length_in_bp() - 1;
     start_index = 0;
     end_index = ref_end_site;
     left_tail_length = reference->span_length_before(0);
@@ -157,7 +161,7 @@ inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence
 
 inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
             siteIndex* reference) : reference(reference), ih_start_position(reference->start_position()) {
-  build(query, reference_sequence, reference->absolute_length());
+  build(query, reference_sequence, reference->length_in_bp());
 }
 
 bool inputHaplotype::has_sites() const {
@@ -206,4 +210,12 @@ size_t inputHaplotype::number_of_sites() const {
   } else {
     return end_index - start_index + 1;
   }
+}
+
+const vector<alleleValue>& inputHaplotype::get_alleles() const {
+  return alleles;
+}
+
+size_t inputHaplotype::get_start_index() const {
+  return start_index;
 }

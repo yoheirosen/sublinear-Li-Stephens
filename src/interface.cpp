@@ -312,7 +312,7 @@ inputHaplotype* inputHaplotype_build(const char* ref_seq,
                           size_t start_position) {
   inputHaplotype* to_return = new inputHaplotype(ref_seq, query, 
                                                  ref_struct, start_position, 
-                                                 ref_struct->absolute_length());
+                                                 ref_struct->length_in_bp());
   return to_return;
 }
 
@@ -351,30 +351,32 @@ void penaltySet_delete(penaltySet* penalty_set) {
 
 typedef struct alleleVector alleleVector;
                               
-alleleVector* hC_rand_haplo(haplotypeCohort* cohort,
-                            size_t generations, penaltySet* penalties) {
-  vector<alleleValue> random_haplo = cohort->rand_desc_haplo(
-                                                     generations,
-                                                     penalties->rho,
-                                                     penalties->mu);
-  return new alleleVector(random_haplo);
-}
-
 slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, haplotypeCohort* cohort) {
   return new slowFwdSolver(reference, penalties, cohort);
 }
 
-double slowFwd_solve_quadratic(slowFwdSolver* solver, alleleVector* q) {
-  return solver->calculate_probability_quadratic(q->entries, 0);
+double slowFwd_solve_quadratic(slowFwdSolver* solver, inputHaplotype* q) {
+  return solver->calculate_probability_quadratic(q->get_alleles(), q->get_start_index());
 }
 
-double slowFwd_solve_linear(slowFwdSolver* solver, alleleVector* q) {
-  return solver->calculate_probability_linear(q->entries, 0);
+double slowFwd_solve_linear(slowFwdSolver* solver, inputHaplotype* q) {
+  return solver->calculate_probability_linear(q->get_alleles(), q->get_start_index());
 }
 
-inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query,
-                                               siteIndex* reference) {
-  return new inputHaplotype(query->entries, vector<size_t>(query->size(), 0), reference, reference->start_position(), reference->absolute_length());
+inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query, siteIndex* reference, size_t start_position, size_t end_position) {
+  return new inputHaplotype(query->entries, vector<size_t>(query->size(), 0), reference, reference->start_position(), reference->length_in_bp());
+}
+
+inputHaplotype* haplotypeCohort_random_haplo(haplotypeCohort* cohort, siteIndex* reference, size_t generations, penaltySet* penalties, size_t length) {
+  size_t start = reference->rand_interval_start(length);
+  size_t start_site = reference->find_site_above(start);
+  size_t end_site = reference->find_site_below(start + length);
+  if(start_site <= end_site) {
+    vector<alleleValue> random_haplo = cohort->rand_desc_haplo(generations, penalties->rho, penalties->mu, start, length);
+    return new inputHaplotype(random_haplo, vector<size_t>(random_haplo.size(), 0), reference, start, length);
+  } else {
+    return new inputHaplotype();
+  }
 }
 
 void alleleVector_delete(alleleVector* to_delete) {

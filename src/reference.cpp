@@ -95,7 +95,7 @@ size_t siteIndex::number_of_sites() const {
   return site_index_to_position.size();
 }
 
-size_t siteIndex::absolute_length() const {
+size_t siteIndex::length_in_bp() const {
   return length;
 }
 
@@ -421,9 +421,9 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
   }
   siteIndex* new_reference = 
             new siteIndex(remaining_site_positions,
-                                         reference->absolute_length(),
+                                         reference->length_in_bp(),
                                          reference->start_position() +
-                                                  reference->absolute_length());
+                                                  reference->length_in_bp());
   haplotypeCohort* to_return = 
             new haplotypeCohort(number_of_haplotypes, new_reference);
   for(size_t i = 0; i < remaining_sites.size(); i++) {
@@ -442,8 +442,18 @@ vector<size_t> siteIndex::rand_sites(size_t N) const {
   return haploRandom::n_unique_uints(N, number_of_sites());
 }
 
-vector<size_t> siteIndex::rand_positions(size_t N) const {
+vector<size_t> siteIndex::rand_site_positions(size_t N) const {
   return haploRandom::n_unique_uints(N, number_of_sites(), &site_index_to_position);
+}
+
+size_t siteIndex::rand_interval_start(size_t len) const {
+  default_random_engine generator;
+  generator.seed(chrono::system_clock::now().time_since_epoch().count());
+  uniform_real_distribution<double> unit_uniform(0.0, 1.0);
+  size_t supremum = length_in_bp() - len;
+  size_t draw = (size_t)(unit_uniform(generator) * supremum);
+  if(draw == supremum) { draw = supremum - 1; }
+  return draw;
 }
 
 size_t haplotypeCohort::rand_haplo_idx() const {
@@ -468,15 +478,19 @@ size_t haplotypeCohort::rand_haplo_idx(size_t current) const {
 }
 
 vector<alleleValue> haplotypeCohort::rand_LS_haplo(double log_recomb_probability, double log_mutation_probability) const {
-  vector<alleleValue> to_return(get_n_sites());
+  return rand_LS_haplo(log_recomb_probability, log_mutation_probability, 0, get_n_sites() - 1);
+}
+
+vector<alleleValue> haplotypeCohort::rand_LS_haplo(double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const {
+  vector<alleleValue> to_return(end_site - start_site + 1);
   size_t h_idx = rand_haplo_idx();
   default_random_engine generator;
   generator.seed(chrono::system_clock::now().time_since_epoch().count());
-  for(size_t i = 0; i < get_n_sites() - 1; i++) {
+  for(size_t i = 0; i <= end_site - start_site - 1; i++) {
     binomial_distribution<size_t> recombiner(get_reference()->span_length_after(i) + 1, exp(log_recomb_probability));
     size_t n_recombinations = recombiner(generator);
     to_return[i] = haploRandom::mutate(allele_at(i, h_idx), log_mutation_probability);
-    for(size_t i = 0; i < n_recombinations; i++) {
+    for(size_t j = 0; j < n_recombinations; j++) {
       h_idx = rand_haplo_idx(h_idx);
     }
   }
@@ -485,13 +499,17 @@ vector<alleleValue> haplotypeCohort::rand_LS_haplo(double log_recomb_probability
 }
 
 vector<alleleValue> haplotypeCohort::rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability) const {
+  return rand_desc_haplo(generations, log_recomb_probability, log_mutation_probability, 0, get_n_sites() - 1);
+}
+
+vector<alleleValue> haplotypeCohort::rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const {
   vector<vector<alleleValue> > old_gen;
   vector<vector<alleleValue> > new_gen;
   
   size_t gen_size = (size_t)pow(2, generations);
   new_gen.clear();
   for(size_t j = 0; j < gen_size; j++) {
-    new_gen.push_back(rand_LS_haplo(log_recomb_probability, log_mutation_probability));
+    new_gen.push_back(rand_LS_haplo(log_recomb_probability, log_mutation_probability, start_site, end_site));
   }
   
   for(size_t i = 1; i < generations; i++) {
@@ -499,7 +517,7 @@ vector<alleleValue> haplotypeCohort::rand_desc_haplo(size_t generations, double 
     old_gen = new_gen;
     new_gen.clear();
     for(size_t j = 0; j < gen_size; j++) {
-      new_gen.push_back(get_reference()->make_child(old_gen[2*j], old_gen[2*j + 1], log_recomb_probability, log_mutation_probability));
+      new_gen.push_back(get_reference()->make_child(old_gen[2*j], old_gen[2*j + 1], log_recomb_probability, log_mutation_probability, start_site, end_site));
     }
   }
   
@@ -507,13 +525,18 @@ vector<alleleValue> haplotypeCohort::rand_desc_haplo(size_t generations, double 
 }
 
 vector<alleleValue> siteIndex::make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability) const {
-  vector<alleleValue> to_return(number_of_sites());
+  return make_child(parent_0, parent_1, log_recomb_probability, log_mutation_probability, 0, number_of_sites() - 1);
+}
+
+vector<alleleValue> siteIndex::make_child(const vector<alleleValue>& parent_0, const vector<alleleValue>& parent_1, double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const {
+  vector<alleleValue> to_return(end_site - start_site + 1);
   default_random_engine generator;
   generator.seed(chrono::system_clock::now().time_since_epoch().count());
   bernoulli_distribution hap_chooser(0.5);
   bool h_idx = hap_chooser(generator);
-  for(size_t i = 0; i < number_of_sites() - 1; i++) {
-    binomial_distribution<size_t> recombiner(span_length_after(i) + 1, exp(log_recomb_probability));
+  
+  for(size_t i = 0; i <= end_site - start_site - 1; i++) {
+    binomial_distribution<size_t> recombiner(span_length_after(i + start_site) + 1, exp(log_recomb_probability));
     size_t n_recombinations = recombiner(generator);
     to_return[i] = h_idx ? parent_0[i] : parent_1[i];
     to_return[i] = haploRandom::mutate(to_return[i], log_mutation_probability);
@@ -614,8 +637,8 @@ haplotypeCohort* haplotypeCohort::remove_rare_sites(double max_rarity) const {
   }
   siteIndex* new_ref = new siteIndex(
                        remaining_site_positions,
-                       reference->absolute_length(),
-                       reference->start_position() + reference->absolute_length());
+                       reference->length_in_bp(),
+                       reference->start_position() + reference->length_in_bp());
   haplotypeCohort* to_return = 
             new haplotypeCohort(number_of_haplotypes, new_ref);
   for(size_t i = 0; i < sites_not_dropped.size(); i++) {
@@ -690,8 +713,8 @@ haplotypeCohort* haplotypeCohort::downsample_haplotypes(const vector<size_t>& id
   }
   siteIndex* new_ref = new siteIndex(
                        remaining_site_positions,
-                       reference->absolute_length(),
-                       reference->start_position() + reference->absolute_length());
+                       reference->length_in_bp(),
+                       reference->start_position() + reference->length_in_bp());
   haplotypeCohort* to_return = new haplotypeCohort(kept_haplotypes, new_ref);
   for(size_t i = 0; i < sites_not_dropped.size(); i++) {
     vector<alleleValue> this_column(kept_haplotypes, unassigned);
