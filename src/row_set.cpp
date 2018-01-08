@@ -79,7 +79,7 @@ rowSet::const_iterator& rowSet::const_iterator::operator++() {
 }
 
 rowSet::const_iterator rowSet::const_iterator::operator++(int foo) {
-  rowSet::const_iterator to_return(*this);
-  ++to_return;
-  return to_return;
+  rowSet::const_iterator temp(*this);
+  ++(*this);
+  return temp;
 }
