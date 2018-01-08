@@ -33,6 +33,7 @@ struct penaltySet{
   DPUpdateMap get_current_map(double last_sum, bool match_is_rare) const;
   double get_minority_map_correction(bool match_is_rare) const;
   void update_S(double& S, const vector<double>& summands, bool match_is_rare) const;
+  void update_S(double& S, const vector<double>& summands, rowSet::const_iterator begin, rowSet::const_iterator end, bool match_is_rare) const;
   
   // double mu_val(alleleValue from, alleleValue to) const;
   // double mu_loss_val(alleleValue from) const;

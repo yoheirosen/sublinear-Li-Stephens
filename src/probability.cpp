@@ -160,11 +160,7 @@ void fastFwdAlgState::update_subset_of_Rs(const rowSet& indices,
 
 void fastFwdAlgState::fast_update_S(const rowSet& indices,
               bool active_is_match) {
-  vector<double> summands = vector<double>(indices.size(), 0);
-  for(size_t i = 0; i < indices.size(); i++) {
-    summands[i] = R[indices[i]];
-  }
-  penalties->update_S(S, summands, active_is_match);
+  penalties->update_S(S, R, indices.begin(), indices.end(), active_is_match);
 }
 
 void fastFwdAlgState::extend_probability_at_site(size_t site_index,

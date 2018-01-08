@@ -1,4 +1,5 @@
 #include "row_set.hpp"
+#include <iostream>
 
 rowSet::rowSet() {
   row_vectors = {nullptr};
@@ -71,9 +72,9 @@ rowSet::const_iterator& rowSet::const_iterator::operator++() {
   ++inner_itr;
   if(inner_itr == (*outer_itr)->end()) {
     ++outer_itr;
-  }
-  if(outer_itr != container->row_vectors.end()) {
-    inner_itr = (*outer_itr)->begin();
+    if(outer_itr != container->row_vectors.end()) {
+      inner_itr = (*outer_itr)->begin();
+    }
   }
   return *this;
 }

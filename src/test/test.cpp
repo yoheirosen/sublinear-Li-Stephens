@@ -36,7 +36,7 @@ TEST_CASE( "siteIndex structure and accessors", "[reference]" ) {
     REQUIRE(ref_struct.span_length_after(0) == 2);
     REQUIRE(ref_struct.span_length_after(1) == 0);
     REQUIRE(ref_struct.span_length_after(2) == 1);
-    REQUIRE(ref_struct.absolute_length() == 7);
+    REQUIRE(ref_struct.length_in_bp() == 7);
   }
   SECTION( "build-from-strings finds all sites" ) {
     vector<string> haplotypes = {
