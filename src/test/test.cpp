@@ -220,12 +220,12 @@ TEST_CASE( "inputHaplotype", "[input-haplotype]" ) {
   vector<size_t> positions = {1,4,5};
   siteIndex ref_struct = build_ref(ref_seq, positions);
   
-  SECTION( "augmentations are indexed as desired " ) {
+  SECTION( "novel_SNVs are indexed as desired " ) {
     vector<alleleValue> alleles = {A, A};
     vector<size_t> counts = {1,2,3};
     inputHaplotype query = inputHaplotype(alleles, counts);
-    REQUIRE(query.get_augmentations(-1) == 1);
-    REQUIRE(query.get_augmentations(1) == 3);
+    REQUIRE(query.get_novel_SNVs(-1) == 1);
+    REQUIRE(query.get_novel_SNVs(1) == 3);
   }
   SECTION( "build-from-string gives same result as direct construction" ) {
     // using ref_test from above
@@ -240,14 +240,14 @@ TEST_CASE( "inputHaplotype", "[input-haplotype]" ) {
     inputHaplotype query_0_string = inputHaplotype(seq_1.c_str(), ref_seq.c_str(), &ref_struct);
     inputHaplotype query_1_string = inputHaplotype(seq_2.c_str(), ref_seq.c_str(), &ref_struct);
     
-    REQUIRE(query_0_direct.get_augmentations(-1) ==
-              query_0_string.get_augmentations(-1));
-    REQUIRE(query_0_direct.get_augmentations(0) == 
-              query_0_string.get_augmentations(0));
-    REQUIRE(query_1_direct.get_augmentations(-1) == 
-              query_1_string.get_augmentations(-1));
-    REQUIRE(query_1_direct.get_augmentations(0) == 
-              query_1_string.get_augmentations(0));
+    REQUIRE(query_0_direct.get_novel_SNVs(-1) ==
+              query_0_string.get_novel_SNVs(-1));
+    REQUIRE(query_0_direct.get_novel_SNVs(0) == 
+              query_0_string.get_novel_SNVs(0));
+    REQUIRE(query_1_direct.get_novel_SNVs(-1) == 
+              query_1_string.get_novel_SNVs(-1));
+    REQUIRE(query_1_direct.get_novel_SNVs(0) == 
+              query_1_string.get_novel_SNVs(0));
     REQUIRE(query_0_direct.get_allele(0) == query_0_string.get_allele(0));
     REQUIRE(query_1_direct.get_allele(0) == query_1_string.get_allele(0));
   }
@@ -741,13 +741,13 @@ TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
     REQUIRE(overlap_9_16.number_of_sites() == 2);
     REQUIRE(overlap_9_16.get_left_tail() == 1);
     REQUIRE(overlap_9_16.get_site_index(0) == 1);
-    REQUIRE(overlap_9_16.get_augmentations(-1) == 1);
-    REQUIRE(overlap_9_16.get_augmentations(0) == 4);
-    REQUIRE(overlap_9_16.get_augmentations(1) == 1);
+    REQUIRE(overlap_9_16.get_novel_SNVs(-1) == 1);
+    REQUIRE(overlap_9_16.get_novel_SNVs(0) == 4);
+    REQUIRE(overlap_9_16.get_novel_SNVs(1) == 1);
     REQUIRE(overlap_4_9.has_left_tail() == false);
     REQUIRE(overlap_4_9.number_of_sites() == 2);
     REQUIRE(overlap_4_9.has_span_after(1) == false);
-    REQUIRE(overlap_9_16.get_augmentations(0) == 4);
+    REQUIRE(overlap_9_16.get_novel_SNVs(0) == 4);
   }
 }
 

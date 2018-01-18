@@ -58,13 +58,13 @@ void fastFwdAlgState::initialize_probability(const inputHaplotype* q) {
   if(q->has_sites()) {
     if(q->has_left_tail()) {
       initialize_probability(q->get_site_index(0), q->get_allele(0),
-                q->get_left_tail(), q->get_augmentations(-1));
+                q->get_left_tail(), q->get_novel_SNVs(-1));
     } else {
       initialize_probability(q->get_site_index(0), q->get_allele(0));
     }
   } else {
     initialize_probability_at_span(q->get_left_tail(), 
-              q->get_augmentations(-1));
+              q->get_novel_SNVs(-1));
   }
 }
 
@@ -75,7 +75,7 @@ void fastFwdAlgState::extend_probability_at_site(const inputHaplotype* q, size_t
 void fastFwdAlgState::extend_probability_at_span_after(const inputHaplotype* q, 
             size_t j) {
   extend_probability_at_span_after(q->get_site_index(j), 
-            q->get_augmentations(j));
+            q->get_novel_SNVs(j));
 }
 
 double fastFwdAlgState::calculate_probability(const inputHaplotype* q) {

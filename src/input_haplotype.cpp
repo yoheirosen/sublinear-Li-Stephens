@@ -15,86 +15,95 @@ inputHaplotype::inputHaplotype() : has_no_sites(true) {
   
 }
 
-inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
-            const vector<size_t>& augmentation_count) : alleles(query), 
-            augmentations(augmentation_count) {
-  
-}
-
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query) : alleles(query), 
-            augmentations(vector<size_t>(query.size(), 0)) {
+            novel_SNVs(vector<size_t>(query.size(), 0)) {
   
 }
 
-inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
-            const vector<size_t>& augmentation_count, 
-            siteIndex* reference, size_t ih_start = 1, 
-            size_t length = 0) : reference(reference), alleles(query), 
-            augmentations(augmentation_count), ih_start_position(ih_start)
-            {
-  ih_end_position = ih_start + length - 1;
-  build_relative_positions();
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count) : 
+            alleles(query), novel_SNVs(novel_SNV_count) {
+  
 }
 
-inputHaplotype::inputHaplotype(const vector<alleleValue>& query, 
-            const vector<size_t>& augmentation_count, 
-            siteIndex* reference) : reference(reference), alleles(query), 
-            augmentations(augmentation_count), ih_start_position(1)
+
+
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count, 
+            siteIndex* reference, size_t absolute_start_pos, size_t length = 0) : reference(reference), alleles(query), 
+            novel_SNVs(novel_SNV_count), absolute_start_pos(absolute_start_pos)
             {
-  ih_end_position = ih_start_position + 1;
-  build_relative_positions();
+  absolute_end_pos = absolute_start_pos + length - 1;
+  calculate_relative_positions(false);
 }
 
-void inputHaplotype::build_relative_positions() {
-  size_t ref_end_site = reference->number_of_sites() - 1; 
-  if(ih_end_position == 0 && ih_start_position == 1) {
-    // This is impossible and therefore is used as a flag for taking the
-    // haplotype to cover the entire length of the reference
-    ih_start_position = reference->start_position();
-    ih_end_position = reference->start_position() + reference->length_in_bp() - 1;
-    start_index = 0;
-    end_index = ref_end_site;
+//TODO check if ever called
+inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count, 
+            siteIndex* reference) : reference(reference), alleles(query), novel_SNVs(novel_SNV_count) {
+  calculate_relative_positions(true);
+}
+
+//TODO: bounds checking wrt reference start and finish
+void inputHaplotype::calculate_relative_positions(bool covers_reference) {
+  size_t first_ref_site = 0;
+  size_t last_ref_site = reference->number_of_sites() - 1;
+  size_t first_ref_site_pos = reference->get_position(0);
+  size_t last_ref_site_pos = reference->get_position(last_ref_site);
+  size_t ref_start_pos = reference->start_position();
+  size_t ref_end_pos = reference->end_position();
+  
+  if(covers_reference) {
+    absolute_start_pos = ref_start_pos;
+    absolute_end_pos = ref_end_pos;
+    start_site = first_ref_site;
+    end_site = last_ref_site;
     left_tail_length = reference->span_length_before(0);
-    right_tail_length = reference->span_length_after(ref_end_site);
+    right_tail_length = reference->span_length_after(last_ref_site);
     return;    
-  } else if(!(reference->is_site(ih_start_position)) &&
-            !(reference->is_site(ih_end_position))) {
-    // Neither the start nor end position are sites. If this is true then it is
-    // possible that there are no sites within the interval specified by the
-    // inputHaplotype. This can arise in three ways, which we should check
-    if(ih_start_position > reference->get_position(ref_end_site) ||
-                ih_end_position < reference->get_position(0) ||
-                find_site_below(ih_start_position) ==
-                find_site_below(ih_end_position)) {
-      has_no_sites = true;
-      left_tail_length = ih_end_position - ih_start_position + 1;
-      return;
-    }
+  } 
+  
+  // Check whether the input_haplotype contains zero sites
+  if((!(reference->is_site(absolute_start_pos)) && !(reference->is_site(absolute_end_pos))) &&
+     (absolute_start_pos > reference->get_position(last_ref_site) ||
+      absolute_end_pos < reference->get_position(0) ||
+      find_site_below(absolute_start_pos) == find_site_below(absolute_end_pos))) {
+    has_no_sites = true;
+    left_tail_length = absolute_end_pos - absolute_start_pos + 1;
+    return;
   }
-  if(reference->is_site(ih_start_position)) {
-    start_index = reference->get_site_index(ih_start_position);
+  
+  if(absolute_start_pos < ref_start_pos ||
+     absolute_start_pos > ref_end_pos ||
+     absolute_end_pos < ref_start_pos ||
+     absolute_end_pos > ref_end_pos) {
+    throw runtime_error("haplotype queried is outside of reference range");
+  }
+  if(absolute_end_pos < absolute_start_pos) {
+    throw runtime_error("start position of haplotype queried exceeds end position");
+  }
+  
+  if(reference->is_site(absolute_start_pos)) {
+    start_site = reference->get_site_index(absolute_start_pos);
     left_tail_length = 0;
   } else {
     // Since we need all indices to have positions within the interval spanned
-    // by the haplotype, then a ih_start_position which is not a site must be
+    // by the haplotype, then a absolute_start_pos which is not a site must be
     // placed before the 0-index with respect to the haplotype interval 
-    if(ih_start_position < reference->get_position(0)) {
-      start_index = 0;
+    if(absolute_start_pos < reference->get_position(0)) {
+      start_site = 0;
       // site positions are not included in span lengths
-      left_tail_length = reference->get_position(0) - ih_start_position;
+      left_tail_length = reference->get_position(0) - absolute_start_pos;
     } else {
-     // site_below + 1 is guaranteed to be within range
-     start_index = find_site_below(ih_start_position) + 1;
-     left_tail_length = reference->get_position(start_index) -
-                ih_start_position;
+      // site_below + 1 is guaranteed to be within range
+      start_site = find_site_below(absolute_start_pos) + 1;
+      left_tail_length = reference->get_position(start_site) - absolute_start_pos;
    }
   }
-  if(reference->is_site(ih_end_position)) {
-    end_index = reference->get_site_index(ih_end_position);
+  
+  if(reference->is_site(absolute_end_pos)) {
+    end_site = reference->get_site_index(absolute_end_pos);
     right_tail_length = 0;
   } else {
-    end_index = find_site_below(ih_end_position);
-    right_tail_length = ih_end_position - reference->get_position(end_index);
+    end_site = find_site_below(absolute_end_pos);
+    right_tail_length = absolute_end_pos - reference->get_position(end_site);
   }
   return;
 }
@@ -104,50 +113,49 @@ size_t inputHaplotype::find_site_below(size_t p) const {
 }
 
 void inputHaplotype::build(const char* query, const char* reference_sequence, size_t length) {
-  ih_end_position = ih_start_position + length - 1;
-  ih_start_offset = ih_start_position - reference->start_position();
-  build_relative_positions();
+  absolute_end_pos = absolute_start_pos + length - 1;
+  start_offset_wrt_ref = absolute_start_pos - reference->start_position();
+  calculate_relative_positions(false);
   
   size_t number_of_sites;
   if(has_no_sites) {
     number_of_sites = 0;
   } else {
-    number_of_sites = end_index - start_index + 1;
+    number_of_sites = end_site - start_site + 1;
   }
   
   if(left_tail_length > 0) {
     size_t counter = 0;
     for(size_t i = 0; i < left_tail_length; i++) {
-      if(allele::from_char(query[i]) != allele::from_char(reference_sequence[i + ih_start_offset])) {
+      if(allele::from_char(query[i]) != allele::from_char(reference_sequence[i + start_offset_wrt_ref])) {
         counter++;
       }
     }
-    augmentations.push_back(counter);
+    novel_SNVs.push_back(counter);
   } else {
-    augmentations.push_back(0);
+    novel_SNVs.push_back(0);
   }
   if(!has_no_sites) {
     for(size_t i = 0; i < number_of_sites; i++) {
-      size_t p_q = 
-                reference->get_position(get_site_index(i)) - ih_start_position;
+      size_t p_q = reference->get_position(get_site_index(i)) - absolute_start_pos;
       alleles.push_back(allele::from_char(query[p_q]));
       if(reference->has_span_after(get_site_index(i))) {
         size_t span_end_q;
         if(i == number_of_sites - 1) {
-          span_end_q = ih_end_position - ih_start_position;
+          span_end_q = absolute_end_pos - absolute_start_pos;
         } else {
           span_end_q = reference->get_position(get_site_index(i + 1))
-                    - 1 - ih_start_position;
+                    - 1 - absolute_start_pos;
         }
         size_t counter = 0;
         for(size_t j = p_q + 1; j <= span_end_q; j++) {
-          if(query[j] != reference_sequence[j + ih_start_offset]) {
+          if(query[j] != reference_sequence[j + start_offset_wrt_ref]) {
             counter++;
           }
         }
-        augmentations.push_back(counter);
+        novel_SNVs.push_back(counter);
       } else {
-        augmentations.push_back(0);
+        novel_SNVs.push_back(0);
       }
     }
   }
@@ -155,12 +163,12 @@ void inputHaplotype::build(const char* query, const char* reference_sequence, si
 
 inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
             siteIndex* reference, size_t ih_start = 1, 
-            size_t length = 0) : reference(reference), ih_start_position(ih_start) {
+            size_t length = 0) : reference(reference), absolute_start_pos(ih_start) {
   build(query, reference_sequence, length);
 }
 
 inputHaplotype::inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference) : reference(reference), ih_start_position(reference->start_position()) {
+            siteIndex* reference) : reference(reference), absolute_start_pos(reference->start_position()) {
   build(query, reference_sequence, reference->length_in_bp());
 }
 
@@ -172,12 +180,12 @@ alleleValue inputHaplotype::get_allele(size_t j) const {
   return alleles[j];
 }
 
-size_t inputHaplotype::get_augmentations(int j) const {
-  return augmentations[j + 1];
+size_t inputHaplotype::get_novel_SNVs(int j) const {
+  return novel_SNVs[j + 1];
 }
 
 size_t inputHaplotype::get_site_index(size_t j) const {
-  return j + start_index;
+  return j + start_site;
 }
 
 size_t inputHaplotype::get_left_tail() const {
@@ -189,15 +197,16 @@ bool inputHaplotype::has_left_tail() const {
 }
 
 size_t inputHaplotype::get_span_after(size_t i) const {
-  if(i = end_index) {
+  if(i = end_site) {
     return right_tail_length;
   } else {
     return reference->span_length_after(get_site_index(i));
   }
 }
 
+
 bool inputHaplotype::has_span_after(size_t i) const {
-  if(i = end_index) {
+  if(i = end_site) {
     return right_tail_length != 0;
   } else {
     return reference->span_length_after(get_site_index(i));
@@ -208,7 +217,7 @@ size_t inputHaplotype::number_of_sites() const {
   if(has_no_sites) {
     return 0;
   } else {
-    return end_index - start_index + 1;
+    return end_site - start_site + 1;
   }
 }
 
@@ -216,6 +225,6 @@ const vector<alleleValue>& inputHaplotype::get_alleles() const {
   return alleles;
 }
 
-size_t inputHaplotype::get_start_index() const {
-  return start_index;
+size_t inputHaplotype::get_start_site() const {
+  return start_site;
 }

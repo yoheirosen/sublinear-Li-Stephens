@@ -11,25 +11,25 @@ struct inputHaplotype{
 private:
   siteIndex *reference = NULL;
   vector<alleleValue> alleles;
-  vector<size_t> augmentations;
+  vector<size_t> novel_SNVs;
   
   // absolute positions of start and end
-  size_t ih_start_position;
-  size_t ih_end_position;
-  size_t ih_start_offset;
+  size_t absolute_start_pos;
+  size_t absolute_end_pos;
+  size_t start_offset_wrt_ref;
   // indices w.r.t. the reference structure of the first and last sites covered
   // by the haplotype (the haplotype may begin and end in the middle of a span)
-  size_t start_index = 0;
-  size_t end_index = 0;
-  // since we index things by site; we need a flag for the non-existence of any
-  // sites within the haplotype
-  bool has_no_sites = false;
+  size_t start_site = 0;
+  size_t end_site = 0;
   // first and last span lengths
   size_t left_tail_length;
   size_t right_tail_length;
+  // since we index things by site; we need a flag for the non-existence of any
+  // sites within the haplotype
+  bool has_no_sites = false;
   
   void build(const char* query, const char* reference_sequence, size_t length);
-  void build_relative_positions();
+  void calculate_relative_positions(bool covers_reference);
   
   // binary search for site coming before position p. In order to give a
   // meaningful answer, there must be a site below p
@@ -38,24 +38,24 @@ public:
   inputHaplotype();
   inputHaplotype(siteIndex* reference);
   inputHaplotype(const vector<alleleValue>& query);
-  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count);
-  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count);
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count,
             siteIndex *reference);          
-  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& augmentation_count,
-            siteIndex *reference, size_t ih_start_position, 
+  inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count,
+            siteIndex *reference, size_t absolute_start_pos, 
             size_t length);
   inputHaplotype(const char* query, const char* reference_sequence, 
             siteIndex* reference);          
   inputHaplotype(const char* query, const char* reference_sequence, 
-            siteIndex* reference, size_t ih_start_position, 
+            siteIndex* reference, size_t absolute_start_pos, 
             size_t length);
   ~inputHaplotype();
               
   alleleValue get_allele(size_t j) const;
   const vector<alleleValue>& get_alleles() const;
-  size_t get_start_index() const;
+  size_t get_start_site() const;
   
-  size_t get_augmentations(int j) const;
+  size_t get_novel_SNVs(int j) const;
   
   size_t get_left_tail() const;
   bool has_left_tail() const;

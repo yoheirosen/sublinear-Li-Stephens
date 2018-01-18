@@ -116,11 +116,10 @@ int64_t siteIndex::add_site(size_t position) {
   return site_index_to_position.size() - 1;
 }
 
-void siteIndex::calculate_final_span_length(
-            size_t reference_length) {
+void siteIndex::calculate_final_span_length(size_t reference_length) {
   size_t previous_position = site_index_to_position.back();
-  span_lengths.push_back(reference_length - previous_position - 1);
-  length = site_index_to_position.back() + span_lengths.back() + 1;
+  span_lengths.push_back(global_offset + reference_length - previous_position - 1);
+  length = site_index_to_position.back() + span_lengths.back() + 1 - global_offset;
 }
 
 size_t siteIndex::find_site_above(size_t position) const {
@@ -325,6 +324,9 @@ size_t siteIndex::start_position() const {
   return global_offset;
 }
 
+size_t siteIndex::end_position() const {
+  return start_position() + length_in_bp() - 1;
+}
 
 int haplotypeCohort::add_record(size_t site) {
   if(finalized) {
@@ -447,13 +449,16 @@ vector<size_t> siteIndex::rand_site_positions(size_t N) const {
 }
 
 size_t siteIndex::rand_interval_start(size_t len) const {
+  if(len > length_in_bp()) {
+    throw runtime_error("attempted to generate random subinterval exceeding size of reference");
+  }
   default_random_engine generator;
   generator.seed(chrono::system_clock::now().time_since_epoch().count());
   uniform_real_distribution<double> unit_uniform(0.0, 1.0);
   size_t supremum = length_in_bp() - len;
   size_t draw = (size_t)(unit_uniform(generator) * supremum);
   if(draw == supremum) { draw = supremum - 1; }
-  return draw;
+  return draw + global_offset;
 }
 
 size_t haplotypeCohort::rand_haplo_idx() const {

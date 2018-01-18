@@ -356,11 +356,11 @@ slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, h
 }
 
 double slowFwd_solve_quadratic(slowFwdSolver* solver, inputHaplotype* q) {
-  return solver->calculate_probability_quadratic(q->get_alleles(), q->get_start_index());
+  return solver->calculate_probability_quadratic(q->get_alleles(), q->get_start_site());
 }
 
 double slowFwd_solve_linear(slowFwdSolver* solver, inputHaplotype* q) {
-  return solver->calculate_probability_linear(q->get_alleles(), q->get_start_index());
+  return solver->calculate_probability_linear(q->get_alleles(), q->get_start_site());
 }
 
 inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query, siteIndex* reference, size_t start_position, size_t end_position) {
@@ -372,10 +372,10 @@ inputHaplotype* haplotypeCohort_random_haplo(haplotypeCohort* cohort, siteIndex*
   size_t start_site = reference->find_site_above(start);
   size_t end_site = reference->find_site_below(start + length);
   if(start_site <= end_site) {
-    vector<alleleValue> random_haplo = cohort->rand_desc_haplo(generations, penalties->rho, penalties->mu, start, length);
+    vector<alleleValue> random_haplo = cohort->rand_desc_haplo(generations, penalties->rho, penalties->mu, start_site, end_site);
     return new inputHaplotype(random_haplo, vector<size_t>(random_haplo.size(), 0), reference, start, length);
   } else {
-    return new inputHaplotype();
+    return new inputHaplotype(vector<alleleValue>(), vector<size_t>(1, 0), reference, start, length);
   }
 }
 

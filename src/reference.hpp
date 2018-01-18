@@ -60,6 +60,7 @@ public:
   
   //-- positions ---------------------------------------------------------------
   size_t start_position() const;
+  size_t end_position() const;
   size_t pos_ref2global(size_t p) const;
   int64_t pos_global2ref(int64_t p) const;
   
