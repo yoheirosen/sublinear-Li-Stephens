@@ -43,9 +43,6 @@ public:
   
   //-- site-by-site construction -----------------------------------------------
   void set_initial_span(size_t length);
-  // >= 0 : successful, returns site-index
-  // -1 : out of order
-  // -2 : collision
   int64_t add_site(size_t position);
   void calculate_final_span_length(size_t reference_length);
 
@@ -154,16 +151,8 @@ public:
   void set_column(const vector<alleleValue>& values);
   void set_column(const vector<alleleValue>& values, site_idx_t site);
   
-  // per site x index
-  //TODO update how this works
-  // 1 : successful
-  // 0 : locked
-  // -1 : out of order
-  int add_record(site_idx_t site);
-  // 1 : successful
-  // 0 : cohort locked
-  // -1 : already assigned
-  int set_sample_allele(site_idx_t site, haplo_id_t sample, alleleValue a);
+  void add_record();
+  void set_sample_allele(site_idx_t site, haplo_id_t sample, alleleValue a);
   
   void populate_allele_counts();
   rowSet build_active_rowSet(site_idx_t site, alleleValue a) const;

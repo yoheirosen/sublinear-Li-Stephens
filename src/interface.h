@@ -180,9 +180,6 @@ siteIndex* siteIndex_init_empty(size_t global_offset);
 //   locks the siteIndex
 // Return value:
 //   site index of just added site if conditions above are met 
-//   -1 : positions added in non-ascending order
-//   -2 : site with same position already
-//   -3 : site-vector locked
 int64_t siteIndex_add_site(siteIndex* reference, size_t position);
 
 void siteIndex_set_initial_span(siteIndex* ref, size_t length);
@@ -203,16 +200,9 @@ haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteInd
 //   a site with the index specified must exist in the siteIndex
 //   associated with the haplotypeCohort
 //   this also must be the successor to the last site added to the haplotypeCohort
-// Return value:
-//   1 : successful
-//   0 : locked
-//   -1 : out of order
-int haplotypeCohort_add_record(haplotypeCohort* cohort, size_t site);
+void haplotypeCohort_add_record(haplotypeCohort* cohort);
 
-// 1 : successful
-// 0 : cohort locked
-// -1 : already assigned
-int haplotypeCohort_set_sample_allele(haplotypeCohort* cohort, size_t site, size_t sample, char allele);
+void haplotypeCohort_set_sample_allele(haplotypeCohort* cohort, size_t site, size_t sample, char allele);
 
 // builds allele-counts and lookup tables
 // also locks the haplotypeCohort from being modified
@@ -226,8 +216,6 @@ void haplotypeCohort_delete(haplotypeCohort* cohort);
                                     
 size_t haplotypeCohort_n_haplotypes(haplotypeCohort* cohort);
 
-size_t haplotypeCohort_n_sites(haplotypeCohort* cohort);
-
 size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -237,19 +225,17 @@ size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort);
 size_t siteIndex_n_sites(siteIndex* reference);
 
 ////////////////////////////////////////////////////////////////////////////////
-// haplotype query object building
+// haplotype observed_haplotype object building
 ////////////////////////////////////////////////////////////////////////////////
 
 inputHaplotype* inputHaplotype_build(const char* ref_seq, 
-                          const char* query, 
+                          const char* observed_haplotype, 
                           siteIndex* ref_struct,
                           size_t start_position);
 
-void inputHaplotype_delete(inputHaplotype* in_hap);
+size_t inputHaplotype_n_sites(inputHaplotype* input_haplotype);
 
-inputHaplotype* alleleVector_to_inputHaplotype(alleleVector* query, siteIndex* reference);
-
-void alleleVector_delete(alleleVector* to_delete);
+void inputHaplotype_delete(inputHaplotype* input_haplotype);
 
 ////////////////////////////////////////////////////////////////////////////////
 // penaltySet building
@@ -272,11 +258,11 @@ fastFwdAlgState* fastFwdAlgState_initialize(siteIndex* reference,
                                             penaltySet* penalties,
                                             haplotypeCohort* cohort);
 
-double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* query);
+double fastFwdAlgState_score(fastFwdAlgState* hap_matrix, inputHaplotype* observed_haplotype);
 
 void fastFwdAlgState_delete(fastFwdAlgState* hap_matrix);
 
-// conventional forward algorithm
+// conventional and conventional-linear forward algorithm
 //------------------------------------------------------------------------------
 
 slowFwdSolver* slowFwd_initialize(siteIndex* reference, penaltySet* penalties, haplotypeCohort* cohort);
@@ -288,12 +274,12 @@ double slowFwd_solve_linear(slowFwdSolver* solver, inputHaplotype* q);
 void slowFwdSolver_delete(slowFwdSolver* solver);
 
 ////////////////////////////////////////////////////////////////////////////////
-// random methods
+// random sampling methods for testing
 ////////////////////////////////////////////////////////////////////////////////
 
 inputHaplotype* haplotypeCohort_random_haplo(haplotypeCohort* cohort, siteIndex* reference, size_t generations, penaltySet* penalties, size_t length);
 
-alleleVector* hC_separate_random(haplotypeCohort* cohort);
+void n_random_uints(size_t* to_return, size_t N, size_t max_value);
 
 haplotypeCohort* hC_downsample_to(haplotypeCohort* cohort, size_t number);
 

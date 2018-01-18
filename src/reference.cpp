@@ -103,9 +103,9 @@ int64_t siteIndex::add_site(size_t position) {
   size_t new_index = site_index_to_position.size();
   if(new_index > 0) {
     if(position < site_index_to_position.back()) {
-      return -1;
+      throw runtime_error("constructed siteIndex out of order");
     } else if(position == site_index_to_position.back()) {
-      return -2;
+      throw runtime_error("double-wrote siteIndex site");
     }
     span_lengths.push_back(position - site_index_to_position.back() - 1);
   } else {
@@ -328,35 +328,30 @@ size_t siteIndex::end_position() const {
   return start_position() + length_in_bp() - 1;
 }
 
-int haplotypeCohort::add_record(size_t site) {
+void haplotypeCohort::add_record() {
   if(finalized) {
-    return 0;
+    throw runtime_error("attempted to add record to locked haplotype cohort");
   } else {
-    if(reference->number_of_sites() != 0) {
-      if(site == reference->number_of_sites() - 1) {
-        for(size_t i = 0; i < number_of_haplotypes; i++) {
-          alleles_by_haplotype_and_site[i].push_back(unassigned);
-        }
-        // alleles_by_haplotype_and_site.push_back(vector<alleleValue>(number_of_haplotypes, unassigned));
-        return 1;
-      } else {
-        return -1;
+    if(reference->number_of_sites() != 0 && get_n_sites() < reference->number_of_sites()) {
+      for(size_t i = 0; i < number_of_haplotypes; i++) {
+        alleles_by_haplotype_and_site[i].push_back(unassigned);
       }
+      return;
     } else {
-      return -1;
+      throw runtime_error("attempted to add more records than number of sites in reference");
     }
   }
 }
 
-int haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a) {
+void haplotypeCohort::set_sample_allele(size_t site, size_t sample, alleleValue a) {
   if(finalized) {
-    return 0;
+    throw runtime_error("attempted to modify locked haplotype cohort");
   } else {
     if(alleles_by_haplotype_and_site[sample][site] == unassigned) {
       alleles_by_haplotype_and_site[sample][site] = a;
-      return 1;
+      return;
     } else {
-      return -1;
+      throw runtime_error("attempted to double-write haplotype allele");
     }
   }
 }
@@ -429,7 +424,7 @@ haplotypeCohort* haplotypeCohort::remove_sites_below_frequency(double frequency)
   haplotypeCohort* to_return = 
             new haplotypeCohort(number_of_haplotypes, new_reference);
   for(size_t i = 0; i < remaining_sites.size(); i++) {
-    to_return->add_record(i);
+    to_return->add_record();
     to_return->set_column(alleles_by_haplotype_and_site[remaining_sites[i]]);
   }
   to_return->populate_allele_counts();
@@ -602,6 +597,7 @@ vector<size_t> haploRandom::n_unique_uints(size_t N, size_t supremum, const vect
   auto it = actual_values.begin();
   do {
     to_return.push_back(*it);
+    ++it;
   } while (it != actual_values.end());
   
   return to_return;
