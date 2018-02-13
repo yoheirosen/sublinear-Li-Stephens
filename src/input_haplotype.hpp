@@ -27,6 +27,7 @@ private:
   // since we index things by site; we need a flag for the non-existence of any
   // sites within the haplotype
   bool has_no_sites = false;
+  bool invalid = false;
   
   void build(const char* query, const char* reference_sequence, size_t length);
   void calculate_relative_positions(bool covers_reference);
@@ -65,6 +66,7 @@ public:
   size_t get_site_index(size_t j) const;
   bool has_sites() const;
   size_t number_of_sites() const;
+  bool is_valid() const;
 };
 
 #endif

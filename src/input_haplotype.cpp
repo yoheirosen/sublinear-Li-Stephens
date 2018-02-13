@@ -11,7 +11,7 @@ inputHaplotype::inputHaplotype(siteIndex* reference) :
   
 }
 
-inputHaplotype::inputHaplotype() : has_no_sites(true) {
+inputHaplotype::inputHaplotype() : has_no_sites(true), invalid(true) {
   
 }
 
@@ -227,4 +227,8 @@ const vector<alleleValue>& inputHaplotype::get_alleles() const {
 
 size_t inputHaplotype::get_start_site() const {
   return start_site;
+}
+
+bool inputHaplotype::is_valid() const {
+  return !invalid;
 }
