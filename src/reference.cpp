@@ -825,32 +825,34 @@ haplotypeCohort* build_cohort(const string& vcf_path) {
   size_t last_site_position = 0;
   while(bcf_read(cohort_vcf, cohort_hdr, record) == 0) {
     size_t site_position = record->pos;
-    if(site_position <= last_site_position && last_site_position != 0 && !at_start) {
-      // stderr << "skipping overlapping position " << site_position << " which overlaps " << last_site_position << endl;
-    } else {
-      last_site_position = site_position;
-      
-      bcf_unpack(record, BCF_UN_ALL);
-      if(!built_initial_span) {
-        reference->set_initial_span(site_position);
-        built_initial_span = true;
-      }
-      
-      int64_t site_index = reference->add_site(site_position);
-      cohort->add_record();
-      
-      int32_t *gt_arr = NULL, ngt_arr = 0;
-      int ngt = bcf_get_genotypes(cohort_hdr, record, &gt_arr, &ngt_arr);
-      if(site_index >= 0) {
-        for(size_t i = 0; i < number_of_haplotypes; i++) {
-          int allele_index = bcf_gt_allele(i);
-          char allele_value = record->d.allele[allele_index][0];
-          cohort->set_sample_allele(site_index, i, allele::from_char(allele_value));
+    if(bcf_is_snp(record) == 1) {
+      if(site_position <= last_site_position && last_site_position != 0 && !at_start) {
+        // stderr << "skipping overlapping position " << site_position << " which overlaps " << last_site_position << endl;
+      } else {
+        last_site_position = site_position;
+        
+        bcf_unpack(record, BCF_UN_ALL);
+        if(!built_initial_span) {
+          reference->set_initial_span(site_position);
+          built_initial_span = true;
         }
+        
+        int64_t site_index = reference->add_site(site_position);
+        cohort->add_record();
+        
+        int32_t *gt_arr = NULL, ngt_arr = 0;
+        int ngt = bcf_get_genotypes(cohort_hdr, record, &gt_arr, &ngt_arr);
+        if(site_index >= 0) {
+          for(size_t i = 0; i < number_of_haplotypes; i++) {
+            int allele_index = bcf_gt_allele(gt_arr[i]);
+            char allele_value = record->d.allele[allele_index][0];
+            cohort->set_sample_allele(site_index, i, allele::from_char(allele_value));
+          }
+        }
+        free(gt_arr);
       }
-      free(gt_arr);
+      at_start = false;
     }
-    at_start = false;
   }
   
   size_t ref_end = last_site_position;
@@ -884,7 +886,7 @@ void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
     }
     cohortout << endl;
     for(size_t a = 0; a < 5; a++) {
-      for(size_t j = 0; j < allele_counts_by_site_index[i][a]; j++) {
+      for(size_t j = 0; j < haplotype_indices_by_site_and_allele[i][a].size(); j++) {
         cohortout << haplotype_indices_by_site_and_allele[i][a][j] << "\t";
       }
     }
@@ -923,10 +925,14 @@ haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) :
   for(size_t i = 0; i < reference->number_of_sites(); i++) {
     for(size_t a = 0; a < 5; a++) {
       cohortin >> allele_counts_by_site_index[i][a];
-      haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(allele_counts_by_site_index[i][a]);
+      if(allele_counts_by_site_index[i][a] <= number_of_haplotypes / 2) {
+        haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(allele_counts_by_site_index[i][a]);
+      } else {
+        haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(0);
+      }
     }
     for(size_t a = 0; a < 5; a++) {
-      for(size_t j = 0; j < allele_counts_by_site_index[i][a]; j++) {
+      for(size_t j = 0; j < haplotype_indices_by_site_and_allele[i][a].size(); j++) {
         cohortin >> haplotype_indices_by_site_and_allele[i][a][j];
       }
     }

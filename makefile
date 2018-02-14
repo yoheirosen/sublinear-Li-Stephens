@@ -22,7 +22,7 @@ CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(
 
 TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-all : build_dirs speed_tree tests tree_tests interface libs
+all : build_dirs speed_tree tests tree_tests interface libs serializer
 
 build_dirs:
 	if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
@@ -42,6 +42,9 @@ speed_tree : $(TEST_OBJ_DIR)/speed_tree.o $(CORE_OBJ) $(TREE_OBJ)
 
 interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/linhapexample $(LIBS)
+	
+serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ)
+	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/serializer $(LIBS)
 
 libs : $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
 
@@ -107,6 +110,9 @@ $(TEST_OBJ_DIR)/test.o : $(TEST_SRC_DIR)/test.cpp $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
 $(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
+
+$(OBJ_DIR)/serialize_index.o : $(SRC_DIR)/serialize_index.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
 $(LIBHTS) :
