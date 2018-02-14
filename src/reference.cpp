@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <list>
 #include <htslib/vcf.h>
+#include <iostream>
 
 using namespace std;
 
@@ -856,6 +857,7 @@ haplotypeCohort* build_cohort(const string& vcf_path) {
   
   // cerr << "loaded vcf " << vcf_path << endl;
   reference->calculate_final_span_length(last_site_position);
+  cohort->populate_allele_counts();
   // cerr << "built haplotypecohort object" << endl;
   
   bcf_hdr_destroy(cohort_hdr);
@@ -863,4 +865,73 @@ haplotypeCohort* build_cohort(const string& vcf_path) {
   vcf_close(cohort_vcf);
   
   return cohort;
+}
+
+void siteIndex::serialize_human(std::ostream& indexout) const {
+  indexout << global_offset << "\t" << length << "\t" << site_index_to_position.size() << endl;
+  for(size_t i = 0; i < site_index_to_position.size(); i++) {
+    indexout << site_index_to_position[i] << "\t";
+  }
+  indexout << endl;
+}
+
+void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
+  cohortout << number_of_haplotypes << endl;
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    for(size_t a = 0; a < 5; a++) {
+      cohortout << allele_counts_by_site_index[i][a] << "\t";
+    }
+    cohortout << endl;
+    for(size_t a = 0; a < 5; a++) {
+      for(size_t j = 0; j < 5; j++) {
+        cohortout << haplotype_indices_by_site_and_allele[i][a][j] << "\t";
+      }
+    }
+    cohortout << endl; 
+  }
+}
+
+siteIndex::siteIndex(std::istream& indexin) {
+  indexin >> global_offset;
+  indexin >> length;
+  size_t n_sites;
+  indexin >> n_sites;
+  site_index_to_position = vector<size_t>(n_sites);
+  span_lengths = vector<size_t>(n_sites);
+  for(size_t i = 0; i < n_sites; i++) {
+    indexin >> site_index_to_position[i];
+  }
+  leading_span_length = site_index_to_position[0] - global_offset;
+  for(size_t i = 1; i < n_sites - 1; i++) {
+    span_lengths[i - 1] = site_index_to_position[i] - site_index_to_position[i - 1] - 1;
+  }
+  span_lengths[n_sites - 1] = global_offset + length - site_index_to_position[n_sites - 1] - 1;
+  for(size_t i = 0; i < n_sites; i++) {
+    position_to_site_index.emplace(site_index_to_position[i], i);
+  }
+}
+
+haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) : reference(reference) {
+  cohortin >> number_of_haplotypes;
+  haplotype_indices_by_site_and_allele = vector<vector<vector<haplo_id_t> > >(reference->number_of_sites(),
+                                                vector<vector<haplo_id_t> >(5));
+  active_rowSets_by_site_and_allele = vector<vector<rowSet> >(reference->number_of_sites(),
+                                             vector<rowSet>(5));
+  allele_counts_by_site_index = vector<vector<size_t> >(reference->number_of_sites(),
+                                       vector<size_t>(5));
+  for(size_t i = 0; i < reference->number_of_sites(); i++) {
+    for(size_t a = 0; a < 5; a++) {
+      cohortin >> allele_counts_by_site_index[i][a];
+      haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(allele_counts_by_site_index[i][a]);
+    }
+    for(size_t a = 0; a < 5; a++) {
+      for(size_t j = 0; j < allele_counts_by_site_index[i][a]; j++) {
+        cohortin >> haplotype_indices_by_site_and_allele[i][a][j];
+      }
+    }
+    for(size_t a = 0; a < 5; a++) {
+      active_rowSets_by_site_and_allele[i][a] = build_active_rowSet(i, (alleleValue)a);
+    }
+  }
+  finalized = true;
 }

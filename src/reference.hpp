@@ -39,6 +39,7 @@ public:
   siteIndex(const vector<string>& haplotypes);
   siteIndex(const vector<size_t>& positions, size_t length);
   siteIndex(const vector<size_t>& positions, size_t length, size_t global_offset);
+  siteIndex(std::istream& indexin);
   ~siteIndex();
   
   //-- site-by-site construction -----------------------------------------------
@@ -86,7 +87,7 @@ public:
   void keep_subset_of_sites(const vector<size_t>& sites_to_keep);
   
   //-- serialization -----------------------------------------------------------
-  void serialize_human(std::ofstream& out) const;
+  void serialize_human(std::ostream& out) const;
 };
 
 //------------------------------------------------------------------------------
@@ -114,7 +115,6 @@ private:
   //      allele j              vector[ ][j][ ]
   //      haplotype rank k      vector[ ][ ][k]
   vector<vector<vector<haplo_id_t> > > haplotype_indices_by_site_and_allele;
-  // TODO vector<vector<bv_tr_t> > > haplotype_indices_by_site_and_allele;
   vector<vector<rowSet> > active_rowSets_by_site_and_allele;
 
   // maps [sites] -> vectors of allele counts
@@ -133,6 +133,7 @@ public:
                   siteIndex* reference);
   haplotypeCohort(const vector<string>& haplotypes, 
                   siteIndex* reference);
+  haplotypeCohort(std::istream& cohortin, siteIndex* reference);
   ~haplotypeCohort();
   
   // all-at-once
@@ -214,7 +215,7 @@ public:
   void remove_homogeneous_sites();
   
 //-- serialization -------------------------------------------------------------
-  void serialize_human(std::ofstream& out) const;
+  void serialize_human(std::ostream& out) const;
 };
 
 haplotypeCohort* build_cohort(const string& vcf_path);
