@@ -4,7 +4,7 @@
 DPUpdateMap::DPUpdateMap() {}
 
 DPUpdateMap::DPUpdateMap(double coefficient) : coefficient(coefficient) {
-  degenerate_constant = true;
+  scalar = true;
   constant == 0;
 }
 
@@ -13,13 +13,13 @@ DPUpdateMap::DPUpdateMap(double coefficient, double constant) :
 }
 
 DPUpdateMap::DPUpdateMap(const DPUpdateMap& other) {
-  degenerate_constant = other.degenerate_constant;
+  scalar = other.scalar;
   coefficient = other.coefficient;
   constant = other.constant;
 }
 
 double DPUpdateMap::of(double x) const {
-  if(degenerate_constant) {
+  if(scalar) {
     return coefficient + x;
   } else {
     return coefficient + logsum(x, constant);
@@ -37,15 +37,15 @@ DPUpdateMap DPUpdateMap::compose(const DPUpdateMap& inner) const {
 }
 
 void DPUpdateMap::compose_in_place(const DPUpdateMap& inner) {
-  if(degenerate_constant && inner.degenerate_constant) {
+  if(scalar && inner.scalar) {
     coefficient = coefficient + inner.coefficient;
     return;
-  } else if(degenerate_constant) {
+  } else if(scalar) {
     coefficient = coefficient + inner.coefficient;
     constant = inner.constant;  
-    degenerate_constant = false;
+    scalar = false;
     return;
-  } else if(inner.degenerate_constant) {
+  } else if(inner.scalar) {
     coefficient = coefficient + inner.coefficient;
     constant = constant - inner.coefficient;
     return;
@@ -67,17 +67,17 @@ void DPUpdateMap::scale_in_place(double C) {
 }
 
 bool DPUpdateMap::is_identity() const {
-  return coefficient == 0 && degenerate_constant;
+  return coefficient == 0 && scalar;
 }
 
 bool DPUpdateMap::is_degenerate() const {
-  return degenerate_constant;
+  return scalar;
 }
 
 bool DPUpdateMap::operator==(const DPUpdateMap &other) const {
-  if(degenerate_constant && other.degenerate_constant) {
+  if(scalar && other.scalar) {
     return coefficient == other.coefficient;
-  } if(degenerate_constant != other.degenerate_constant) {
+  } if(scalar != other.scalar) {
     return false;
   } else {
     return constant == other.constant && coefficient == other.coefficient;

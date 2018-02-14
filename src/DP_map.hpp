@@ -7,7 +7,7 @@
 
 struct DPUpdateMap{
 private:
-  bool degenerate_constant = false;
+  bool scalar = false;
 public:
   double coefficient;
   double constant;

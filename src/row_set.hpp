@@ -1,3 +1,4 @@
+
 #ifndef ROW_SET_H
 #define ROW_SET_H
 
@@ -11,24 +12,21 @@ using namespace std;
 
 struct rowSet{
 private:
-  size_t elements;
-  size_t allele_count;
+  size_t n_row_vectors = 0;
   // the least index, within this struct, of the 1st element of each row_vector
-  vector<size_t> lower_bounds = {0};
+  vector<size_t> sizes = {0};
   vector<const vector<size_t>* > row_vectors;
-  vector<alleleValue> included_alleles;
 public:
   rowSet();
-  rowSet(vector<const vector<size_t>* > row_vectors, vector<alleleValue> allele);
-  rowSet(const vector<size_t>* row_vector, alleleValue allele);
-  const size_t& operator[](size_t i) const;
-  const size_t& size() const;
+  rowSet(vector<const vector<size_t>* > row_vectors);
 
   struct const_iterator{
   public:
-    typedef vector<size_t>::const_iterator inner_itr_t;
-    typedef vector<const vector<size_t>* >::const_iterator outer_itr_t;
-    const_iterator(outer_itr_t outer_itr, inner_itr_t inner_itr, const rowSet* container);
+    // typedef size_t inner_itr_t;
+    // typedef size_t outer_itr_t;
+    typedef const size_t* inner_itr_t;
+    typedef const vector<size_t>* const* outer_itr_t;
+    const_iterator(outer_itr_t outer_itr, inner_itr_t inner_itr, size_t outer_idx, size_t inner_idx, const vector<const vector<size_t>*>& container);
     const_iterator(const const_iterator& other);
     const_iterator& operator++();
     const_iterator operator++(int foo);
@@ -36,13 +34,17 @@ public:
     bool operator==(const rowSet::const_iterator& other) const;
     bool operator!=(const rowSet::const_iterator& other) const;
   private:
+    size_t inner_counter;
+    size_t outer_counter;
     inner_itr_t inner_itr;
-    outer_itr_t outer_itr; 
-    const rowSet* container;
+    outer_itr_t outer_itr;
+    // const rowSet* container;
+    const vector<const vector<size_t>* >* container;
   };
 
   const_iterator begin() const;
   const_iterator end() const;
+  bool empty() const;
 };
 
 #endif

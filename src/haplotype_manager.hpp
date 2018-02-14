@@ -63,7 +63,7 @@ public:
 
 struct haplotypeManager{
 private:
-  const siteIndex* reference;
+  siteIndex* reference;
   const haplotypeCohort* cohort;
   const penaltySet* penalties;
   
@@ -128,7 +128,7 @@ private:
   vector<double> max_likelihood_by_shared_site;
 public:
   haplotypeManager(
-          const siteIndex* reference, 
+          siteIndex* reference, 
           const haplotypeCohort* cohort, 
           const penaltySet* penalties, 
           const char* reference_bases,
@@ -192,7 +192,7 @@ public:
   size_t levels_built() const;
   bool all_levels_built() const;
   const haplotypeStateTree* get_tree() const;
-  const siteIndex* get_reference() const;
+  siteIndex* get_reference() const;
   const haplotypeCohort* get_cohort() const;
   const penaltySet* get_penalties() const;
   

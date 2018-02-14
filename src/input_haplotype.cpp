@@ -1,4 +1,5 @@
 #include "input_haplotype.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -24,8 +25,6 @@ inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<si
             alleles(query), novel_SNVs(novel_SNV_count) {
   
 }
-
-
 
 inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<size_t>& novel_SNV_count, 
             siteIndex* reference, size_t absolute_start_pos, size_t length = 0) : reference(reference), alleles(query), 
@@ -105,6 +104,8 @@ void inputHaplotype::calculate_relative_positions(bool covers_reference) {
     end_site = find_site_below(absolute_end_pos);
     right_tail_length = absolute_end_pos - reference->get_position(end_site);
   }
+  
+  start_offset_wrt_ref = absolute_start_pos - reference->start_position();
   return;
 }
 
@@ -114,7 +115,6 @@ size_t inputHaplotype::find_site_below(size_t p) const {
 
 void inputHaplotype::build(const char* query, const char* reference_sequence, size_t length) {
   absolute_end_pos = absolute_start_pos + length - 1;
-  start_offset_wrt_ref = absolute_start_pos - reference->start_position();
   calculate_relative_positions(false);
   
   size_t number_of_sites;
@@ -180,7 +180,7 @@ alleleValue inputHaplotype::get_allele(size_t j) const {
   return alleles[j];
 }
 
-size_t inputHaplotype::get_novel_SNVs(int j) const {
+size_t inputHaplotype::get_n_novel_SNVs(int j) const {
   return novel_SNVs[j + 1];
 }
 
@@ -203,7 +203,6 @@ size_t inputHaplotype::get_span_after(size_t i) const {
     return reference->span_length_after(get_site_index(i));
   }
 }
-
 
 bool inputHaplotype::has_span_after(size_t i) const {
   if(i = end_site) {
@@ -231,4 +230,14 @@ size_t inputHaplotype::get_start_site() const {
 
 bool inputHaplotype::is_valid() const {
   return !invalid;
+}
+
+void inputHaplotype::validate() const {
+  for(size_t i = start_site; i < end_site; i++) {
+    alleleValue test = alleles[i - start_site];
+    if(test > 5) {
+      cout << i << " " << test << endl; 
+      throw runtime_error("invalid allele in observed haplotype");
+    }
+  }
 }

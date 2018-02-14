@@ -21,7 +21,7 @@ private:
   
 //-- support structures --------------------------------------------------------
   
-  const siteIndex* reference;
+  siteIndex* reference;
   const haplotypeCohort* cohort;
   const penaltySet* penalties;
   
@@ -41,7 +41,7 @@ private:
   void record_last_extended(alleleValue a);
   
 public:
-  fastFwdAlgState(const siteIndex* ref, const penaltySet* pen,
+  fastFwdAlgState(siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
   fastFwdAlgState(const fastFwdAlgState& other, bool copy_map);
   ~fastFwdAlgState();
@@ -99,15 +99,16 @@ public:
 };
 
 struct slowFwdSolver{
-  const siteIndex* reference;
+  siteIndex* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
   vector<double> R;
   double S;
-  slowFwdSolver(const siteIndex* ref, const penaltySet* pen,
+  slowFwdSolver(siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
+  pair<vector<double>, vector<size_t> > sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
 };
 
 double calculate_R(double oldR, const DPUpdateMap& map);

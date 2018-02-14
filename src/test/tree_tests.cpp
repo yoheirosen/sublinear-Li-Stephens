@@ -202,52 +202,51 @@ TEST_CASE( "Haplotype manager correctly handles tree-of-states", "[manager][tree
   }
 }
 
-TEST_CASE( "Rowset extraction", "[rowset]" ) {
-  string ref_refstring = "AAAAAAA";
-  string read_refstring = "AAAAAAA";
-  vector<size_t> ref_sites = {0, 2, 5};
-  vector<size_t> read_sites = {0, 2, 5};
-  
-  siteIndex reference = build_ref(ref_refstring, ref_sites);
-  vector<vector<alleleValue> > haplotypes = {
-    {A, A, A},
-    {A, A, A},
-    {A, T, A},
-    {A, A, T},
-    {A, G, C}
-  };
-  haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
-  penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
-  haplotypeManager hap_manager = haplotypeManager(
-              &reference, 
-              &cohort, 
-              &penalties, 
-              ref_refstring.c_str(),
-              read_sites, 
-              read_refstring.c_str(),
-              0);
-  vector<rowSet*> rows_0 = hap_manager.get_rowSets_at_site(0);
-  vector<rowSet*> rows_1 = hap_manager.get_rowSets_at_site(1);
-  vector<rowSet*> rows_2 = hap_manager.get_rowSets_at_site(2);
-  REQUIRE(rows_0.size() == 5);
-  REQUIRE(rows_0[0]->size() + rows_0[1]->size() + rows_0[2]->size()
-                            + rows_0[3]->size() + rows_0[4]->size() == 0);
-  REQUIRE(rows_1[1]->size() + rows_1[4]->size() == 0);
-  REQUIRE(rows_1[0]->size() == 2);
-  REQUIRE(rows_1[2]->size() == 1);
-  REQUIRE(rows_2[3]->size() + rows_2[4]->size() == 0);
-  REQUIRE(rows_2[0]->size() == 2);
-  REQUIRE(rows_2[1]->size() == 1);
-  rowSet reader = *(rows_1[0]); // ie rowSet for A
-  REQUIRE(reader[0] == 2);
-  REQUIRE(reader[1] == 4);
-  reader = *(rows_2[0]); // ie rowSet for A
-  REQUIRE(reader[0] == 4);
-  REQUIRE(reader[1] == 3);
-  reader = *(rows_2[1]); // ie rowSet for C
-  REQUIRE(reader[0] == 4);
-}
-
+// TEST_CASE( "Rowset extraction", "[rowset]" ) {
+//   string ref_refstring = "AAAAAAA";
+//   string read_refstring = "AAAAAAA";
+//   vector<size_t> ref_sites = {0, 2, 5};
+//   vector<size_t> read_sites = {0, 2, 5};
+//   
+//   siteIndex reference = build_ref(ref_refstring, ref_sites);
+//   vector<vector<alleleValue> > haplotypes = {
+//     {A, A, A},
+//     {A, A, A},
+//     {A, T, A},
+//     {A, A, T},
+//     {A, G, C}
+//   };
+//   haplotypeCohort cohort = haplotypeCohort(haplotypes, &reference);
+//   penaltySet penalties = penaltySet(-6, -9, haplotypes.size());
+//   haplotypeManager hap_manager = haplotypeManager(
+//               &reference, 
+//               &cohort, 
+//               &penalties, 
+//               ref_refstring.c_str(),
+//               read_sites, 
+//               read_refstring.c_str(),
+//               0);
+//   vector<rowSet*> rows_0 = hap_manager.get_rowSets_at_site(0);
+//   vector<rowSet*> rows_1 = hap_manager.get_rowSets_at_site(1);
+//   vector<rowSet*> rows_2 = hap_manager.get_rowSets_at_site(2);
+//   REQUIRE(rows_0.size() == 5);
+//   REQUIRE(rows_0[0]->size() + rows_0[1]->size() + rows_0[2]->size()
+//                             + rows_0[3]->size() + rows_0[4]->size() == 0);
+//   REQUIRE(rows_1[1]->size() + rows_1[4]->size() == 0);
+//   REQUIRE(rows_1[0]->size() == 2);
+//   REQUIRE(rows_1[2]->size() == 1);
+//   REQUIRE(rows_2[3]->size() + rows_2[4]->size() == 0);
+//   REQUIRE(rows_2[0]->size() == 2);
+//   REQUIRE(rows_2[1]->size() == 1);
+//   rowSet reader = *(rows_1[0]); // ie rowSet for A
+//   REQUIRE(reader[0] == 2);
+//   REQUIRE(reader[1] == 4);
+//   reader = *(rows_2[0]); // ie rowSet for A
+//   REQUIRE(reader[0] == 4);
+//   REQUIRE(reader[1] == 3);
+//   reader = *(rows_2[1]); // ie rowSet for C
+//   REQUIRE(reader[0] == 4);
+// }
 
 TEST_CASE( "Haplotype manager performs correct calculations in the presence of unshared sites", "[manager]" ) {
   SECTION( "All sites shared" ) {

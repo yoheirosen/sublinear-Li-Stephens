@@ -15,7 +15,7 @@ siteIndex build_ref(const string& ref_seq, vector<size_t>& positions) {
   return siteIndex(positions, ref_seq.length());
 }
 
-TEST_CASE( "siteIndex structure and accessors", "[reference]" ) {
+TEST_CASE( "siteIndex structure and accessors", "[siteIndex]" ) {
   // indices        0123456
   // sites           x  xx
   string ref_seq = "GATTACA";
@@ -65,7 +65,7 @@ TEST_CASE( "siteIndex structure and accessors", "[reference]" ) {
   }
 }
 
-TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
+TEST_CASE( "haplotypeCohort accessors", "[cohort][cohort-accessors]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
   siteIndex ref_struct = build_ref(ref_seq, positions);
@@ -83,6 +83,7 @@ TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
     REQUIRE(cohort.match_is_rare(1,A) == false);
     REQUIRE(cohort.match_is_rare(2,A) == false);
   }
+  // TODO deprecate
   SECTION( "Can extract the set of less-common alleles (as vector)" ) {
     vector<size_t> active_at_0 = cohort.get_active_rows(0, A);
     vector<size_t> active_at_1 = cohort.get_active_rows(1, A);
@@ -98,16 +99,17 @@ TEST_CASE( "haplotypeCohort accessors", "[cohort][retrieve-cohort]") {
     rowSet active_at_0 = cohort.get_active_rowSet(0, A);
     rowSet active_at_1 = cohort.get_active_rowSet(1, A);
     rowSet active_at_2 = cohort.get_active_rowSet(2, A);
-    REQUIRE(active_at_0.size() == 1);
-    REQUIRE(active_at_1.size() == 0);
-    REQUIRE(active_at_2.size() == 2);
-    REQUIRE(active_at_0[0] == 0);
-    REQUIRE(active_at_2[0] == 2);
-    REQUIRE(active_at_2[1] == 3);
+    REQUIRE(!active_at_0.empty());
+    REQUIRE(active_at_1.empty());
+    REQUIRE(*(active_at_0.begin()) == 0);
+    rowSet::const_iterator it = active_at_2.begin();
+    REQUIRE(*it == 2);
+    ++it;
+    REQUIRE(*it == 3);
   }
 }
 
-TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
+TEST_CASE( "haplotypeCohort construction", "[cohort][cohort-constructors]") {
   string ref_seq = "GATTACA";
   vector<size_t> positions = {1,4,5};
   siteIndex ref_struct = build_ref(ref_seq, positions);
@@ -137,22 +139,6 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
     haplotypeCohort direct_cohort = haplotypeCohort(haplotypes, &ref_struct);
     
     REQUIRE(direct_cohort.get_n_sites() == 3);
-    REQUIRE(direct_cohort.allele_at(0,0) == A);
-    REQUIRE(direct_cohort.allele_at(0,1) == T);
-    REQUIRE(direct_cohort.allele_at(0,2) == C);
-    REQUIRE(direct_cohort.allele_at(0,3) == G);
-    REQUIRE(direct_cohort.allele_at(0,4) == gap);
-    REQUIRE(direct_cohort.get_matches(0,A)[0] == 0);
-    REQUIRE(direct_cohort.get_matches(0,T)[0] == 1);
-    REQUIRE(direct_cohort.get_matches(0,C)[0] == 2);
-    REQUIRE(direct_cohort.get_matches(0,G)[0] == 3);
-    REQUIRE(direct_cohort.get_matches(0,gap)[0] == 4);
-    REQUIRE(direct_cohort.get_matches(0,gap)[1] == 5);
-    REQUIRE(direct_cohort.get_matches(1,A).size() == 6);
-    REQUIRE(direct_cohort.get_non_matches(0,T)[0] == 0);
-    REQUIRE(direct_cohort.get_non_matches(0,T)[1] == 2);
-    REQUIRE(direct_cohort.get_non_matches(0,T)[3] == 4);
-    REQUIRE(direct_cohort.get_non_matches(1,T)[3] == 3);
     REQUIRE(direct_cohort.number_matching(0,A) == 1);
     REQUIRE(direct_cohort.number_matching(0,T) == 1);
     REQUIRE(direct_cohort.number_matching(0,C) == 1);
@@ -189,18 +175,6 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][construct-cohort]") {
     haplotypeCohort string_cohort = haplotypeCohort(haplotypes, &ref_struct);
     
     REQUIRE(string_cohort.get_n_sites() == 3);
-    REQUIRE(string_cohort.allele_at(0,0) == A);
-    REQUIRE(string_cohort.allele_at(0,1) == T);
-    REQUIRE(string_cohort.allele_at(0,2) == C);
-    REQUIRE(string_cohort.allele_at(0,3) == G);
-    REQUIRE(string_cohort.allele_at(0,4) == gap);
-    REQUIRE(string_cohort.get_matches(0,A)[0] == 0);
-    REQUIRE(string_cohort.get_matches(0,T)[0] == 1);
-    REQUIRE(string_cohort.get_matches(0,C)[0] == 2);
-    REQUIRE(string_cohort.get_matches(0,G)[0] == 3);
-    REQUIRE(string_cohort.get_matches(0,gap)[0] == 4);
-    REQUIRE(string_cohort.get_matches(0,gap)[1] == 5);
-    REQUIRE(string_cohort.get_matches(1,A).size() == 6);
     REQUIRE(string_cohort.number_matching(0,A) == 1);
     REQUIRE(string_cohort.number_matching(0,T) == 1);
     REQUIRE(string_cohort.number_matching(0,C) == 1);
@@ -224,8 +198,8 @@ TEST_CASE( "inputHaplotype", "[input-haplotype]" ) {
     vector<alleleValue> alleles = {A, A};
     vector<size_t> counts = {1,2,3};
     inputHaplotype query = inputHaplotype(alleles, counts);
-    REQUIRE(query.get_novel_SNVs(-1) == 1);
-    REQUIRE(query.get_novel_SNVs(1) == 3);
+    REQUIRE(query.get_n_novel_SNVs(-1) == 1);
+    REQUIRE(query.get_n_novel_SNVs(1) == 3);
   }
   SECTION( "build-from-string gives same result as direct construction" ) {
     // using ref_test from above
@@ -240,14 +214,14 @@ TEST_CASE( "inputHaplotype", "[input-haplotype]" ) {
     inputHaplotype query_0_string = inputHaplotype(seq_1.c_str(), ref_seq.c_str(), &ref_struct);
     inputHaplotype query_1_string = inputHaplotype(seq_2.c_str(), ref_seq.c_str(), &ref_struct);
     
-    REQUIRE(query_0_direct.get_novel_SNVs(-1) ==
-              query_0_string.get_novel_SNVs(-1));
-    REQUIRE(query_0_direct.get_novel_SNVs(0) == 
-              query_0_string.get_novel_SNVs(0));
-    REQUIRE(query_1_direct.get_novel_SNVs(-1) == 
-              query_1_string.get_novel_SNVs(-1));
-    REQUIRE(query_1_direct.get_novel_SNVs(0) == 
-              query_1_string.get_novel_SNVs(0));
+    REQUIRE(query_0_direct.get_n_novel_SNVs(-1) ==
+              query_0_string.get_n_novel_SNVs(-1));
+    REQUIRE(query_0_direct.get_n_novel_SNVs(0) == 
+              query_0_string.get_n_novel_SNVs(0));
+    REQUIRE(query_1_direct.get_n_novel_SNVs(-1) == 
+              query_1_string.get_n_novel_SNVs(-1));
+    REQUIRE(query_1_direct.get_n_novel_SNVs(0) == 
+              query_1_string.get_n_novel_SNVs(0));
     REQUIRE(query_0_direct.get_allele(0) == query_0_string.get_allele(0));
     REQUIRE(query_1_direct.get_allele(0) == query_1_string.get_allele(0));
   }
@@ -272,9 +246,7 @@ TEST_CASE( "penaltySet math", "[math]" ) {
   }
 }
 
-TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
-  double eps = 0.0000001;
-  
+TEST_CASE( "Haplotype probabilities initial site", "[probability][probability-initial]" ) {
   SECTION( "Partial likelihoods at an initial site" ) {
     penaltySet penalties = penaltySet(-6, -9, 2);
 
@@ -315,6 +287,10 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     double expected_probability_in_mixed_cohort = 
               logsum(expected_R0_in_mixed_cohort,expected_R1_in_mixed_cohort);
 
+    matrix_allA.take_snapshot();
+    matrix_allT.take_snapshot();
+    matrix_AT.take_snapshot();
+
     REQUIRE(matrix_allA.R[0] == Approx(expected_R0_in_allA_cohort));
     REQUIRE(matrix_allT.R[0] == Approx(expected_R0_in_allT_cohort));
 
@@ -325,6 +301,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(probability_allT == Approx(expected_probability_in_allT_cohort));
     REQUIRE(probability_AT == Approx(expected_probability_in_mixed_cohort));
   }
+}
+
+TEST_CASE( "Haplotype probabilities second site", "[probability][probability-site]" ) {
   SECTION( "Partial likelihoods at a second site" ) {
     penaltySet penalties = penaltySet(-6, -9, 4);
     
@@ -398,7 +377,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     // REQUIRE(matrix_allT.S == Approx(expected_probability_in_allT_cohort));
     // REQUIRE(matrix_AT.S == Approx(expected_probability_in_mixed_cohort));
   }
-  
+}
+
+TEST_CASE( "Haplotype probabilities at terminal span", "[probability][probability-terminal-span]" ) {
   SECTION( "Partial likelihoods at a span following a site" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     
@@ -449,9 +430,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     matrix_0_aug.extend_probability_at_span_after(&query_0_aug, 0);
     matrix_0_aug.take_snapshot();
 
+    REQUIRE(matrix_0_aug.S == Approx(expected_probability_for_0_mismatch_haplotype));
     REQUIRE(matrix_0_aug.R[0] == Approx(expected_R0_for_0_mismatch_haplotype));
     REQUIRE(matrix_0_aug.R[2] == Approx(expected_R2_for_0_mismatch_haplotype));
-    REQUIRE(matrix_0_aug.S == Approx(expected_probability_for_0_mismatch_haplotype));
 
     fastFwdAlgState matrix_1_aug = fastFwdAlgState(&ref_struct, &penalties, 
                 &cohort);
@@ -463,6 +444,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(matrix_1_aug.R[2] == Approx(expected_R2_for_1_mismatch_haplotype));  
     REQUIRE(matrix_1_aug.S == Approx(expected_probability_for_1_mismatch_haplotype));
   }
+}
+  
+TEST_CASE( "Haplotype probabilities at initial span", "[probability][probability-initial-span]" ) {
   SECTION( "Partial likelihoods at an initial span" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     
@@ -509,6 +493,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(matrix_1_aug.R[2] == Approx(expected_R2_for_1_mismatch_haplotype));
     REQUIRE(matrix_1_aug.S == Approx(expected_probability_for_1_mismatch_haplotype));
   }
+}
+
+TEST_CASE( "Haplotype probabilities at series of sites", "[probability][probability-multiple-sites]" ) {
   SECTION( "Partial likelihoods at a series of sites" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     double mu_c = penalties.one_minus_mu;
@@ -638,7 +625,9 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
     REQUIRE(matrix.R[2] == Approx(Rs[4][2]));
     REQUIRE(matrix.S == Approx(Ss[4]));
   }
-  
+}
+
+TEST_CASE( "Haplotype probabilities at homogeneous sites", "[probability][probability-homogeneous-sites]" ) {
   SECTION( "Partial likelihood at a series of sites without variation equals the likelihood at a span of equivalent length" ) {
     penaltySet penalties = penaltySet(-6, -9, 3);
     
@@ -678,7 +667,7 @@ TEST_CASE( "Haplotype probabilities", "[haplotype][probability]" ) {
   }
 }
 
-TEST_CASE( "Fast method gives same result as classical", "[compare-fast]" ) {
+TEST_CASE( "Fast method gives same result as classical", "[probability][sublinear-correctness]" ) {
   SECTION( "Fast, linear and quadratic forward algorithms give same result " ) {
     penaltySet penalties = penaltySet(-6, -9, 5);
     vector<size_t> positions = {0, 1, 2, 3, 4};
@@ -707,52 +696,51 @@ TEST_CASE( "Fast method gives same result as classical", "[compare-fast]" ) {
   }
 }
 
-TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
-  //                01234567890123456789
-  // sites              4    9    4
-  string ref_seq = "AAAAAAAAAAAAAAAAAAAA";
-  // left            AAA
-  // middle              AAA 
-  // right                         AAA    
-  // 9 14                   AAAAAAAA
-  //                01234567890123456789
-  
-  vector<size_t> positions = {4, 9, 14};
-  siteIndex ref_struct = build_ref(ref_seq, positions);
-  
-  SECTION( "relative indices are produced as desired " ) {
-    string eight = "TTTTTTTT";
-    string three = "AAA";
-    string six = "TTTTTT";
-    inputHaplotype nosites_left = inputHaplotype(three.c_str(), ref_seq.c_str(), 
-                                                 &ref_struct, 1, 3);
-    inputHaplotype nosites_middle = inputHaplotype(three.c_str(), ref_seq.c_str(),
-                                                  &ref_struct, 5, 3);
-    inputHaplotype nosites_right = inputHaplotype(three.c_str(), ref_seq.c_str(),
-                                                    &ref_struct, 15, 3);
-    inputHaplotype overlap_9_16 = inputHaplotype(eight.c_str(), ref_seq.c_str(),
-                                                 &ref_struct, 8, 8);
-    inputHaplotype overlap_4_9 = inputHaplotype(six.c_str(), ref_seq.c_str(),
-                                                 &ref_struct, 4, 6);
-    REQUIRE(nosites_left.has_sites() == false);
-    REQUIRE(nosites_right.has_sites() == false);
-    REQUIRE(nosites_middle.has_sites() == false);
-    REQUIRE(overlap_9_16.has_sites() == true);
-    REQUIRE(overlap_9_16.number_of_sites() == 2);
-    REQUIRE(overlap_9_16.get_left_tail() == 1);
-    REQUIRE(overlap_9_16.get_site_index(0) == 1);
-    REQUIRE(overlap_9_16.get_novel_SNVs(-1) == 1);
-    REQUIRE(overlap_9_16.get_novel_SNVs(0) == 4);
-    REQUIRE(overlap_9_16.get_novel_SNVs(1) == 1);
-    REQUIRE(overlap_4_9.has_left_tail() == false);
-    REQUIRE(overlap_4_9.number_of_sites() == 2);
-    REQUIRE(overlap_4_9.has_span_after(1) == false);
-    REQUIRE(overlap_9_16.get_novel_SNVs(0) == 4);
-  }
-}
+// TEST_CASE( "Relative indexing works", "[haplotype][reference][input]" ) {
+//   //                01234567890123456789
+//   // sites              4    9    4
+//   string ref_seq = "AAAAAAAAAAAAAAAAAAAA";
+//   // left            AAA
+//   // middle              AAA 
+//   // right                         AAA    
+//   // 9 14                   AAAAAAAA
+//   //                01234567890123456789
+//   
+//   vector<size_t> positions = {4, 9, 14};
+//   siteIndex ref_struct = build_ref(ref_seq, positions);
+//   
+//   SECTION( "relative indices are produced as desired " ) {
+//     string eight = "TTTTTTTT";
+//     string three = "AAA";
+//     string six = "TTTTTT";
+//     inputHaplotype nosites_left = inputHaplotype(three.c_str(), ref_seq.c_str(), 
+//                                                  &ref_struct, 1, 3);
+//     inputHaplotype nosites_middle = inputHaplotype(three.c_str(), ref_seq.c_str(),
+//                                                   &ref_struct, 5, 3);
+//     inputHaplotype nosites_right = inputHaplotype(three.c_str(), ref_seq.c_str(),
+//                                                     &ref_struct, 15, 3);
+//     inputHaplotype overlap_9_16 = inputHaplotype(eight.c_str(), ref_seq.c_str(),
+//                                                  &ref_struct, 8, 8);
+//     inputHaplotype overlap_4_9 = inputHaplotype(six.c_str(), ref_seq.c_str(),
+//                                                  &ref_struct, 4, 6);
+//     REQUIRE(nosites_left.has_sites() == false);
+//     REQUIRE(nosites_right.has_sites() == false);
+//     REQUIRE(nosites_middle.has_sites() == false);
+//     REQUIRE(overlap_9_16.has_sites() == true);
+//     REQUIRE(overlap_9_16.number_of_sites() == 2);
+//     REQUIRE(overlap_9_16.get_left_tail() == 1);
+//     REQUIRE(overlap_9_16.get_site_index(0) == 1);
+//     REQUIRE(overlap_9_16.get_n_novel_SNVs(-1) == 1);
+//     REQUIRE(overlap_9_16.get_n_novel_SNVs(0) == 4);
+//     REQUIRE(overlap_9_16.get_n_novel_SNVs(1) == 1);
+//     REQUIRE(overlap_4_9.has_left_tail() == false);
+//     REQUIRE(overlap_4_9.number_of_sites() == 2);
+//     REQUIRE(overlap_4_9.has_span_after(1) == false);
+//     REQUIRE(overlap_9_16.get_n_novel_SNVs(0) == 4);
+//   }
+// }
 
-TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
-  double eps = 0.0000001;
+TEST_CASE( "Delay map object works ", "[delay][DPMap]" ) {
   SECTION( "DPMaps work" ) {
     DPUpdateMap ID = DPUpdateMap(0);
     DPUpdateMap scale = DPUpdateMap(-2);
@@ -779,50 +767,56 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(test3.coefficient == Approx(expected_coefficient));
     REQUIRE(test3.constant == Approx(expected_constant));
   }
+}
+
+TEST_CASE( "Delay map structure is built correctly ", "[delay][lazyEval-build]" ) {
   SECTION( "Building and accessing lazyEvalMaps" ) {
     lazyEvalMap map = lazyEvalMap(5, 0);
     REQUIRE(map.get_map_indices().size() == 5);
     REQUIRE(map.get_map(0).is_identity() == true);
     // Can we add and then read a value?
     // Add a map with value (1.0, 1.0)
-    map.add_map(DPUpdateMap(1.0, 1.0));
-    // Assign row 0 to map 1.0 at mapclass-index 0
-    map.remove_row_from_mapclass(0);
-    map.assign_row_to_newest_mapclass(0);
+    map.add_eqclass(DPUpdateMap(1.0, 1.0));
+    // Assign row 0 to map 1.0 at eqclass-index 0
+    map.remove_row_from_eqclass(0);
+    map.assign_row_to_newest_eqclass(0);
     REQUIRE(map.get_coefficient(0) == Approx(1));
     // Can we add and then read a second value?
     // Add a map with value (2.0, 2.0)
-    map.add_map(DPUpdateMap(2.0, 2.0));
-    // Assign row 1 to map 2.0 at mapclass-index 1
-    map.remove_row_from_mapclass(1);
-    map.assign_row_to_newest_mapclass(1);
+    map.add_eqclass(DPUpdateMap(2.0, 2.0));
+    // Assign row 1 to map 2.0 at eqclass-index 1
+    map.remove_row_from_eqclass(1);
+    map.assign_row_to_newest_eqclass(1);
     REQUIRE(map.get_coefficient(1) == Approx(2));
-    // Can we overload a mapclass with two rows?
-    // Assign row 2 to map 2.0 at mapclass-index 1
-    map.remove_row_from_mapclass(2);
-    map.assign_row_to_newest_mapclass(2);
+    // Can we overload a eqclass with two rows?
+    // Assign row 2 to map 2.0 at eqclass-index 1
+    map.remove_row_from_eqclass(2);
+    map.assign_row_to_newest_eqclass(2);
     REQUIRE(map.get_coefficient(2) == Approx(2));
-    // Can we remove a row from a mapclass?
-    map.remove_row_from_mapclass(1);
+    // Can we remove a row from a eqclass?
+    map.remove_row_from_eqclass(1);
     REQUIRE(map.get_map_indices()[1] == 5);
-    // When we empty all contents of a mapclass, do we return it to the set of mapclasses
+    // When we empty all contents of a eqclass, do we return it to the set of eqclasses
     // which can be filled?
-    // Remove row 1 from its mapclass 0. This should also delete mapclass 1 since it is
+    // Remove row 1 from its eqclass 0. This should also delete eqclass 1 since it is
     // now empty
-    map.remove_row_from_mapclass(0);
-    // This new map should go in mapclass-index 1, which was just emptied
-    map.add_map(DPUpdateMap(3.0, 3.0));
+    map.remove_row_from_eqclass(0);
+    // This new map should go in eqclass-index 1, which was just emptied
+    map.add_eqclass(DPUpdateMap(3.0, 3.0));
     // Add a new row to this map
-    map.assign_row_to_newest_mapclass(3);
-    // This row should get mapclass-index 0
+    map.assign_row_to_newest_eqclass(3);
+    // This row should get eqclass-index 0
     REQUIRE(map.get_map_indices()[3] == 1);
     REQUIRE(map.get_coefficient(3) == Approx(3.0));
   }
+}
+
+TEST_CASE( "Delay map structure stores values correctly ", "[delay][storage]" ) {
   SECTION( "Updating maps performs correct arithmetic" ) {
     lazyEvalMap map = lazyEvalMap(3, 0);
-    map.add_map_for_site(DPUpdateMap(-2.0, -3.0));
-    REQUIRE(map.get_maps_by_site()[0].is_identity());
-    REQUIRE(map.get_maps_by_site()[1] == DPUpdateMap(-2.0, -3.0));
+    map.stage_map_for_site(DPUpdateMap(-2.0, -3.0));
+    REQUIRE(map.get_map_history()[0].is_identity());
+    REQUIRE(map.get_map_history()[1] == DPUpdateMap(-2.0, -3.0));
     REQUIRE(map.row_updated_to(0) == 0);
     map.hard_update_all();
     // map.update_maps({0});
@@ -832,22 +826,22 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay]" ) {
     REQUIRE(map.get_constant(0) == -3.0);
     REQUIRE(map.get_map(0).of(-1.0) == m_of_one);
   }
+}
+
+TEST_CASE( "Delay map structure stores history correctly ", "[delay][encode-history]" ) {
   SECTION( "We can track sites and times-of-update in lazyEvalMaps" ) {
-    // build a dM with a non-zero start position
-    lazyEvalMap map2 = lazyEvalMap(2, 2);
-    map2.add_map(DPUpdateMap(-1.0, -1.0));
-    map2.assign_row_to_newest_mapclass(0);
-    REQUIRE(map2.last_update(0) == 2);
+    lazyEvalMap map2 = lazyEvalMap(2, 0);
+    map2.add_eqclass(DPUpdateMap(-1.0, -1.0));
+    map2.assign_row_to_newest_eqclass(0);
+    REQUIRE(map2.last_update(0) == 0);
     map2.increment_site_marker();
-    // current_site is now 3
-    map2.add_map(DPUpdateMap(-2.0, -2.0));
-    map2.assign_row_to_newest_mapclass(1);
-    REQUIRE(map2.last_update(1) == 3);
-    map2.add_map_for_site(DPUpdateMap(-3.0, -3.0));
-    // current_site is now 4
+    map2.add_eqclass(DPUpdateMap(-2.0, -2.0));
+    map2.assign_row_to_newest_eqclass(1);
+    REQUIRE(map2.last_update(1) == 1);
+    map2.stage_map_for_site(DPUpdateMap(-3.0, -3.0));
     map2.hard_update_all();
-    REQUIRE(map2.last_update(0) == 4);
-    REQUIRE(map2.last_update(1) == 4);
+    REQUIRE(map2.last_update(0) == 2);
+    REQUIRE(map2.last_update(1) == 2);
   }
 }
 
@@ -880,179 +874,136 @@ TEST_CASE( "PenaltySet gives right values", "[penaltyset]") {
   REQUIRE(S == Approx(expected));
 }
 
-TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][probability]" ) {
-  double eps = 0.0000001;
-  penaltySet penalties = penaltySet(-6, -9, 3);
-  
-  string ref_seq = "AAAAA";
-  vector<size_t> positions = {0,1,2,3,4};
-  siteIndex ref_struct = build_ref(ref_seq, positions);
-  
-  vector<string> haplotypes = {
-    "AAAAA",
-    "TATAT",
-    "ATACA"
-  };
-  // 10110
-  // 00011
-  // 11100
-  haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
-  
-  string query_string = "ATAAT";
-  inputHaplotype query = inputHaplotype(query_string.c_str(), ref_seq.c_str(), &ref_struct);
-  
-  fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
-              &cohort);
-  
-  double mu_c = penalties.one_minus_mu;
-  double mu = penalties.mu;
-  double rho = penalties.rho;
-  double alpha = penalties.R_coefficient;
-  double S;
-  double mu2 = penalties.one_minus_2mu;
-  SECTION( "Delay map maintains correct states for all rows in matrix" ) {
-    fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
-                &cohort);
-    matrix.initialize_probability(&query);
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 1);
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 0);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-    matrix.extend_probability_at_site(&query, 1);
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 1);
-    REQUIRE(matrix.get_maps().row_updated_to(2) == 1);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-    matrix.extend_probability_at_site(&query, 2);
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 3);
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(1) == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(2) == 1);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-    matrix.extend_probability_at_site(&query, 3);
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 3);
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(1) == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(2) == 3);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-    matrix.extend_probability_at_site(&query, 4);
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 3);
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
-    REQUIRE(matrix.get_maps().row_updated_to(1) == 4);
-    REQUIRE(matrix.get_maps().row_updated_to(2) == 3);    
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-    matrix.get_maps().hard_update_all();
-    REQUIRE(matrix.get_maps().row_updated_to(0) == 4);
-    REQUIRE(matrix.get_maps().row_updated_to(1) == 4);
-    REQUIRE(matrix.get_maps().row_updated_to(2) == 4);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == false);
-    matrix.get_maps().hard_clear_all();
-    REQUIRE(matrix.get_maps().number_of_mapclasses() == 1);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
-    REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
-  }
-  SECTION( "Partial likelihood is correctly calculated at a series of sites" ) {
-    vector<double> correct_coefficients;
-    vector<vector<double> > correct_constants;
-    // 10110
-    // 00011
-    // 11100
-    // @ 0, haplotypes 0 and 2 match, match more common
-    // work done at all since initial
-    matrix.initialize_probability(&query);
-    REQUIRE(matrix.get_maps().get_map(0).is_identity());
-    REQUIRE(matrix.get_maps().get_map(1).is_identity());
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-    // work done at 2; match is rare
-    matrix.extend_probability_at_site(&query, 1);
-    S = logdiff(log(2), log(7) + mu) - log(3);
-    DPUpdateMap I = DPUpdateMap(0);
-    DPUpdateMap m1 = penalties.get_non_match_map(S);
-    REQUIRE(matrix.get_maps().get_map(0).constant == Approx(m1.constant));
-    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx(m1.coefficient));
-    REQUIRE(matrix.get_maps().get_map(1).constant == Approx(m1.constant));
-    REQUIRE(matrix.get_maps().get_map(1).coefficient == Approx(m1.coefficient));
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-    // work done at 1; non-match is rare
-    matrix.extend_probability_at_site(&query, 2);
-    S = logsum(mu + S, mu2 + logsum(alpha + mu_c - log(3), rho + S));
-    DPUpdateMap M2 = penalties.get_match_map(S);
-    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
-    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
-    REQUIRE(matrix.get_maps().get_map(1).is_identity());
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-    S = matrix.S;
-    matrix.extend_probability_at_site(&query, 3);
-    DPUpdateMap M3 = penalties.get_match_map(S);
-    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
-    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
-    REQUIRE(matrix.get_maps().get_map(1).is_identity());
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-    S = matrix.S;
-    matrix.extend_probability_at_site(&query, 4);
-    DPUpdateMap m4 = penalties.get_non_match_map(S);
-    REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
-    REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
-    REQUIRE(matrix.get_maps().get_map(1).is_identity());
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-    matrix.take_snapshot();
-    REQUIRE(matrix.get_maps().get_map(0).is_identity());
-    REQUIRE(matrix.get_maps().get_map(1).is_identity());
-    REQUIRE(matrix.get_maps().get_map(2).is_identity());
-  }
-}
-
-TEST_CASE( " Downsampling functions ", "[downsampling]" ) {
-  vector<size_t> positions = {0,1,2};
-  siteIndex reference(positions, 3);
-  vector<vector<alleleValue> > haplotypes = {
-    {A,A,T},
-    {A,T,A},
-    {A,A,T},
-    {A,T,A},
-    {A,C,T},
-    {T,A,A}
-  };
-  haplotypeCohort cohort(haplotypes, &reference);
-  SECTION( "Downsampling deletes correct haplotypes" ) {
-    vector<vector<alleleValue> > test_haplotypes = {
-      {A,A,T},
-      {A,T,A},
-      {A,C,T},
-      {T,A,A}
-    };
-    haplotypeCohort test_cohort(test_haplotypes, &reference);
-    vector<size_t> to_remove = {0,1};
-    vector<size_t> to_keep = {2,3,4,5};
-    haplotypeCohort* cohort_remove = cohort.remove_haplotypes(to_remove); 
-    haplotypeCohort* cohort_keep = cohort.keep_haplotypes(to_keep);
-    REQUIRE(*cohort_remove == test_cohort);
-    REQUIRE(*cohort_remove == *cohort_keep);
-    delete cohort_remove;
-    delete cohort_keep;
-  }
-  SECTION( "Downsampling detects degenerate sites" ) {
-    vector<size_t> to_remove = {0,2,4};
-    haplotypeCohort* cohort_remove = cohort.remove_haplotypes(to_remove); 
-    REQUIRE(cohort_remove->get_n_sites() == 2);
-    delete cohort_remove;
-  }
-  SECTION( "Recognizes and remove rare sites" ) {
-    haplotypeCohort* cohort_remove = cohort.remove_rare_sites(0.2); 
-    REQUIRE(cohort_remove->get_n_sites() == 2);
-    REQUIRE(cohort_remove->get_reference()->get_position(0) == 1);
-    delete cohort_remove;
-  }
-}
+// TEST_CASE( "Delay-maps perform correct state-update calculations", "[delay][delay-probability]" ) {
+//   double eps = 0.0000001;
+//   penaltySet penalties = penaltySet(-6, -9, 3);
+//   
+//   string ref_seq = "AAAAA";
+//   vector<size_t> positions = {0,1,2,3,4};
+//   siteIndex ref_struct = build_ref(ref_seq, positions);
+//   
+//   vector<string> haplotypes = {
+//     "AAAAA",
+//     "TATAT",
+//     "ATACA"
+//   };
+//   // 10110
+//   // 00011
+//   // 11100
+//   haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
+//   
+//   string query_string = "ATAAT";
+//   inputHaplotype query = inputHaplotype(query_string.c_str(), ref_seq.c_str(), &ref_struct);
+//   
+//   fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
+//               &cohort);
+//   
+//   double mu_c = penalties.one_minus_mu;
+//   double mu = penalties.mu;
+//   double rho = penalties.rho;
+//   double alpha = penalties.R_coefficient;
+//   double S;
+//   double mu2 = penalties.one_minus_2mu;
+  // SECTION( "Delay map maintains correct states for all rows in matrix" ) {
+  //   fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
+  //               &cohort);
+  //   matrix.initialize_probability(&query);
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 1);
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 0);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  //   matrix.extend_probability_at_site(&query, 1);
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 1);
+  //   REQUIRE(matrix.get_maps().row_updated_to(2) == 1);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  //   matrix.extend_probability_at_site(&query, 2);
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 3);
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(1) == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(2) == 1);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  //   matrix.extend_probability_at_site(&query, 3);
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 3);
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(1) == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(2) == 3);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  //   matrix.extend_probability_at_site(&query, 4);
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 3);
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 2);
+  //   REQUIRE(matrix.get_maps().row_updated_to(1) == 4);
+  //   REQUIRE(matrix.get_maps().row_updated_to(2) == 3);    
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  //   matrix.get_maps().hard_update_all();
+  //   REQUIRE(matrix.get_maps().row_updated_to(0) == 4);
+  //   REQUIRE(matrix.get_maps().row_updated_to(1) == 4);
+  //   REQUIRE(matrix.get_maps().row_updated_to(2) == 4);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == false);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == false);
+  //   matrix.get_maps().hard_clear_all();
+  //   REQUIRE(matrix.get_maps().number_of_eqclasses() == 1);
+  //   REQUIRE(matrix.get_maps().get_map(0).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(1).is_identity() == true);
+  //   REQUIRE(matrix.get_maps().get_map(2).is_identity() == true);
+  // }
+//   SECTION( "Partial likelihood is correctly calculated at a series of sites" ) {
+//     vector<double> correct_coefficients;
+//     vector<vector<double> > correct_constants;
+//     // 10110
+//     // 00011
+//     // 11100
+//     // @ 0, haplotypes 0 and 2 match, match more common
+//     // work done at all since initial
+//     matrix.initialize_probability(&query);
+//     REQUIRE(matrix.get_maps().get_map(0).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(1).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//     // work done at 2; match is rare
+//     matrix.extend_probability_at_site(&query, 1);
+//     S = logdiff(log(2), log(7) + mu) - log(3);
+//     DPUpdateMap I = DPUpdateMap(0);
+//     DPUpdateMap m1 = penalties.get_non_match_map(S);
+//     REQUIRE(matrix.get_maps().get_map(0).constant == Approx(m1.constant));
+//     REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx(m1.coefficient));
+//     REQUIRE(matrix.get_maps().get_map(1).constant == Approx(m1.constant));
+//     REQUIRE(matrix.get_maps().get_map(1).coefficient == Approx(m1.coefficient));
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//     // work done at 1; non-match is rare
+//     matrix.extend_probability_at_site(&query, 2);
+//     S = logsum(mu + S, mu2 + logsum(alpha + mu_c - log(3), rho + S));
+//     DPUpdateMap M2 = penalties.get_match_map(S);
+//     REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+//     REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
+//     REQUIRE(matrix.get_maps().get_map(1).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//     S = matrix.S;
+//     matrix.extend_probability_at_site(&query, 3);
+//     DPUpdateMap M3 = penalties.get_match_map(S);
+//     REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+//     REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
+//     REQUIRE(matrix.get_maps().get_map(1).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//     S = matrix.S;
+//     matrix.extend_probability_at_site(&query, 4);
+//     DPUpdateMap m4 = penalties.get_non_match_map(S);
+//     REQUIRE(matrix.get_maps().get_map(0).constant == Approx((M2.of(m1)).constant));
+//     REQUIRE(matrix.get_maps().get_map(0).coefficient == Approx((M2.of(m1)).coefficient));
+//     REQUIRE(matrix.get_maps().get_map(1).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//     matrix.take_snapshot();
+//     REQUIRE(matrix.get_maps().get_map(0).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(1).is_identity());
+//     REQUIRE(matrix.get_maps().get_map(2).is_identity());
+//   }
+// }

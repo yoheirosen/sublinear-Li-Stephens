@@ -56,7 +56,7 @@ public:
   const vector<alleleValue>& get_alleles() const;
   size_t get_start_site() const;
   
-  size_t get_novel_SNVs(int j) const;
+  size_t get_n_novel_SNVs(int j) const;
   
   size_t get_left_tail() const;
   bool has_left_tail() const;
@@ -65,8 +65,9 @@ public:
   
   size_t get_site_index(size_t j) const;
   bool has_sites() const;
-  size_t number_of_sites() const;
   bool is_valid() const;
+  size_t number_of_sites() const;
+  void validate() const;
 };
 
 #endif

@@ -75,7 +75,7 @@ void haplotypeManager::set_option_index(char* unphased_chars_1, char* unphased_c
 }
 
 haplotypeManager::haplotypeManager(
-        const siteIndex* reference, const haplotypeCohort* cohort, 
+        siteIndex* reference, const haplotypeCohort* cohort, 
               const penaltySet* penalties, const char* reference_bases,
         vector<size_t> site_positions_within_read,
         const char* read_bases, size_t start_reference_position) : 
@@ -285,7 +285,7 @@ const haplotypeStateTree* haplotypeManager::get_tree() const {
   return tree;
 }
 
-const siteIndex* haplotypeManager::get_reference() const {
+siteIndex* haplotypeManager::get_reference() const {
   return reference;
 }
 

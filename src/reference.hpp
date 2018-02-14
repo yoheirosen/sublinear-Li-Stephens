@@ -80,22 +80,13 @@ public:
   vector<size_t> rand_sites(size_t N) const;
   vector<size_t> rand_site_positions(size_t N) const;
   size_t rand_interval_start(size_t len) const;
+  size_t rand_site_interval_start(size_t N) const;
 
   //-- downsampling ------------------------------------------------------------
-  vector<alleleValue> downsample_to(const vector<alleleValue>& input, const siteIndex* index) const;
-  
-  //-- comparison --------------------------------------------------------------
-  bool operator==(const siteIndex& other) const;
-  bool operator!=(const siteIndex& other) const;
-  bool operator<(const siteIndex& other) const;
-  bool operator>(const siteIndex& other) const;
-  bool operator<=(const siteIndex& other) const;
-  bool operator>=(const siteIndex& other) const;
-  vector<size_t> extra_sites(const siteIndex& other) const;
+  void keep_subset_of_sites(const vector<size_t>& sites_to_keep);
   
   //-- serialization -----------------------------------------------------------
-  void write(std::ofstream& out) const;
-  static siteIndex* read(std::ifstream& in);
+  void serialize_human(std::ofstream& out) const;
 };
 
 //------------------------------------------------------------------------------
@@ -106,7 +97,7 @@ private:
   typedef size_t haplo_id_t;
   typedef size_t site_idx_t;
   
-  const siteIndex* reference;
+  siteIndex* reference;
   size_t number_of_haplotypes;
   bool finalized = false;
 
@@ -137,11 +128,11 @@ private:
 public:
 //-- construction --
 
-  haplotypeCohort(size_t cohort_size, const siteIndex* reference);
+  haplotypeCohort(size_t cohort_size, siteIndex* reference);
   haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
-                  const siteIndex* reference);
+                  siteIndex* reference);
   haplotypeCohort(const vector<string>& haplotypes, 
-                  const siteIndex* reference);
+                  siteIndex* reference);
   ~haplotypeCohort();
   
   // all-at-once
@@ -159,7 +150,7 @@ public:
   
 //-- basic attributes ----------------------------------------------------------
 
-  const siteIndex* get_reference() const;  
+  siteIndex* get_reference() const;  
   size_t get_n_sites() const;
   size_t get_n_haplotypes() const;
   
@@ -183,6 +174,7 @@ public:
   bool match_is_rare(site_idx_t site_index, alleleValue a) const;
   size_t number_matching(site_idx_t site_index, alleleValue a) const;
   size_t number_not_matching(site_idx_t site_index, alleleValue a) const;
+  size_t number_active(site_idx_t site_index, alleleValue a) const;
 
   // site -> mask
   vector<size_t> get_active_rows(site_idx_t site, alleleValue a) const;
@@ -200,8 +192,9 @@ public:
 //-- more complex statistics ---------------------------------------------------
 
   alleleValue get_dominant_allele(site_idx_t site) const;
-  size_t get_MAC(site_idx_t site) const;                                  // O(1)
-  size_t sum_MACs() const;                                            // O(n)
+  size_t get_information_content(site_idx_t site, alleleValue a) const;                                  // O(1)
+  size_t sum_information_content(const vector<alleleValue>& query, size_t start_site) const;                                            // O(n)
+  size_t get_total_information(size_t site) const;                                            // O(n)
 
 //-- haplotype simulation ------------------------------------------------------
   // random generators
@@ -214,16 +207,17 @@ public:
   vector<alleleValue> rand_desc_haplo(size_t generations, double log_recomb_probability, double log_mutation_probability, size_t start_site, size_t end_site) const;
   
 //-- cohort editing ------------------------------------------------------------
-  haplotypeCohort* remove_haplotypes(const vector<size_t>& ids_to_remove) const;
-  haplotypeCohort* remove_haplotypes(size_t n_to_remove) const;
-  haplotypeCohort* keep_haplotypes(const vector<size_t>& ids_to_keep) const;
-  haplotypeCohort* keep_haplotypes(size_t n_to_keep) const;
+  haplotypeCohort* subset(size_t start_site, size_t end_site, const vector<size_t>& ids_to_keep) const;
+  haplotypeCohort* subset(size_t start_site, size_t end_site, size_t n_to_keep) const;
   haplotypeCohort* remove_rare_sites(double max_rarity) const;
   
+  void remove_homogeneous_sites();
+  
 //-- serialization -------------------------------------------------------------
-  void write(std::ofstream& out) const;
-  void read_site(std::ifstream& in, site_idx_t site);
+  void serialize_human(std::ofstream& out) const;
 };
+
+haplotypeCohort* build_cohort(const string& vcf_path);
 
 namespace haploRandom {
   vector<size_t> n_unique_uints(size_t N, size_t supremum);

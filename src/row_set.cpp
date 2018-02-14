@@ -5,75 +5,72 @@ rowSet::rowSet() {
   row_vectors = {nullptr};
 }
 
-rowSet::rowSet(vector<const vector<size_t>* > row_vectors, 
-               vector<alleleValue> alleles) :
-                        included_alleles(alleles), 
-                        row_vectors(row_vectors) {
-  allele_count = row_vectors.size();
-  if(row_vectors.size() == 0) {
-    elements = 0;
-  } else {
-    for(size_t i = 1; i < allele_count; i++) {
-      lower_bounds.push_back(lower_bounds.back() + row_vectors[i - 1]->size());
-    }
-    elements = lower_bounds.back() + row_vectors.back()->size();
+rowSet::rowSet(vector<const vector<size_t>* > row_vectors) : row_vectors(row_vectors), n_row_vectors(row_vectors.size()), sizes(vector<size_t>(row_vectors.size())) {
+  for(size_t i = 0; i < n_row_vectors; i++) {
+    sizes[i] = row_vectors[i]->size();
   }
-}
-
-rowSet::rowSet(const vector<size_t>* row_vector, alleleValue allele) {
-  allele_count = 1;
-  elements = row_vector->size();
-  included_alleles = {allele};
-  row_vectors = {row_vector};
-}
-
-const size_t& rowSet::operator[](size_t i) const {
-  for(size_t j = allele_count - 1; j >= 0; j--) {
-    if(i >= lower_bounds[j]) {
-      i -= lower_bounds[j];
-      return row_vectors[j]->at(i);
-    }
+  if(row_vectors[0]->size() == 0) {
+    n_row_vectors = 0;
   }
-}
-
-const size_t& rowSet::size() const {
-  return elements;
 }
 
 rowSet::const_iterator rowSet::begin() const {
-  return const_iterator(row_vectors.begin(), row_vectors[0]->begin(), this);
+  return const_iterator(
+    row_vectors.data(),
+    row_vectors[0]->data(),
+    row_vectors.size(),
+    row_vectors[0]->size(),
+    row_vectors);
 }
 
 rowSet::const_iterator rowSet::end() const {
-  return const_iterator(row_vectors.end(), row_vectors.back()->end(), this);
+  return const_iterator(
+    row_vectors.data() + row_vectors.size(),
+    row_vectors.back()->data() + row_vectors.back()->size(),
+    0,
+    0,
+    row_vectors);
 }
 
 const size_t& rowSet::const_iterator::operator*() const {
-  return *(inner_itr);
-}
-
-bool rowSet::const_iterator::operator==(const rowSet::const_iterator& other) const {
-  return inner_itr == other.inner_itr && outer_itr == other.outer_itr;
+  return *inner_itr;
 }
 
 bool rowSet::const_iterator::operator!=(const rowSet::const_iterator& other) const {
-  return !(*this == other);
+  return inner_itr != other.inner_itr || outer_itr != other.outer_itr;
 }
 
-rowSet::const_iterator::const_iterator(outer_itr_t outer_itr, inner_itr_t inner_itr, const rowSet* container) : 
-  inner_itr(inner_itr), outer_itr(outer_itr), container(container) {
+bool rowSet::const_iterator::operator==(const rowSet::const_iterator& other) const {
+  return !(*this != other);
 }
 
-rowSet::const_iterator::const_iterator(const const_iterator& other) : inner_itr(other.inner_itr),
-  outer_itr(other.outer_itr), container(other.container) {
+rowSet::const_iterator::const_iterator(const const_iterator& other): 
+  outer_itr(other.outer_itr), 
+  inner_itr(other.inner_itr),
+  inner_counter(other.inner_counter),
+  outer_counter(other.outer_counter),
+  container(other.container)
+  {
+}
+
+rowSet::const_iterator::const_iterator(outer_itr_t outer_itr, inner_itr_t inner_itr,   size_t outer_idx, size_t inner_idx, const vector<const vector<size_t>*>& container) : 
+  outer_itr(outer_itr), 
+  inner_itr(inner_itr),
+  inner_counter(inner_idx),
+  outer_counter(outer_idx),
+  container(&container)
+  {
 }
 
 rowSet::const_iterator& rowSet::const_iterator::operator++() {
   ++inner_itr;
-  if(inner_itr == (*outer_itr)->end()) {
+  --inner_counter;
+  if(inner_counter == 0) {
     ++outer_itr;
-    if(outer_itr != container->row_vectors.end()) {
-      inner_itr = (*outer_itr)->begin();
+    --outer_counter;
+    if(outer_counter != 0) {
+      inner_itr = (*outer_itr)->data();
+      inner_counter = (*outer_itr)->size();
     }
   }
   return *this;
@@ -83,4 +80,8 @@ rowSet::const_iterator rowSet::const_iterator::operator++(int foo) {
   rowSet::const_iterator temp(*this);
   ++(*this);
   return temp;
+}
+
+bool rowSet::empty() const {
+  return n_row_vectors == 0;
 }

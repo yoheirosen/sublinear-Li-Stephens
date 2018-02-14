@@ -232,8 +232,23 @@ haplotypeCohort* haplotypeCohort_init_empty(size_t number_of_haplotypes, siteInd
   return new haplotypeCohort(number_of_haplotypes, ref);
 }
 
-size_t haplotypeCohort_sum_MACs(haplotypeCohort* cohort) {
-  return cohort->sum_MACs();
+size_t haplotypeCohort_sum_information_content(haplotypeCohort* cohort, inputHaplotype* query) {
+  return cohort->sum_information_content(query->get_alleles(), query->get_start_site());
+}
+
+size_t haplotypeCohort_sum_total_information(haplotypeCohort* cohort) {
+  size_t to_return = 0;
+  for(size_t i = 0; i < cohort->get_n_sites(); i++) {
+    to_return += cohort->get_total_information(i);
+  }
+  return to_return;
+}
+
+void haplotypeCohort_print_deltas(haplotypeCohort* cohort, inputHaplotype* query) {
+  for(size_t i = 0; i < query->get_alleles().size(); i++) {
+    cout << cohort->get_information_content(i, query->get_alleles()[i]) << "\t";
+  }
+  cout << endl;
 }
 
 size_t haplotypeCohort_n_sites(haplotypeCohort* cohort) {
@@ -281,6 +296,10 @@ size_t siteIndex_n_sites(siteIndex* reference) {
   return reference->number_of_sites();
 }
 
+void siteIndex_delete(siteIndex* reference) {
+  delete reference;
+}
+
 int haplotypeManager_is_shared_site(haplotypeManager* hap_manager, size_t position) {
   return (int)(hap_manager->get_reference()->is_site(position));
 }
@@ -306,11 +325,16 @@ inputHaplotype* inputHaplotype_build(const char* ref_seq,
   inputHaplotype* to_return = new inputHaplotype(ref_seq, observed_haplotype, 
                                                  ref_struct, start_position, 
                                                  ref_struct->length_in_bp());
+  to_return->validate();
   return to_return;
 }
 
 size_t inputHaplotype_n_sites(inputHaplotype* input_haplotype) {
   return input_haplotype->number_of_sites();
+}
+
+size_t inputHaplotype_start_site(inputHaplotype* input_haplotype) {
+  return input_haplotype->get_start_site();
 }
 
 void inputHaplotype_delete(inputHaplotype* in_hap) {
@@ -359,15 +383,32 @@ double slowFwd_solve_linear(slowFwdSolver* solver, inputHaplotype* observed_hapl
 }
 
 inputHaplotype* haplotypeCohort_random_haplo(haplotypeCohort* cohort, siteIndex* reference, size_t generations, penaltySet* penalties, size_t length) {
-  size_t start = reference->rand_interval_start(length);
-  size_t start_site = reference->find_site_above(start);
-  size_t end_site = reference->find_site_below(start + length);
-  if(start_site <= end_site) {
+  size_t start_site = 0;
+  if(start_site < cohort->get_n_sites()) {
+    size_t end_site = cohort->get_n_sites() - 1;
     vector<alleleValue> random_haplo = cohort->rand_desc_haplo(generations, penalties->rho, penalties->mu, start_site, end_site);
-    return new inputHaplotype(random_haplo, vector<size_t>(random_haplo.size(), 0), reference, start, length);
+    inputHaplotype* to_return = new inputHaplotype(random_haplo, vector<size_t>(random_haplo.size(), 0), reference, cohort->get_reference()->get_position(start_site), cohort->get_reference()->get_position(end_site) - cohort->get_reference()->get_position(start_site));
+    to_return->validate();
+    return to_return;
   } else {
-    return new inputHaplotype(vector<alleleValue>(), vector<size_t>(1, 0), reference, start, length);
+    return new inputHaplotype(reference);
   }
+}
+
+siteIndex* haplotypeCohort_get_reference(haplotypeCohort* cohort) {
+  return cohort->get_reference();
+}
+
+haplotypeCohort* random_cohort(size_t n_bp, size_t k, haplotypeCohort* cohort, siteIndex* reference) {
+  size_t interval_start = reference->rand_interval_start(n_bp);
+  size_t interval_end = interval_start + n_bp;
+  size_t site_start = reference->find_site_above(interval_start);
+  size_t site_end = reference->find_site_below(interval_end);
+  return cohort->subset(site_start, site_end, k);
+}
+
+void remove_homogeneous_sites(haplotypeCohort* cohort) {
+  cohort->remove_homogeneous_sites();
 }
 
 void slowFwdSolver_delete(slowFwdSolver* to_delete) {
@@ -379,6 +420,15 @@ void n_random_uints(size_t* to_return, size_t N, size_t max_value) {
   memcpy(to_return, &temp[0], sizeof(size_t)*N);
 }
 
-haplotypeCohort* haplotypeCohort_downsample_to(haplotypeCohort* cohort, size_t number) {
-  return cohort->keep_haplotypes(number);
-}
+// void slowFwdSolver_u_values_stats(slowFwdSolver* solver, inputHaplotype* observed_haplotype) {
+//   pair<vector<double>, vector<size_t> > temp = solver->sequence_statistics(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+//   cout << "unique values\t" << temp.first[0] << "\t" << temp.second[0] << "\t";
+//   cout << "unique active values\t" << temp.first[1] << "\t" << temp.second[1] << "\t";
+//   cout << "active rows\t" << temp.first[2] << "\t" << temp.second[2] << "\t";
+//   cout << "history length\t" << temp.first[3] << "\t" << temp.second[3] << "\t";
+//   cout << "active history length\t" << temp.first[4] << "\t" << temp.second[4] << "\t";
+//   cout << "map classes\t" << temp.first[5] << "\t" << temp.second[5] << "\t";
+//   cout << "active map classes\t" << temp.first[6] << "\t" << temp.second[6] << "\t";
+//   cout << "times haplotype active\t" << temp.first[7] << "\t" << temp.second[7] << "\t";
+//   cout << endl;
+// }
