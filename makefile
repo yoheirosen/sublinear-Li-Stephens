@@ -6,6 +6,7 @@ BIN_DIR:=$(CWD)/bin
 OBJ_DIR:=$(CWD)/obj
 TEST_OBJ_DIR:=$(CWD)/obj/test
 LIB_DIR:= $(CWD)/lib
+DEP_DIR:= $(CWD)/deps
 
 CXX:=g++
 CXXFLAGS:=-std=c++11
@@ -25,6 +26,7 @@ build_dirs:
 	if [ ! -d $(TEST_OBJ_DIR) ]; then mkdir -p $(TEST_OBJ_DIR); fi
 	if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
 	if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
+	of [ ! -d $(DEP_DIR) ]; then mkdir -p $(DEP_DIR); fi
 
 tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/tests
