@@ -876,6 +876,7 @@ void siteIndex::serialize_human(std::ostream& indexout) const {
 }
 
 void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
+  reference->serialize_human(cohortout);
   cohortout << number_of_haplotypes << endl;
   for(size_t i = 0; i < get_n_sites(); i++) {
     for(size_t a = 0; a < 5; a++) {
@@ -883,7 +884,7 @@ void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
     }
     cohortout << endl;
     for(size_t a = 0; a < 5; a++) {
-      for(size_t j = 0; j < 5; j++) {
+      for(size_t j = 0; j < allele_counts_by_site_index[i][a]; j++) {
         cohortout << haplotype_indices_by_site_and_allele[i][a][j] << "\t";
       }
     }

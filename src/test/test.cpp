@@ -8,6 +8,8 @@
 #include "delay_multiplier.hpp"
 #include "catch.hpp"
 #include <iostream>
+#include <fstream>
+#include <cstdio>
 
 using namespace std;
 
@@ -62,6 +64,21 @@ TEST_CASE( "siteIndex structure and accessors", "[siteIndex]" ) {
     REQUIRE(ref_struct_from_strings.has_span_before(0) == true);
     REQUIRE(ref_struct_from_strings.has_span_after(0) == true);
     REQUIRE(ref_struct_from_strings.has_span_after(1) == false);
+  }
+  SECTION( "reading and writing to file works" ) {
+    ofstream testout;
+    testout.open("testout.linref", ios::out | ios::trunc);
+    ref_struct.serialize_human(testout);
+    testout.close();
+    ifstream testin;
+    testin.open("testout.linref", ios::in);
+    siteIndex read_ref_struct(testin);
+    testin.close();
+    remove("testout.linref");
+    REQUIRE(read_ref_struct.number_of_sites() == 3);
+    REQUIRE(read_ref_struct.get_site_index(5) == 2);
+    REQUIRE(read_ref_struct.length_in_bp() == 7);
+    REQUIRE(read_ref_struct.span_length_after(2) == 1);
   }
 }
 
@@ -138,6 +155,10 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][cohort-constructors]") {
     };
     haplotypeCohort direct_cohort = haplotypeCohort(haplotypes, &ref_struct);
     
+    ofstream testout;
+    testout.open("testout.cohort", ios::out | ios::trunc);
+    direct_cohort.serialize_human(testout);
+    testout.close();
     REQUIRE(direct_cohort.get_n_sites() == 3);
     REQUIRE(direct_cohort.number_matching(0,A) == 1);
     REQUIRE(direct_cohort.number_matching(0,T) == 1);
@@ -149,6 +170,17 @@ TEST_CASE( "haplotypeCohort construction", "[cohort][cohort-constructors]") {
     REQUIRE(direct_cohort.number_not_matching(0,gap) == 4);
     REQUIRE(direct_cohort.number_not_matching(1,A) == 0);
   }
+  SECTION( "build from file" ) {
+    ifstream testin;
+    testin.open("testout.cohort", ios::in);
+    siteIndex read_ref_struct(testin);
+    haplotypeCohort read_cohort(testin, &read_ref_struct);
+    testin.close();
+    remove("testout.cohort");
+    REQUIRE(read_cohort.get_n_sites() == 3);
+    REQUIRE(read_cohort.number_matching(0,gap) == 2);
+    REQUIRE(read_cohort.number_not_matching(0,gap) == 4);
+  }   
   SECTION( "build-from-strings" ) {
     // ref    GATTACA
     // sites   0  12
