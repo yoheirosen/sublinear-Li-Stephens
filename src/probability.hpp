@@ -27,7 +27,7 @@ private:
   
 //-- blockwise lazy eval "backend" ---------------------------------------------
   
-  lazyEvalMap map;
+  delayedEvalMap map;
   
 //-- position markers ----------------------------------------------------------
 
@@ -49,7 +49,7 @@ public:
   double S;
   vector<double> R;
   
-  lazyEvalMap& get_maps();
+  delayedEvalMap& get_maps();
 
 //-- probability queries -------------------------------------------------------
   

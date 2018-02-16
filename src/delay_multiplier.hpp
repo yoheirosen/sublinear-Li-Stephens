@@ -2,6 +2,7 @@
 #define DELAY_MULTIPLIER_H
 
 #include <vector>
+#include <stdexcept>
 #include "DP_map.hpp"
 #include "row_set.hpp"
 
@@ -13,50 +14,55 @@ typedef size_t step_t;
 
 struct mapHistory{
 private:
-	size_t start;
 	vector<DPUpdateMap> elements;
-  vector<size_t> previous;
+  vector<step_t> previous;
   vector<DPUpdateMap> suffixes;
 public:
-  mapHistory();
-  mapHistory(const DPUpdateMap& map, size_t start = 0);
-  mapHistory(const mapHistory& other); 
-  mapHistory(const mapHistory& other, size_t new_start);
+  class erased_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
   
-  void reserve_length(size_t length);
-	
+  mapHistory();
+  mapHistory(const DPUpdateMap& map);
+  mapHistory(const mapHistory& other); 
+  
+  void reserve(size_t length);
 	void push_back(const DPUpdateMap& map);
 	
-	DPUpdateMap& operator[](size_t i);
+	DPUpdateMap& operator[](step_t i);
 	DPUpdateMap& back();
-  DPUpdateMap& suffix(size_t i);
-  size_t& prev_site(size_t i);
-  size_t start_site() const;
+  DPUpdateMap& suffix(step_t i);
+  step_t& previous_step(step_t i);
   
 	size_t size() const;
   const vector<DPUpdateMap>& get_elements() const;
+  
+  void fuse_prev(step_t i);
+  
+  const static step_t CLEARED;
+  const static step_t PAST_FIRST;
 };
 
 // Shorthand for statements of complexity:
 // |H|      number of haplotypes in population cohort
 // n        length of haplotype since we last took a snapshot and reset the 
-//          contents of the lazyEvalMap struct
+//          contents of the delayedEvalMap struct
 // |eqclass|  a quantity whose expected value is a function of the frequency of
 //          rare alleles and which is bounded by |H|
 // M_avg    average across all sites of the number of haplotypes containing the 
 
-// A lazyEvalMap is an O(|H| + n)-sized data structure which allows us to
+// A delayedEvalMap is an O(|H| + n)-sized data structure which allows us to
 // defer partial-probability update calculation of rows until the next site at
 // which the row contains an allele seen in less than half the population
 // This allows us to reduce the time complexity of the probability-calculation 
 // DP to O(M_avg * n) from O(|H| * n) at the expense of a memory use increase to
-// O(|H| + n) from O(|H|). However, the lazyEvalMap struct need not be
+// O(|H| + n) from O(|H|). However, the delayedEvalMap struct need not be
 // stored and may be replaced with O(|H|) information as long as we call
 // hard_update_all() first at at cost of O(|eqclasses| + n) time
 //
 // TODO this is currently O(n) to copy. Speed it up. Though for single query 
 // case doesn't matter if H < n(H^(2/3)). Certainly can assume that H < MAC
-struct lazyEvalMap{
+struct delayedEvalMap{
 private:  
   step_t current_site = 0;
   step_t current_step = 0;
@@ -100,9 +106,9 @@ private:
   void eqclass_unset_last_updated(eqclass_t eqclass);
   void site_class_list_remove(size_t eqclass);
 public:
-  lazyEvalMap();
-  lazyEvalMap(size_t rows, size_t start = 0);
-  lazyEvalMap(const lazyEvalMap& other);
+  delayedEvalMap();
+  delayedEvalMap(size_t rows);
+  delayedEvalMap(const delayedEvalMap& other);
   
   void reserve_length(size_t length);
 	

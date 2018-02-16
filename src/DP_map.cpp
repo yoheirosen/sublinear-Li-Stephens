@@ -87,6 +87,9 @@ bool DPUpdateMap::operator==(const DPUpdateMap &other) const {
 bool DPUpdateMap::operator!=(const DPUpdateMap &other) const {
   return !(*this == other);
 }
+
+const DPUpdateMap DPUpdateMap::IDENTITY = DPUpdateMap(0);
+
 // 
 // DPUpdateMap& operator+=(const DPUpdateMap& other) {
 //   

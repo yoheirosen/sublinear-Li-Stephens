@@ -42,6 +42,8 @@ public:
   DPUpdateMap operator*(const DPUpdateMap& other) const;
   DPUpdateMap& operator*=(const double& other);
   DPUpdateMap operator*(const double& other) const;
+  
+  const static DPUpdateMap IDENTITY; 
 };
 
 #endif

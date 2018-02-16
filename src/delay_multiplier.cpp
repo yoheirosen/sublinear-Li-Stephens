@@ -5,71 +5,118 @@
 
 using namespace std;
 
-void mapHistory::push_back(const DPUpdateMap& map) {
-	elements.push_back(map);
-}
+// ---------------------------------------------------------------------------------------------------------------------
+// -- mapHistory -------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
 
-size_t mapHistory::size() const {
-	return elements.size();
-}
+const step_t mapHistory::CLEARED = SIZE_MAX - 1;
+const step_t mapHistory::PAST_FIRST = SIZE_MAX;
 
 mapHistory::mapHistory() {
-  start = 0;
 }
 
-mapHistory::mapHistory(const DPUpdateMap& map, size_t start) : start(start) {
+mapHistory::mapHistory(const DPUpdateMap& map) {
 	elements = {map};
+  previous = {PAST_FIRST};
+  suffixes = {DPUpdateMap::IDENTITY};
 }
-
 
 mapHistory::mapHistory(const mapHistory& other) {
-	start = other.start;
   elements = other.elements;
+  previous = other.previous;
+  suffixes = other.suffixes;
 }
 
-mapHistory::mapHistory(const mapHistory& other, size_t new_start) {
-	start = new_start;
-	size_t offset = new_start - other.start;
-	elements = vector<DPUpdateMap>(other.elements.begin() + offset, other.elements.end());	
+void mapHistory::reserve(size_t length) {
+  elements.reserve(length);
+  suffixes.reserve(length);
+  previous.reserve(length);
 }
 
-DPUpdateMap& mapHistory::operator[](size_t i) {
-	return elements[i - start];
+void mapHistory::push_back(const DPUpdateMap& map) {
+	elements.push_back(map);
+  previous.push_back(previous.size() - 1);
+  suffixes.push_back(DPUpdateMap::IDENTITY);
+}
+
+DPUpdateMap& mapHistory::operator[](step_t i) {
+  #ifdef DEBUG
+    return elements.at(i);
+  #endif
+	return elements[i];
 }
 
 DPUpdateMap& mapHistory::back() {
 	return elements.back();
 }
 
+DPUpdateMap& mapHistory::suffix(step_t i) {
+  #ifdef DEBUG
+    DPUpdateMap& this_suffix = suffixes.at(i);
+    if(previous == CLEARED) {
+      throw erased_error("Wanted suffix of cleared step "+i);
+    }
+  #endif
+  return suffixes[i];
+}
+
+step_t& mapHistory::previous_step(step_t i) {
+  #ifdef DEBUG
+    step_t this_previous = previous.at(i);
+    if(previous == CLEARED) {
+      throw erased_error("Wanted previous of cleared step "+i);
+    }
+  #endif
+  return previous[i];
+}
+
+void mapHistory::fuse_prev(size_t i) {
+  #ifdef DEBUG
+    step_t old_previous = previous.at(i);
+    if(previous == CLEARED) {
+      throw erased_error("Tried to fuse previous of cleared step "+i);
+    }
+    previous[i] = previous_step(old_previous);
+  #else
+    step_t old_previous = previous[i];
+    previous[i] = previous[old_previous];
+    previous[old_previous] = CLEARED;
+  #endif
+}
+
+size_t mapHistory::size() const {
+	return elements.size();
+}
+
 const vector<DPUpdateMap>& mapHistory::get_elements() const {
   return elements;
 }
 
-lazyEvalMap::lazyEvalMap() {
+// ---------------------------------------------------------------------------------------------------------------------
+
+delayedEvalMap::delayedEvalMap() {
   
 }
 
-void lazyEvalMap::increment_site_marker() {
+void delayedEvalMap::increment_site_marker() {
   current_site++;
 }
 
-lazyEvalMap::lazyEvalMap(size_t rows, size_t start) : 
+delayedEvalMap::delayedEvalMap(size_t rows) : 
 	row_to_eqclass(vector<size_t>(rows, 0)), 
 	eqclass_size(vector<size_t>(1, rows)),
-	current_site(start),
-	eqclass_last_updated(vector<size_t>(1, start)),
+	eqclass_last_updated(vector<size_t>(1, 0)),
 	newest_eqclass(0),
-	eqclass_to_map(vector<DPUpdateMap>(1, DPUpdateMap(0))),
-	map_history(mapHistory(DPUpdateMap(0), start)) {
-
+	eqclass_to_map(vector<DPUpdateMap>(1, DPUpdateMap::IDENTITY)),
+	map_history(mapHistory(DPUpdateMap::IDENTITY)) {
 }
 
-void lazyEvalMap::add_identity_eqclass() {
-  add_eqclass(DPUpdateMap(0));
+void delayedEvalMap::add_identity_eqclass() {
+  add_eqclass(DPUpdateMap::IDENTITY);
   return;
 }
 
-lazyEvalMap::lazyEvalMap(const lazyEvalMap &other) {
+delayedEvalMap::delayedEvalMap(const delayedEvalMap &other) {
 	current_site = other.current_site;
 	row_to_eqclass = other.row_to_eqclass;
 	eqclass_last_updated = other.eqclass_last_updated;
@@ -79,20 +126,20 @@ lazyEvalMap::lazyEvalMap(const lazyEvalMap &other) {
       oldest_seen = eqclass_last_updated[i];
     }
   }
-  map_history = mapHistory(other.map_history, oldest_seen);
+  map_history = mapHistory(other.map_history);
 	eqclass_to_map = other.eqclass_to_map;
 	eqclass_size = other.eqclass_size;
 	empty_eqclass_indices = other.empty_eqclass_indices;
 }
 
-void lazyEvalMap::assign_row_to_newest_eqclass(size_t row) {
+void delayedEvalMap::assign_row_to_newest_eqclass(size_t row) {
   //TODO: complain if row_to_eqclass[row] != |H|
   row_to_eqclass[row] = newest_eqclass;
   eqclass_size[newest_eqclass]++;
   return;
 }
 
-void lazyEvalMap::hard_clear_all() {
+void delayedEvalMap::hard_clear_all() {
   for(int i = 0; i < eqclass_to_map.size(); i++) {
     delete_eqclass(i);
   }
@@ -103,7 +150,7 @@ void lazyEvalMap::hard_clear_all() {
   return;
 }
 
-void lazyEvalMap::hard_update_all() {
+void delayedEvalMap::hard_update_all() {
   vector<size_t> non_empty_eqclasses;
   
   for(int i = 0; i < eqclass_size.size(); i++) {
@@ -115,7 +162,7 @@ void lazyEvalMap::hard_update_all() {
   return;
 }
 
-vector<size_t> lazyEvalMap::rows_to_eqclasses(const rowSet& rows) const {
+vector<size_t> delayedEvalMap::rows_to_eqclasses(const rowSet& rows) const {
   vector<size_t> to_return(0);
   if(rows.empty()) {
     return to_return;
@@ -132,7 +179,7 @@ vector<size_t> lazyEvalMap::rows_to_eqclasses(const rowSet& rows) const {
   return to_return;
 }
 
-void lazyEvalMap::update_maps(const vector<size_t>& eqclasses) {
+void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
   size_t least_up_to_date = current_site;
   for(size_t i = 0; i < eqclasses.size(); i++) {
     if(eqclass_last_updated[eqclasses[i]] < least_up_to_date) {
@@ -162,15 +209,15 @@ void lazyEvalMap::update_maps(const vector<size_t>& eqclasses) {
   return;
 }
 
-void lazyEvalMap::delete_eqclass(size_t eqclass) {
-  // eqclass_to_map[eqclass] = DPUpdateMap(0);
+void delayedEvalMap::delete_eqclass(size_t eqclass) {
+  // eqclass_to_map[eqclass] = DPUpdateMap::IDENTITY;
   eqclass_size[eqclass] = 0;
   eqclass_last_updated[eqclass] = current_site;
   empty_eqclass_indices.push_back(eqclass);
   return;
 }
 
-void lazyEvalMap::decrement_eqclass(size_t eqclass) {
+void delayedEvalMap::decrement_eqclass(size_t eqclass) {
   if(eqclass_size[eqclass] == 1) {
     delete_eqclass(eqclass);
   } else {
@@ -179,7 +226,7 @@ void lazyEvalMap::decrement_eqclass(size_t eqclass) {
   return;
 }
 
-void lazyEvalMap::remove_row_from_eqclass(size_t row) {
+void delayedEvalMap::remove_row_from_eqclass(size_t row) {
   decrement_eqclass(row_to_eqclass[row]);
   // unassigned row is given max possible eqclass index + 1 to ensure that
   // accessing it will throw an error
@@ -187,7 +234,7 @@ void lazyEvalMap::remove_row_from_eqclass(size_t row) {
   return;
 }
 
-void lazyEvalMap::add_eqclass(const DPUpdateMap& map) {
+void delayedEvalMap::add_eqclass(const DPUpdateMap& map) {
   if(empty_eqclass_indices.size() == 0) {
     newest_eqclass = eqclass_to_map.size();
     eqclass_to_map.push_back(map);
@@ -204,42 +251,42 @@ void lazyEvalMap::add_eqclass(const DPUpdateMap& map) {
   }
 }
 
-double lazyEvalMap::get_constant(size_t row) const {
+double delayedEvalMap::get_constant(size_t row) const {
   return eqclass_to_map[row_to_eqclass[row]].constant;
 }
 
-double lazyEvalMap::get_coefficient(size_t row) const {
+double delayedEvalMap::get_coefficient(size_t row) const {
   return eqclass_to_map[row_to_eqclass[row]].coefficient;
 }
 
-const DPUpdateMap& lazyEvalMap::get_map(size_t row) const {
+const DPUpdateMap& delayedEvalMap::get_map(size_t row) const {
   return eqclass_to_map[row_to_eqclass[row]];
 }
 
-const vector<DPUpdateMap>& lazyEvalMap::get_maps() const {
+const vector<DPUpdateMap>& delayedEvalMap::get_maps() const {
   return eqclass_to_map;
 }
 
-vector<DPUpdateMap>& lazyEvalMap::get_maps() {
+vector<DPUpdateMap>& delayedEvalMap::get_maps() {
   return eqclass_to_map;
 }
 
-const vector<size_t>& lazyEvalMap::get_map_indices() const {
+const vector<size_t>& delayedEvalMap::get_map_indices() const {
   return row_to_eqclass;
 }
 
-void lazyEvalMap::stage_map_for_span(const DPUpdateMap& span_map) {
+void delayedEvalMap::stage_map_for_span(const DPUpdateMap& span_map) {
   stage_map_for_site(span_map);
   return;
 }
 
-void lazyEvalMap::stage_map_for_site(const DPUpdateMap& site_map) {
+void delayedEvalMap::stage_map_for_site(const DPUpdateMap& site_map) {
   current_site++;
   map_history.push_back(site_map);
   return;
 }
 
-size_t lazyEvalMap::last_update(size_t row) const {
+size_t delayedEvalMap::last_update(size_t row) const {
   if(row_to_eqclass[row] != row_to_eqclass.size()) {
     return eqclass_last_updated[row_to_eqclass[row]];
   } else {
@@ -247,10 +294,10 @@ size_t lazyEvalMap::last_update(size_t row) const {
   }
 }
 
-const vector<DPUpdateMap>& lazyEvalMap::get_map_history() const {
+const vector<DPUpdateMap>& delayedEvalMap::get_map_history() const {
   return map_history.get_elements();
 }
-void lazyEvalMap::reset_rows(const rowSet& rows) {
+void delayedEvalMap::reset_rows(const rowSet& rows) {
   rowSet::const_iterator it = rows.begin();
   rowSet::const_iterator rows_end = rows.end();
   for(it; it != rows_end; ++it) {
@@ -264,27 +311,27 @@ void lazyEvalMap::reset_rows(const rowSet& rows) {
   }
 }
 
-void lazyEvalMap::update_active_rows(const rowSet& active_rows) {
+void delayedEvalMap::update_active_rows(const rowSet& active_rows) {
   // update_maps(rows_to_eqclassmask(active_rows));
   update_maps(rows_to_eqclasses(active_rows));
 }
 
-size_t lazyEvalMap::number_of_eqclasses() const {
+size_t delayedEvalMap::number_of_eqclasses() const {
   return eqclass_size.size() - empty_eqclass_indices.size();
 }
 
-size_t lazyEvalMap::row_updated_to(size_t row) const {
+size_t delayedEvalMap::row_updated_to(size_t row) const {
   return eqclass_last_updated[row_to_eqclass[row]];
 }
 
-size_t lazyEvalMap::get_current_site() const {
+size_t delayedEvalMap::get_current_site() const {
   return current_site;
 }
 
-size_t lazyEvalMap::get_eqclass(size_t row) const {
+size_t delayedEvalMap::get_eqclass(size_t row) const {
   return row_to_eqclass[row];
 }
 
-double lazyEvalMap::evaluate(size_t row, double value) const {
+double delayedEvalMap::evaluate(size_t row, double value) const {
   return eqclass_to_map[row_to_eqclass[row]].of(value);
 }

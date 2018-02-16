@@ -802,8 +802,8 @@ TEST_CASE( "Delay map object works ", "[delay][DPMap]" ) {
 }
 
 TEST_CASE( "Delay map structure is built correctly ", "[delay][lazyEval-build]" ) {
-  SECTION( "Building and accessing lazyEvalMaps" ) {
-    lazyEvalMap map = lazyEvalMap(5, 0);
+  SECTION( "Building and accessing delayedEvalMaps" ) {
+    delayedEvalMap map = delayedEvalMap(5);
     REQUIRE(map.get_map_indices().size() == 5);
     REQUIRE(map.get_map(0).is_identity() == true);
     // Can we add and then read a value?
@@ -845,7 +845,7 @@ TEST_CASE( "Delay map structure is built correctly ", "[delay][lazyEval-build]" 
 
 TEST_CASE( "Delay map structure stores values correctly ", "[delay][storage]" ) {
   SECTION( "Updating maps performs correct arithmetic" ) {
-    lazyEvalMap map = lazyEvalMap(3, 0);
+    delayedEvalMap map = delayedEvalMap(3);
     map.stage_map_for_site(DPUpdateMap(-2.0, -3.0));
     REQUIRE(map.get_map_history()[0].is_identity());
     REQUIRE(map.get_map_history()[1] == DPUpdateMap(-2.0, -3.0));
@@ -861,8 +861,8 @@ TEST_CASE( "Delay map structure stores values correctly ", "[delay][storage]" ) 
 }
 
 TEST_CASE( "Delay map structure stores history correctly ", "[delay][encode-history]" ) {
-  SECTION( "We can track sites and times-of-update in lazyEvalMaps" ) {
-    lazyEvalMap map2 = lazyEvalMap(2, 0);
+  SECTION( "We can track sites and times-of-update in delayedEvalMaps" ) {
+    delayedEvalMap map2 = delayedEvalMap(2);
     map2.add_eqclass(DPUpdateMap(-1.0, -1.0));
     map2.assign_row_to_newest_eqclass(0);
     REQUIRE(map2.last_update(0) == 0);

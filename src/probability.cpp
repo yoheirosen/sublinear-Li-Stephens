@@ -10,7 +10,7 @@ struct liStephensModel{
 };
 
 fastFwdAlgState::fastFwdAlgState(siteIndex* reference, const penaltySet* penalties, const haplotypeCohort* cohort) :
-          reference(reference), cohort(cohort), penalties(penalties), map(lazyEvalMap(cohort->get_n_haplotypes(), 0)) {
+          reference(reference), cohort(cohort), penalties(penalties), map(delayedEvalMap(cohort->get_n_haplotypes())) {
   S = 0;
   R = vector<double>(cohort->get_n_haplotypes(), 0);
 }
@@ -25,9 +25,9 @@ fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other, bool copy_map = t
 	S = other.S;
 	R = other.R;
 	if(copy_map) {
-		map = lazyEvalMap(other.map);
+		map = delayedEvalMap(other.map);
 	} else {
-		map = lazyEvalMap(cohort->get_n_haplotypes(), last_extended);
+		map = delayedEvalMap(cohort->get_n_haplotypes());
 	}
 }
 
@@ -48,7 +48,7 @@ size_t fastFwdAlgState::get_last_site() const {
   return last_extended;
 }
 
-lazyEvalMap& fastFwdAlgState::get_maps() {
+delayedEvalMap& fastFwdAlgState::get_maps() {
   return map;
 }
 
@@ -198,7 +198,7 @@ void fastFwdAlgState::take_snapshot() {
         }
       }
     }
-    // since all R-values are up to date, we do not need entries in the lazyEvalMap
+    // since all R-values are up to date, we do not need entries in the delayedEvalMap
     // therefore we can clear them all and replace them with the identity map
     map.hard_clear_all();
   }

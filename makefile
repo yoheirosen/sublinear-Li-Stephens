@@ -51,7 +51,7 @@ libs : $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
 clean:
 	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o $(LIB_DIR)/*
 
-$(LIB_DIR)/libsublinearLS.a : $(OBJ_DIR)/allele.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/input_haplotype.o
+$(LIB_DIR)/libsublinearLS.a : $(CORE_OBJ)
 	ar rc $@ $^
 	ranlib $@
 
