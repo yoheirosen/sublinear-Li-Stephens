@@ -9,8 +9,12 @@ using namespace std;
 // -- mapHistory -------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
 
-const step_t mapHistory::CLEARED = SIZE_MAX - 1;
-const step_t mapHistory::PAST_FIRST = SIZE_MAX;
+const step_t mapHistory::CLEARED = SIZE_MAX - 4;
+const step_t mapHistory::PAST_FIRST = SIZE_MAX - 3;
+const eqclass_t mapHistory::NO_REP = SIZE_MAX - 2;
+
+const eqclass_t delayedEvalMap::INACTIVE_EQCLASS = SIZE_MAX - 1;
+const eqclass_t delayedEvalMap::NO_NEIGHBOUR = SIZE_MAX;
 
 mapHistory::mapHistory() {
 }
@@ -88,6 +92,9 @@ step_t mapHistory::previous_step(step_t i) const {
     if(this_previous == CLEARED) {
       throw erased_error("Wanted previous of cleared step "+i);
     }
+    if(this_previous == PAST_FIRST) {
+      throw erased_error("Wanted previous of first step "+i);
+    }
   #endif
   return previous[i];
 }
@@ -98,12 +105,15 @@ void mapHistory::fuse_prev(size_t i) {
     if(old_previous == CLEARED) {
       throw erased_error("Tried to fuse previous of cleared step "+i);
     }
+    if(old_previous == PAST_FIRST) {
+      throw erased_error("Wanted previous of first step "+i);
+    }
     previous[i] = previous_step(old_previous);
   #else
     step_t old_previous = previous[i];
     previous[i] = previous[old_previous];
-    previous[old_previous] = CLEARED;
   #endif
+  previous[old_previous] = CLEARED;
 }
 
 size_t mapHistory::size() const {
@@ -114,14 +124,143 @@ const vector<DPUpdateMap>& mapHistory::get_elements() const {
   return elements;
 }
 
+void mapHistory::set_rep_eqclass(step_t i, eqclass_t eqclass) {
+  #ifdef DEBUG
+    rep_eqclasses.at(i) = eqclass;
+  #else
+    rep_eqclasses[i] = eqclass;
+  #endif
+}
+
+eqclass_t mapHistory::rep_eqclass(step_t i) const {
+  #ifdef DEBUG
+    if(rep_eqclasses.at(i) ==mapHistory::NO_REP) {
+      throw erased_error("no representative eqclass at "+i);
+    }
+    return rep_eqclasses.at(i);
+  #else
+    return rep_eqclasses[i];
+  #endif
+}
+
+void mapHistory::clear_rep_eqclass(step_t i) {
+  #ifdef DEBUG
+    rep_eqclasses.at(i) =mapHistory::NO_REP;
+  #else
+    rep_eqclasses[i] =mapHistory::NO_REP;
+  #endif
+}
+
+inline bool delayedEvalMap::is_singleton(eqclass_t eqclass) const {
+  #ifdef DEBUG
+    if(eqclass == NO_NEIGHBOUR) {
+      throw runtime_error("called is_singleton on NO_NEIGHBOUR");
+    } else if(eqclass ==mapHistory::NO_REP) {
+      throw runtime_error("called is_singleton onmapHistory::NO_REP");
+    } else if(eqclass == INACTIVE_EQCLASS) {
+      throw runtime_error("called is_singleton on INACTIVE_EQCLASS");
+    }
+  #endif
+  return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR) && (eqclass_buddy_below[eqclass] == NO_NEIGHBOUR);
+}
+
+inline bool delayedEvalMap::is_front(eqclass_t eqclass) const {
+  #ifdef DEBUG
+    if(eqclass == NO_NEIGHBOUR) {
+      throw runtime_error("called is_front on NO_NEIGHBOUR");
+    } else if(eqclass ==mapHistory::NO_REP) {
+      throw runtime_error("called is_front onmapHistory::NO_REP");
+    } else if(eqclass == INACTIVE_EQCLASS) {
+      throw runtime_error("called is_front on INACTIVE_EQCLASS");
+    }
+  #endif
+  return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR);
+}
+
+void delayedEvalMap::push_back_at_current(eqclass_t eqclass) {
+  #ifdef DEBUG
+    if(eqclass == NO_NEIGHBOUR) {
+      throw runtime_error("called push_back_at_site on NO_NEIGHBOUR");
+    } else if(eqclass ==mapHistory::NO_REP) {
+      throw runtime_error("called push_back_at_site onmapHistory::NO_REP");
+    } else if(eqclass == INACTIVE_EQCLASS) {
+      throw runtime_error("called push_back_at_site on INACTIVE_EQCLASS");
+    }
+    if(map_history.rep_eqclass(current_site) ==mapHistory::NO_REP) {
+      eqclass_buddy_above.at(eqclass) = NO_NEIGHBOUR;
+      eqclass_buddy_below.at(eqclass) = NO_NEIGHBOUR;
+      map_history.set_rep_eqclass(current_site, eqclass);
+    } else {
+      eqclass_t current_rep = map_history.rep_eqclass(current_site);
+      eqclass_buddy_below.at(eqclass) = current_rep;
+      eqclass_buddy_above.at(current_rep) = eqclass;
+      eqclass_buddy_above.at(eqclass) = NO_NEIGHBOUR;
+      map_history.set_rep_eqclass(current_site, eqclass);
+    }
+  #else
+    if(map_history.rep_eqclass(current_site) ==mapHistory::NO_REP) {
+      eqclass_buddy_above[eqclass] = NO_NEIGHBOUR;
+      eqclass_buddy_below[eqclass] = NO_NEIGHBOUR;
+      map_history.set_rep_eqclass(current_site, eqclass);
+    } else {
+      eqclass_t current_rep = map_history.rep_eqclass(current_site);
+      eqclass_buddy_below[eqclass] = current_rep;
+      eqclass_buddy_above[current_rep] = eqclass;
+      eqclass_buddy_above[eqclass] = NO_NEIGHBOUR;
+      map_history.set_rep_eqclass(current_site, eqclass);
+    }
+  #endif
+}
+
+void delayedEvalMap::delete_at_site(eqclass_t eqclass) {
+  #ifdef DEBUG
+    if(eqclass == NO_NEIGHBOUR) {
+      throw runtime_error("called delete_at_site on NO_NEIGHBOUR");
+    } else if(eqclass ==mapHistory::NO_REP) {
+      throw runtime_error("called delete_at_site onmapHistory::NO_REP");
+    } else if(eqclass == INACTIVE_EQCLASS) {
+      throw runtime_error("called delete_at_site on INACTIVE_EQCLASS");
+    }
+    if(is_singleton(eqclass)) {
+      eqclass_buddy_above.at(eqclass) == INACTIVE_EQCLASS;
+      eqclass_buddy_below.at(eqclass) == INACTIVE_EQCLASS;
+      map_history.clear_rep_eqclass(eqclass_last_updated.at(eqclass));
+    } else {
+      eqclass_t old_above = eqclass_buddy_above.at(eqclass);
+      eqclass_t old_below = eqclass_buddy_below.at(eqclass);
+      if(old_above != NO_NEIGHBOUR) {
+        eqclass_buddy_below.at(old_above) = old_below;
+      } else {
+        // safe to not check because the case that both above and below are NO_NEIGHBOUR is caught by is_singleton(eqclass)
+        map_history.set_rep_eqclass(eqclass_last_updated.at(eqclass), old_below);
+      }
+      if(old_below != NO_NEIGHBOUR) {
+        eqclass_buddy_above.at(old_below) = old_above;
+      }
+    }
+  #else
+    if(is_singleton(eqclass)) {
+      map_history.clear_rep_eqclass(eqclass_last_updated.at(eqclass));
+    } else {
+      eqclass_t old_above = eqclass_buddy_above.at(eqclass);
+      eqclass_t old_below = eqclass_buddy_below.at(eqclass);
+      if(old_above != NO_NEIGHBOUR) {
+        eqclass_buddy_below.at(old_above) = old_below;
+      } else {
+        // safe to not check because the case that both above and below are NO_NEIGHBOUR is caught by is_singleton(eqclass)
+        map_history.set_rep_eqclass(eqclass_last_updated.at(eqclass), old_below);
+      }
+      if(old_below != NO_NEIGHBOUR) {
+        eqclass_buddy_above.at(old_below) = old_above;
+      }
+    }
+  #endif
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 delayedEvalMap::delayedEvalMap() {
   
-}
-
-void delayedEvalMap::increment_site_marker() {
-  current_site++;
 }
 
 delayedEvalMap::delayedEvalMap(size_t rows) : 
@@ -241,36 +380,6 @@ void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
   return;
 }
 
-// void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
-//   size_t least_up_to_date = current_site;
-//   for(size_t i = 0; i < eqclasses.size(); i++) {
-//     if(eqclass_last_updated[eqclasses[i]] < least_up_to_date) {
-//       least_up_to_date = eqclass_last_updated[eqclasses[i]];
-//     }
-//   }
-//   if(current_site != least_up_to_date) {
-//     size_t suffixes_size = current_site - least_up_to_date;
-// 
-//     vector<DPUpdateMap> suffixes = 
-//               vector<DPUpdateMap>(suffixes_size, DPUpdateMap());
-//     suffixes[0] = map_history[current_site];
-// 
-//     for(size_t i = 1; i < suffixes_size; i++) {
-//       suffixes[i] = suffixes[i-1].compose(map_history[current_site - i]);
-//     }    
-//     
-//     for(size_t i = 0; i < eqclasses.size(); i++) {
-//       if(eqclass_last_updated[eqclasses[i]] != current_site) {
-//         // j is the eqclass's index in the suffix-vector
-//         size_t j = current_site - eqclass_last_updated[eqclasses[i]] - 1;
-//         eqclass_to_map[eqclasses[i]] = suffixes[j].of(eqclass_to_map[eqclasses[i]]);
-//         eqclass_last_updated[eqclasses[i]] = current_site;
-//       }
-//     }
-//   }
-//   return;
-// }
-
 void delayedEvalMap::delete_eqclass(size_t eqclass) {
   // eqclass_to_map[eqclass] = DPUpdateMap::IDENTITY;
   eqclass_size[eqclass] = 0;
@@ -295,6 +404,8 @@ void delayedEvalMap::remove_row_from_eqclass(size_t row) {
   row_to_eqclass[row] = row_to_eqclass.size();
   return;
 }
+
+
 
 void delayedEvalMap::add_eqclass(const DPUpdateMap& map) {
   if(empty_eqclass_indices.size() == 0) {
@@ -359,6 +470,7 @@ size_t delayedEvalMap::last_update(size_t row) const {
 const vector<DPUpdateMap>& delayedEvalMap::get_map_history() const {
   return map_history.get_elements();
 }
+
 void delayedEvalMap::reset_rows(const rowSet& rows) {
   rowSet::const_iterator it = rows.begin();
   rowSet::const_iterator rows_end = rows.end();

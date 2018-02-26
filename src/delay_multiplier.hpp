@@ -17,6 +17,7 @@ private:
 	vector<DPUpdateMap> elements;
   vector<step_t> previous;
   vector<DPUpdateMap> suffixes;
+  vector<eqclass_t> rep_eqclasses;
 public:
   class erased_error : public std::runtime_error {
     using std::runtime_error::runtime_error;
@@ -42,8 +43,13 @@ public:
   
   void fuse_prev(step_t i);
   
+  void set_rep_eqclass(step_t i, eqclass_t eqclass);
+  eqclass_t rep_eqclass(step_t i) const;
+  void clear_rep_eqclass(step_t i);
+  
   const static step_t CLEARED;
   const static step_t PAST_FIRST;
+  const static eqclass_t NO_REP;
 };
 
 // Shorthand for statements of complexity:
@@ -89,24 +95,17 @@ private:
   void decrement_eqclass(eqclass_t eqclass);
   // clears eqclass and returns it to the list of empty eqclasses
   void delete_eqclass(eqclass_t eqclass);
-    
-  vector<size_t> site_n_classes;
-  vector<eqclass_t> site_class_list_above;
-  vector<eqclass_t> site_class_list_below;
-  vector<eqclass_t> rep_eqclass_of_site;
+  
+  const static eqclass_t NO_NEIGHBOUR;
+  const static eqclass_t INACTIVE_EQCLASS;
+  
+  vector<eqclass_t> eqclass_buddy_above;
+  vector<eqclass_t> eqclass_buddy_below;
   
   inline bool is_singleton(eqclass_t eqclass) const;
   inline bool is_front(eqclass_t eqclass) const;
-  void site_class_list_pop(step_t site);
-  eqclass_t get_eqclass_below(eqclass_t eqclass);
-  eqclass_t get_eqclass_above(eqclass_t eqclass);
-  eqclass_t get_rep_eqclass(step_t site);
-  void set_eqclass_below(eqclass_t eqclass, eqclass_t below);
-  void set_eqclass_above(eqclass_t eqclass, eqclass_t above);
-  void set_rep_eqclass(step_t site, eqclass_t rep);
-  void clear_rep_eqclass(step_t site);
-  void eqclass_unset_last_updated(eqclass_t eqclass);
-  void site_class_list_remove(size_t eqclass);
+  void push_back_at_current(eqclass_t eqclass);
+  void delete_at_site(eqclass_t eqclass);
 public:
   delayedEvalMap();
   delayedEvalMap(size_t rows);
@@ -115,8 +114,6 @@ public:
   void reserve_length(size_t length);
 	
   void update_eqclass(eqclass_t eqclass);
-  void remove_from_site(eqclass_t eqclass);
-  void add_to_current_site(eqclass_t eqclass);
   
 	void assign_row_to_newest_eqclass(row_t row);
 	void remove_row_from_eqclass(row_t row);
@@ -161,14 +158,12 @@ public:
   size_t number_of_eqclasses() const;
 	size_t get_current_site() const;
   
-  void increment_site_marker();
-
   size_t row_updated_to(row_t row) const;
 	size_t last_update(row_t row) const;
   size_t get_eqclass(row_t row) const;
   
-  void 
-  condense_history(step_t top, step_t bottom);
+  void remove_from_site(eqclass_t eqclass);
+  void add_to_current_site(eqclass_t eqclass);
 };
 
 #endif
