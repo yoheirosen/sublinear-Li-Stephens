@@ -29,10 +29,13 @@ public:
   void reserve(size_t length);
 	void push_back(const DPUpdateMap& map);
 	
+  const DPUpdateMap& operator[](step_t i) const;
 	DPUpdateMap& operator[](step_t i);
-	DPUpdateMap& back();
+	const DPUpdateMap& back() const;
+  DPUpdateMap& back();
+  const DPUpdateMap& suffix(step_t i) const;
   DPUpdateMap& suffix(step_t i);
-  step_t& previous_step(step_t i);
+  step_t previous_step(step_t i) const;
   
 	size_t size() const;
   const vector<DPUpdateMap>& get_elements() const;
@@ -86,7 +89,6 @@ private:
   void decrement_eqclass(eqclass_t eqclass);
   // clears eqclass and returns it to the list of empty eqclasses
   void delete_eqclass(eqclass_t eqclass);
-  vector<DPUpdateMap> suffixes;
     
   vector<size_t> site_n_classes;
   vector<eqclass_t> site_class_list_above;

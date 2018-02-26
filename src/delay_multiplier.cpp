@@ -39,6 +39,13 @@ void mapHistory::push_back(const DPUpdateMap& map) {
   suffixes.push_back(DPUpdateMap::IDENTITY);
 }
 
+const DPUpdateMap& mapHistory::operator[](step_t i) const {
+  #ifdef DEBUG
+    return elements.at(i);
+  #endif
+	return elements[i];
+}
+
 DPUpdateMap& mapHistory::operator[](step_t i) {
   #ifdef DEBUG
     return elements.at(i);
@@ -46,24 +53,39 @@ DPUpdateMap& mapHistory::operator[](step_t i) {
 	return elements[i];
 }
 
+const DPUpdateMap& mapHistory::back() const {
+	return elements.back();
+}
+
 DPUpdateMap& mapHistory::back() {
 	return elements.back();
+}
+
+const DPUpdateMap& mapHistory::suffix(step_t i) const {
+  #ifdef DEBUG
+    const DPUpdateMap& this_suffix = suffixes.at(i);
+    if(previous.at(i) == CLEARED) {
+      throw erased_error("Wanted suffix of cleared step "+i);
+    }
+    return this_suffix;
+  #endif
+  return suffixes[i];
 }
 
 DPUpdateMap& mapHistory::suffix(step_t i) {
   #ifdef DEBUG
     DPUpdateMap& this_suffix = suffixes.at(i);
-    if(previous == CLEARED) {
+    if(previous.at(i) == CLEARED) {
       throw erased_error("Wanted suffix of cleared step "+i);
     }
   #endif
   return suffixes[i];
 }
 
-step_t& mapHistory::previous_step(step_t i) {
+step_t mapHistory::previous_step(step_t i) const {
   #ifdef DEBUG
     step_t this_previous = previous.at(i);
-    if(previous == CLEARED) {
+    if(this_previous == CLEARED) {
       throw erased_error("Wanted previous of cleared step "+i);
     }
   #endif
@@ -73,7 +95,7 @@ step_t& mapHistory::previous_step(step_t i) {
 void mapHistory::fuse_prev(size_t i) {
   #ifdef DEBUG
     step_t old_previous = previous.at(i);
-    if(previous == CLEARED) {
+    if(old_previous == CLEARED) {
       throw erased_error("Tried to fuse previous of cleared step "+i);
     }
     previous[i] = previous_step(old_previous);
@@ -179,35 +201,75 @@ vector<size_t> delayedEvalMap::rows_to_eqclasses(const rowSet& rows) const {
   return to_return;
 }
 
+// implement bounds checking on all map_history
+
 void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
-  size_t least_up_to_date = current_site;
-  for(size_t i = 0; i < eqclasses.size(); i++) {
+  step_t least_up_to_date = current_site;
+  for(eqclass_t i = 0; i < eqclasses.size(); i++) {
     if(eqclass_last_updated[eqclasses[i]] < least_up_to_date) {
       least_up_to_date = eqclass_last_updated[eqclasses[i]];
     }
   }
   if(current_site != least_up_to_date) {
-    size_t suffixes_size = current_site - least_up_to_date;
-
-    vector<DPUpdateMap> suffixes = 
-              vector<DPUpdateMap>(suffixes_size, DPUpdateMap());
-    suffixes[0] = map_history[current_site];
-
-    for(size_t i = 1; i < suffixes_size; i++) {
-      suffixes[i] = suffixes[i-1].compose(map_history[current_site - i]);
+    // ONLY DIFFERENCES AFTER THIS POINT
+    step_t last_i = current_site;
+    
+    map_history.suffix(current_site) = map_history[current_site];
+    
+    for(step_t i = current_site; i != least_up_to_date; --i) {
+      map_history.suffix(i - 1) = map_history.suffix(i).compose(map_history[i - 1]);
     }    
     
     for(size_t i = 0; i < eqclasses.size(); i++) {
+      #ifdef DEBUG
+      if(eqclass_last_updated.at(eqclasses.at(i)) != current_site) {
+        // j is the eqclass's index in the suffix-vector
+        size_t j = eqclass_last_updated.at(eqclasses.at(i)) + 1;
+        eqclass_to_map.at(eqclasses.at(i)) = map_history.suffix(j).of(eqclass_to_map.at(eqclasses.at(i)));
+        eqclass_last_updated.at(eqclasses.at(i)) = current_site;
+      }
+      #else
       if(eqclass_last_updated[eqclasses[i]] != current_site) {
         // j is the eqclass's index in the suffix-vector
-        size_t j = current_site - eqclass_last_updated[eqclasses[i]] - 1;
-        eqclass_to_map[eqclasses[i]] = suffixes[j].of(eqclass_to_map[eqclasses[i]]);
+        size_t j = eqclass_last_updated[eqclasses[i]] + 1;
+        eqclass_to_map[eqclasses[i]] = map_history.suffix(j).of(eqclass_to_map[eqclasses[i]]);
         eqclass_last_updated[eqclasses[i]] = current_site;
       }
+      #endif
     }
   }
   return;
 }
+
+// void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
+//   size_t least_up_to_date = current_site;
+//   for(size_t i = 0; i < eqclasses.size(); i++) {
+//     if(eqclass_last_updated[eqclasses[i]] < least_up_to_date) {
+//       least_up_to_date = eqclass_last_updated[eqclasses[i]];
+//     }
+//   }
+//   if(current_site != least_up_to_date) {
+//     size_t suffixes_size = current_site - least_up_to_date;
+// 
+//     vector<DPUpdateMap> suffixes = 
+//               vector<DPUpdateMap>(suffixes_size, DPUpdateMap());
+//     suffixes[0] = map_history[current_site];
+// 
+//     for(size_t i = 1; i < suffixes_size; i++) {
+//       suffixes[i] = suffixes[i-1].compose(map_history[current_site - i]);
+//     }    
+//     
+//     for(size_t i = 0; i < eqclasses.size(); i++) {
+//       if(eqclass_last_updated[eqclasses[i]] != current_site) {
+//         // j is the eqclass's index in the suffix-vector
+//         size_t j = current_site - eqclass_last_updated[eqclasses[i]] - 1;
+//         eqclass_to_map[eqclasses[i]] = suffixes[j].of(eqclass_to_map[eqclasses[i]]);
+//         eqclass_last_updated[eqclasses[i]] = current_site;
+//       }
+//     }
+//   }
+//   return;
+// }
 
 void delayedEvalMap::delete_eqclass(size_t eqclass) {
   // eqclass_to_map[eqclass] = DPUpdateMap::IDENTITY;

@@ -866,14 +866,10 @@ TEST_CASE( "Delay map structure stores history correctly ", "[delay][encode-hist
     map2.add_eqclass(DPUpdateMap(-1.0, -1.0));
     map2.assign_row_to_newest_eqclass(0);
     REQUIRE(map2.last_update(0) == 0);
-    map2.increment_site_marker();
-    map2.add_eqclass(DPUpdateMap(-2.0, -2.0));
-    map2.assign_row_to_newest_eqclass(1);
-    REQUIRE(map2.last_update(1) == 1);
     map2.stage_map_for_site(DPUpdateMap(-3.0, -3.0));
     map2.hard_update_all();
-    REQUIRE(map2.last_update(0) == 2);
-    REQUIRE(map2.last_update(1) == 2);
+    REQUIRE(map2.last_update(0) == 1);
+    REQUIRE(map2.last_update(1) == 1);
   }
 }
 
