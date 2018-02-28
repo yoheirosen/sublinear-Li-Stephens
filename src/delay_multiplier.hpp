@@ -16,6 +16,7 @@ struct mapHistory{
 private:
 	vector<DPUpdateMap> elements;
   vector<step_t> previous;
+  vector<step_t> next;
   vector<DPUpdateMap> suffixes;
   vector<eqclass_t> rep_eqclasses;
 public:
@@ -37,6 +38,7 @@ public:
   const DPUpdateMap& suffix(step_t i) const;
   DPUpdateMap& suffix(step_t i);
   step_t previous_step(step_t i) const;
+  step_t next_step(step_t i) const;
   
 	size_t size() const;
   const vector<DPUpdateMap>& get_elements() const;
