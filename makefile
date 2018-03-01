@@ -24,12 +24,19 @@ TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o 
 
 all : build_dirs speed_tree tests tree_tests interface libs serializer
 
+.PHONY: build_dirs libs clean 
+
 build_dirs:
 	if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
 	if [ ! -d $(TEST_OBJ_DIR) ]; then mkdir -p $(TEST_OBJ_DIR); fi
 	if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
 	if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
 	if [ ! -d $(DEP_DIR) ]; then mkdir -p $(DEP_DIR); fi
+
+libs : build_dirs $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
+
+clean:
+	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o $(LIB_DIR)/*
 
 tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/tests $(LIBS)
@@ -45,11 +52,6 @@ interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE
 	
 serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/serializer $(LIBS)
-
-libs : $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
-
-clean:
-	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o $(LIB_DIR)/*
 
 $(LIB_DIR)/libsublinearLS.a : $(OBJ_DIR)/allele.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/input_haplotype.o
 	ar rc $@ $^
