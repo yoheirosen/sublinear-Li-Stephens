@@ -11,7 +11,10 @@ DEP_DIR:= $(CWD)/deps
 CXX:=g++
 CXXFLAGS:=-std=c++11
 
-INCLUDE_FLAGS:= -I$(SRC_DIR) -I$(TEST_SRC_DIR) -I$(DEP_DIR)/htslib
+ifeq ($(INCLUDE_FLAGS),)
+	# Include flags may be set by library user
+	INCLUDE_FLAGS:= -I$(SRC_DIR) -I$(TEST_SRC_DIR) -I$(DEP_DIR)/htslib
+endif
 LIBS := -L. -L$(DEP_DIR)/htslib/ -lhts -llzma -lbz2 -lz -lm -lpthread
 
 LIBHTS := $(DEP_DIR)/htslib/libhts.a
