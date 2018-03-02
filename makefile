@@ -18,7 +18,7 @@ LIBHTS := $(DEP_DIR)/htslib/libhts.a
 
 PROBABILITY_DEPS := $(SRC_DIR)/probability.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/input_haplotype.hpp $(SRC_DIR)/penalty_set.hpp $(SRC_DIR)/delay_multiplier.hpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp $(SRC_DIR)/row_set.hpp
 
-CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/input_haplotype.o $(OBJ_DIR)/delay_multiplier.o $(OBJ_DIR)/DP_map.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/allele.o $(OBJ_DIR)/row_set.o $(LIBHTS)
+CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(OBJ_DIR)/input_haplotype.o $(OBJ_DIR)/delay_multiplier.o $(OBJ_DIR)/DP_map.o $(OBJ_DIR)/penalty_set.o $(OBJ_DIR)/allele.o $(OBJ_DIR)/row_set.o
 
 TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
@@ -38,19 +38,19 @@ libs : build_dirs $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
 clean:
 	rm -f $(BIN_DIR)/* $(OBJ_DIR)/*.o $(TEST_OBJ_DIR)/*.o $(LIB_DIR)/*
 
-tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ)
+tests : $(TEST_OBJ_DIR)/test.o $(CORE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/tests $(LIBS)
 
-tree_tests : $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ)
+tree_tests : $(TEST_OBJ_DIR)/tree_tests.o $(CORE_OBJ) $(TREE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/tree_tests $(LIBS)
 
-speed_tree : $(TEST_OBJ_DIR)/speed_tree.o $(CORE_OBJ) $(TREE_OBJ)
+speed_tree : $(TEST_OBJ_DIR)/speed_tree.o $(CORE_OBJ) $(TREE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/speed_tree $(LIBS)
 
-interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE_OBJ)
+interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/linhapexample $(LIBS)
 	
-serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ)
+serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/serializer $(LIBS)
 
 $(LIB_DIR)/libsublinearLS.a : $(CORE_OBJ) $(TREE_OBJ)
@@ -96,7 +96,7 @@ $(OBJ_DIR)/probability.o : $(SRC_DIR)/probability.cpp $(PROBABILITY_DEPS)
 $(OBJ_DIR)/penalty_set.o : $(SRC_DIR)/penalty_set.cpp $(SRC_DIR)/penalty_set.hpp $(SRC_DIR)/math.hpp $(SRC_DIR)/DP_map.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
-$(OBJ_DIR)/reference.o : $(SRC_DIR)/reference.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp $(LIBHTS)
+$(OBJ_DIR)/reference.o : $(SRC_DIR)/reference.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
 $(OBJ_DIR)/reference_sequence.o : $(SRC_DIR)/reference_sequence.cpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp
@@ -114,7 +114,7 @@ $(TEST_OBJ_DIR)/test.o : $(TEST_SRC_DIR)/test.cpp $(PROBABILITY_DEPS)
 $(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haplotype_manager.hpp $(SRC_DIR)/reference_sequence.hpp $(SRC_DIR)/set_of_extensions.hpp $(SRC_DIR)/haplotype_state_tree.hpp $(SRC_DIR)/haplotype_state_node.hpp $(PROBABILITY_DEPS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
-$(OBJ_DIR)/serialize_index.o : $(SRC_DIR)/serialize_index.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp $(LIBHTS)
+$(OBJ_DIR)/serialize_index.o : $(SRC_DIR)/serialize_index.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
 
 $(LIBHTS) :
