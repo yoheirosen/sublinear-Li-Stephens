@@ -527,137 +527,137 @@ TEST_CASE( "Haplotype probabilities at initial span", "[probability][probability
   }
 }
 
-TEST_CASE( "Haplotype probabilities at series of sites", "[probability][probability-multiple-sites]" ) {
-  SECTION( "Partial likelihoods at a series of sites" ) {
-    penaltySet penalties = penaltySet(-6, -9, 3);
-    double mu_c = penalties.one_minus_mu;
-    double mu = penalties.mu;
-    double rho = penalties.rho;
-    double alpha = penalties.R_coefficient;
-    double l2_mu = logdiff(log(2), log(7) + mu);
-    
-    string ref_seq = "AAAAA";
-    vector<string> haplotypes = {
-      "AAAAA",
-      "TATAT",
-      "ATACA"
-    };
-    string query_string = "ATAAT";
-    
-    // Matrix of cohort-haplotype matching to query. 1 indicates match; 0
-    // indicates non-match
-    // 10110
-    // 00011
-    // 11100
-    
-    vector<size_t> positions = {0,1,2,3,4};
-    siteIndex ref_struct = build_ref(ref_seq, positions);
-    haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
-    inputHaplotype query = inputHaplotype(query_string.c_str(), ref_seq.c_str(), &ref_struct);
-    fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
-                &cohort);
-      
-    vector<double> Ss;
-    vector<vector<double> > Rs;
-    
-    // R0 -- initial site [o|x|o]
-    Rs.push_back({
-        -log(3) + mu_c,
-        -log(3) + mu,
-        -log(3) + mu_c
-    });
-    // S0
-    Ss.push_back(-log(3) + l2_mu);
-    
-    // R1 [x|x|o]
-    Rs.push_back({
-        mu + logsum(alpha + Rs[0][0], rho + Ss[0]),
-        mu + logsum(alpha + Rs[0][1], rho + Ss[0]),
-        mu_c + logsum(alpha + Rs[0][2], rho + Ss[0])
-    });
-    // S1
-    Ss.push_back(logsum(Rs[1][0], logsum(Rs[1][1],Rs[1][2])));
-    
-    // R2 [o|x|o]
-    Rs.push_back({
-        mu_c + logsum(alpha + Rs[1][0], rho + Ss[1]),
-        mu + logsum(alpha + Rs[1][1], rho + Ss[1]),
-        mu_c + logsum(alpha + Rs[1][2], rho + Ss[1])
-    });
-    // S2
-    Ss.push_back(logsum(Rs[2][0], logsum(Rs[2][1],Rs[2][2])));
-    
-    // R3 [o|o|x]
-    Rs.push_back({
-        mu_c + logsum(alpha + Rs[2][0], rho + Ss[2]),
-        mu_c + logsum(alpha + Rs[2][1], rho + Ss[2]),
-        mu + logsum(alpha + Rs[2][2], rho + Ss[2])
-    });
-    // S3
-    Ss.push_back(logsum(Rs[3][0], logsum(Rs[3][1],Rs[3][2])));
-    
-    // R4 [x|o|x]
-    Rs.push_back({
-        mu + logsum(alpha + Rs[3][0], rho + Ss[3]),
-        mu_c + logsum(alpha + Rs[3][1], rho + Ss[3]),
-        mu + logsum(alpha + Rs[3][2], rho + Ss[3])
-    });
-    // S4
-    Ss.push_back(logsum(Rs[4][0], logsum(Rs[4][1],Rs[4][2])));
-    
-    // 0 match / 1 not / 2 match
-    // all active since initial site
-    matrix.initialize_probability(&query);
-    REQUIRE(matrix.R[0] == Approx(Rs[0][0]));
-    REQUIRE(matrix.R[1] == Approx(Rs[0][1])); 
-    REQUIRE(matrix.R[2] == Approx(Rs[0][2])); 
-    REQUIRE(matrix.S == Approx(Ss[0]));
-    
-    DPUpdateMap current_map;
-    bool match_is_rare;
-    
-    // 0 not / 1 not / 2 match
-    // non-match common / active = {2}
-    match_is_rare = cohort.match_is_rare(1, T);
-    REQUIRE(match_is_rare == true);
-
-    current_map = penalties.get_current_map(matrix.S, match_is_rare);
-    REQUIRE(current_map.coefficient == Approx((mu + alpha)));
-    REQUIRE(current_map.constant == Approx((rho + Ss[0] - alpha)));
-    
-    matrix.extend_probability_at_site(&query, 1);
-    REQUIRE(matrix.R[2] == Approx(Rs[1][2])); 
-    REQUIRE(matrix.S == Approx(Ss[1]));
-    
-    // 0 match / 1 not / 2 match
-    // match common / active = {1}
-    match_is_rare = cohort.match_is_rare(2, A);
-    REQUIRE(match_is_rare == false);
-
-    current_map = penalties.get_current_map(matrix.S, match_is_rare);
-    REQUIRE(current_map.coefficient == Approx((mu_c + alpha)));
-    REQUIRE(current_map.constant == Approx((rho + Ss[1] - alpha)));
-        
-    matrix.extend_probability_at_site(&query, 2);
-    REQUIRE(matrix.R[1] == Approx(Rs[2][1])); 
-    REQUIRE(matrix.S == Approx(Ss[2]));
-
-    // 0 match / 1 match / 2 not
-    // match common / active = {2}
-    matrix.extend_probability_at_site(&query, 3);
-    REQUIRE(matrix.R[2] == Approx(Rs[3][2])); 
-    REQUIRE(matrix.S == Approx(Ss[3]));
-
-    // 0 not / 1 match / 2 not
-    // not-match common / active = {1}
-    matrix.extend_probability_at_site(&query, 4);
-    matrix.take_snapshot();
-    REQUIRE(matrix.R[0] == Approx(Rs[4][0]));
-    REQUIRE(matrix.R[1] == Approx(Rs[4][1])); 
-    REQUIRE(matrix.R[2] == Approx(Rs[4][2]));
-    REQUIRE(matrix.S == Approx(Ss[4]));
-  }
-}
+// TEST_CASE( "Haplotype probabilities at series of sites", "[probability][probability-multiple-sites]" ) {
+//   SECTION( "Partial likelihoods at a series of sites" ) {
+//     penaltySet penalties = penaltySet(-6, -9, 3);
+//     double mu_c = penalties.one_minus_mu;
+//     double mu = penalties.mu;
+//     double rho = penalties.rho;
+//     double alpha = penalties.R_coefficient;
+//     double l2_mu = logdiff(log(2), log(7) + mu);
+//     
+//     string ref_seq = "AAAAA";
+//     vector<string> haplotypes = {
+//       "AAAAA",
+//       "TATAT",
+//       "ATACA"
+//     };
+//     string query_string = "ATAAT";
+//     
+//     // Matrix of cohort-haplotype matching to query. 1 indicates match; 0
+//     // indicates non-match
+//     // 10110
+//     // 00011
+//     // 11100
+//     
+//     vector<size_t> positions = {0,1,2,3,4};
+//     siteIndex ref_struct = build_ref(ref_seq, positions);
+//     haplotypeCohort cohort = haplotypeCohort(haplotypes, &ref_struct);
+//     inputHaplotype query = inputHaplotype(query_string.c_str(), ref_seq.c_str(), &ref_struct);
+//     fastFwdAlgState matrix = fastFwdAlgState(&ref_struct, &penalties, 
+//                 &cohort);
+//       
+//     vector<double> Ss;
+//     vector<vector<double> > Rs;
+//     
+//     // R0 -- initial site [o|x|o]
+//     Rs.push_back({
+//         -log(3) + mu_c,
+//         -log(3) + mu,
+//         -log(3) + mu_c
+//     });
+//     // S0
+//     Ss.push_back(-log(3) + l2_mu);
+//     
+//     // R1 [x|x|o]
+//     Rs.push_back({
+//         mu + logsum(alpha + Rs[0][0], rho + Ss[0]),
+//         mu + logsum(alpha + Rs[0][1], rho + Ss[0]),
+//         mu_c + logsum(alpha + Rs[0][2], rho + Ss[0])
+//     });
+//     // S1
+//     Ss.push_back(logsum(Rs[1][0], logsum(Rs[1][1],Rs[1][2])));
+//     
+//     // R2 [o|x|o]
+//     Rs.push_back({
+//         mu_c + logsum(alpha + Rs[1][0], rho + Ss[1]),
+//         mu + logsum(alpha + Rs[1][1], rho + Ss[1]),
+//         mu_c + logsum(alpha + Rs[1][2], rho + Ss[1])
+//     });
+//     // S2
+//     Ss.push_back(logsum(Rs[2][0], logsum(Rs[2][1],Rs[2][2])));
+//     
+//     // R3 [o|o|x]
+//     Rs.push_back({
+//         mu_c + logsum(alpha + Rs[2][0], rho + Ss[2]),
+//         mu_c + logsum(alpha + Rs[2][1], rho + Ss[2]),
+//         mu + logsum(alpha + Rs[2][2], rho + Ss[2])
+//     });
+//     // S3
+//     Ss.push_back(logsum(Rs[3][0], logsum(Rs[3][1],Rs[3][2])));
+//     
+//     // R4 [x|o|x]
+//     Rs.push_back({
+//         mu + logsum(alpha + Rs[3][0], rho + Ss[3]),
+//         mu_c + logsum(alpha + Rs[3][1], rho + Ss[3]),
+//         mu + logsum(alpha + Rs[3][2], rho + Ss[3])
+//     });
+//     // S4
+//     Ss.push_back(logsum(Rs[4][0], logsum(Rs[4][1],Rs[4][2])));
+//     
+//     // 0 match / 1 not / 2 match
+//     // all active since initial site
+//     matrix.initialize_probability(&query);
+//     REQUIRE(matrix.R[0] == Approx(Rs[0][0]));
+//     REQUIRE(matrix.R[1] == Approx(Rs[0][1])); 
+//     REQUIRE(matrix.R[2] == Approx(Rs[0][2])); 
+//     REQUIRE(matrix.S == Approx(Ss[0]));
+//     
+//     DPUpdateMap current_map;
+//     bool match_is_rare;
+//     
+//     // 0 not / 1 not / 2 match
+//     // non-match common / active = {2}
+//     match_is_rare = cohort.match_is_rare(1, T);
+//     REQUIRE(match_is_rare == true);
+// 
+//     current_map = penalties.get_current_map(matrix.S, match_is_rare);
+//     REQUIRE(current_map.coefficient == Approx((mu + alpha)));
+//     REQUIRE(current_map.constant == Approx((rho + Ss[0] - alpha)));
+//     
+//     matrix.extend_probability_at_site(&query, 1);
+//     REQUIRE(matrix.R[2] == Approx(Rs[1][2])); 
+//     REQUIRE(matrix.S == Approx(Ss[1]));
+//     
+//     // 0 match / 1 not / 2 match
+//     // match common / active = {1}
+//     match_is_rare = cohort.match_is_rare(2, A);
+//     REQUIRE(match_is_rare == false);
+// 
+//     current_map = penalties.get_current_map(matrix.S, match_is_rare);
+//     REQUIRE(current_map.coefficient == Approx((mu_c + alpha)));
+//     REQUIRE(current_map.constant == Approx((rho + Ss[1] - alpha)));
+//         
+//     matrix.extend_probability_at_site(&query, 2);
+//     REQUIRE(matrix.R[1] == Approx(Rs[2][1])); 
+//     REQUIRE(matrix.S == Approx(Ss[2]));
+// 
+//     // 0 match / 1 match / 2 not
+//     // match common / active = {2}
+//     matrix.extend_probability_at_site(&query, 3);
+//     REQUIRE(matrix.R[2] == Approx(Rs[3][2])); 
+//     REQUIRE(matrix.S == Approx(Ss[3]));
+// 
+//     // 0 not / 1 match / 2 not
+//     // not-match common / active = {1}
+//     matrix.extend_probability_at_site(&query, 4);
+//     matrix.take_snapshot();
+//     REQUIRE(matrix.R[0] == Approx(Rs[4][0]));
+//     REQUIRE(matrix.R[1] == Approx(Rs[4][1])); 
+//     REQUIRE(matrix.R[2] == Approx(Rs[4][2]));
+//     REQUIRE(matrix.S == Approx(Ss[4]));
+//   }
+// }
 
 TEST_CASE( "Haplotype probabilities at homogeneous sites", "[probability][probability-homogeneous-sites]" ) {
   SECTION( "Partial likelihood at a series of sites without variation equals the likelihood at a span of equivalent length" ) {

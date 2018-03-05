@@ -29,6 +29,9 @@ public:
   mapHistory(const mapHistory& other); 
   
   void reserve(size_t length);
+  
+  step_t max_index() const;
+  
 	void push_back(const DPUpdateMap& map);
 	
   const DPUpdateMap& operator[](step_t i) const;
@@ -47,11 +50,17 @@ public:
   
   void set_rep_eqclass(step_t i, eqclass_t eqclass);
   eqclass_t rep_eqclass(step_t i) const;
-  void clear_rep_eqclass(step_t i);
+  void clear_singleton(step_t i);
+  void clear_end_singleton();
   
   const static step_t CLEARED;
   const static step_t PAST_FIRST;
   const static eqclass_t NO_REP;
+  
+  bool step_cleared(step_t i) const;
+  
+    //TODO revert:
+    vector<size_t> n_eqclasses;  
 };
 
 // Shorthand for statements of complexity:
