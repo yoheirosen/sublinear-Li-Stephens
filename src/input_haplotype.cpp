@@ -1,5 +1,6 @@
 #include "input_haplotype.hpp"
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -32,6 +33,8 @@ inputHaplotype::inputHaplotype(const vector<alleleValue>& query, const vector<si
             {
   absolute_end_pos = absolute_start_pos + length - 1;
   calculate_relative_positions(false);
+  // Make sure we got a consistent answer about whether we have sites or not.
+  assert(has_no_sites == (alleles.size() == 0));
 }
 
 //TODO check if ever called
@@ -66,6 +69,7 @@ void inputHaplotype::calculate_relative_positions(bool covers_reference) {
       find_site_below(absolute_start_pos) == find_site_below(absolute_end_pos))) {
     has_no_sites = true;
     left_tail_length = absolute_end_pos - absolute_start_pos + 1;
+    right_tail_length = 0;
     return;
   }
   
@@ -177,11 +181,11 @@ bool inputHaplotype::has_sites() const {
 }
 
 alleleValue inputHaplotype::get_allele(size_t j) const {
-  return alleles[j];
+  return alleles.at(j);
 }
 
 size_t inputHaplotype::get_n_novel_SNVs(int j) const {
-  return novel_SNVs[j + 1];
+  return novel_SNVs.at(j + 1);
 }
 
 size_t inputHaplotype::get_site_index(size_t j) const {
@@ -197,7 +201,7 @@ bool inputHaplotype::has_left_tail() const {
 }
 
 size_t inputHaplotype::get_span_after(size_t i) const {
-  if(i = end_site) {
+  if(i == end_site) {
     return right_tail_length;
   } else {
     return reference->span_length_after(get_site_index(i));
@@ -205,7 +209,7 @@ size_t inputHaplotype::get_span_after(size_t i) const {
 }
 
 bool inputHaplotype::has_span_after(size_t i) const {
-  if(i = end_site) {
+  if(i == end_site) {
     return right_tail_length != 0;
   } else {
     return reference->span_length_after(get_site_index(i));

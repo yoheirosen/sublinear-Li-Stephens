@@ -10,7 +10,11 @@ using namespace std;
 struct inputHaplotype{
 private:
   siteIndex *reference = NULL;
+  // Alleles for each site along the linear reference that this path touches
+  // Site identity is inferred from haplotype start and end positions
   vector<alleleValue> alleles;
+  // For each inter-allele gap, stores the number of novel SNVs that occur in the haplotype relative to the reference.
+  // Includes the leading and trailing gaps.
   vector<size_t> novel_SNVs;
   
   // absolute positions of start and end
@@ -25,7 +29,8 @@ private:
   size_t left_tail_length;
   size_t right_tail_length;
   // since we index things by site; we need a flag for the non-existence of any
-  // sites within the haplotype
+  // sites within the haplotype.
+  // If false, alleles must not be empty.
   bool has_no_sites = false;
   bool invalid = false;
   
@@ -56,11 +61,15 @@ public:
   const vector<alleleValue>& get_alleles() const;
   size_t get_start_site() const;
   
+  // Get the number of novel SNVs in the given gap between alleles (where -1 is the space before the first allele)
   size_t get_n_novel_SNVs(int j) const;
   
+  // Length of the haplotype before encountering the first allele
   size_t get_left_tail() const;
   bool has_left_tail() const;
+  // Get the distance from this allele to the next, or to the end of the read if it is the last allele
   size_t get_span_after(size_t i) const;
+  // True if there is a next allele or span from the allele's end to the end of the read after the allele at the given site.
   bool has_span_after(size_t i) const;
   
   size_t get_site_index(size_t j) const;
