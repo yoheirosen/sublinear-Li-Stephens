@@ -5,13 +5,6 @@
 
 using namespace std;
 
-// TODO TODO TODO
-// deleting last singleton doesn't currently account for composition of maps correctly! Do we fuse with below?
-// TODO TODO  TODO
-
-
-
-
 // ---------------------------------------------------------------------------------------------------------------------
 // -- mapHistory -------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
@@ -19,6 +12,7 @@ using namespace std;
 const step_t mapHistory::CLEARED = SIZE_MAX - 4;
 const step_t mapHistory::PAST_FIRST = SIZE_MAX - 3;
 const eqclass_t mapHistory::NO_REP = SIZE_MAX - 2;
+const step_t mapHistory::NOT_WRITEABLE = SIZE_MAX - 5;
 
 const eqclass_t delayedEvalMap::INACTIVE_EQCLASS = SIZE_MAX - 1;
 const eqclass_t delayedEvalMap::NO_NEIGHBOUR = SIZE_MAX;
@@ -33,13 +27,6 @@ mapHistory::mapHistory(const DPUpdateMap& map) {
   suffixes = {DPUpdateMap::IDENTITY};
   rep_eqclasses = {0};
   n_eqclasses = {1};
-}
-
-mapHistory::mapHistory(const mapHistory& other) {
-  elements = other.elements;
-  previous = other.previous;
-  next = other.next;
-  suffixes = other.suffixes;
 }
 
 void mapHistory::reserve(size_t length) {
@@ -66,15 +53,17 @@ void mapHistory::push_back(const DPUpdateMap& map) {
 const DPUpdateMap& mapHistory::operator[](step_t i) const {
   #ifdef DEBUG
     return elements.at(i);
+  #else
+  	return elements[i];
   #endif
-	return elements[i];
 }
 
 DPUpdateMap& mapHistory::operator[](step_t i) {
   #ifdef DEBUG
     return elements.at(i);
+	#else
+    return elements[i];
   #endif
-	return elements[i];
 }
 
 const DPUpdateMap& mapHistory::back() const {
@@ -92,8 +81,9 @@ const DPUpdateMap& mapHistory::suffix(step_t i) const {
       throw erased_error("Wanted suffix of cleared step "+i);
     }
     return this_suffix;
+  #else
+    return suffixes[i];
   #endif
-  return suffixes[i];
 }
 
 DPUpdateMap& mapHistory::suffix(step_t i) {
@@ -102,8 +92,10 @@ DPUpdateMap& mapHistory::suffix(step_t i) {
     if(previous.at(i) == CLEARED) {
       throw erased_error("Wanted suffix of cleared step "+i);
     }
+    return this_suffix;
+  #else
+    return suffixes[i];
   #endif
-  return suffixes[i];
 }
 
 step_t mapHistory::previous_step(step_t i) const {
@@ -115,8 +107,10 @@ step_t mapHistory::previous_step(step_t i) const {
     if(this_previous == PAST_FIRST) {
       throw erased_error("Wanted previous of first step "+i);
     }
+    return this_previous;
+  #else
+    return previous[i];
   #endif
-  return previous[i];
 }
 
 step_t mapHistory::next_step(step_t i) const {
@@ -128,8 +122,10 @@ step_t mapHistory::next_step(step_t i) const {
     if(this_next >= next.size() - 1) {
       throw runtime_error("Wanted out of range next step");
     }
+    return this_next;
+  #else
+    return next[i];
   #endif
-  return next[i];
 }
 
 bool mapHistory::step_cleared(step_t i) const {
@@ -154,8 +150,10 @@ void mapHistory::fuse_prev(size_t i) {
     previous.at(i) = previous_step(old_previous);
     next.at(previous.at(i)) = i;
     elements.at(i) = elements.at(i).of(elements.at(old_previous));
+    n_eqclasses[old_previous] = 0;
   #else
     step_t old_previous = previous[i];
+    step_t old_next = next[i];
     suffixes[i] = suffixes[old_previous];
     previous[i] = previous[old_previous];
     next[previous[i]] = i;
@@ -164,7 +162,6 @@ void mapHistory::fuse_prev(size_t i) {
   previous[old_previous] = CLEARED;
   next[old_previous] = CLEARED;
   rep_eqclasses[old_previous] = NO_REP;
-  n_eqclasses[old_previous] = 0;
 }
 
 size_t mapHistory::size() const {
@@ -199,22 +196,22 @@ eqclass_t mapHistory::rep_eqclass(step_t i) const {
 void mapHistory::clear_end_singleton() {
   step_t i = max_index();
   step_t past_end = i + 1;
-  step_t this_previous = previous.at(i);
   #ifdef DEBUG
+    step_t this_previous = previous.at(i);
     rep_eqclasses.at(i) = NO_REP;
     next.at(i) = CLEARED;
     previous.at(i) = CLEARED;
     n_eqclasses.at(i) = 0;
-    if(this_previous != PAST_FIRST && this_previous != NO_REP && this_previous != CLEARED) {
+    if(this_previous != PAST_FIRST && this_previous != CLEARED) {
       next.at(this_previous) = past_end;
     }
     previous.at(past_end) = this_previous;
   #else
+    step_t this_previous = previous[i];
     rep_eqclasses[i] = NO_REP;
     next[i] = CLEARED;
     previous[i] = CLEARED;
-    n_eqclasses[i] = 0;
-    if(this_previous != PAST_FIRST && this_previous != NO_REP && this_previous != CLEARED) {
+    if(this_previous != PAST_FIRST && this_previous != CLEARED) {
       next[this_previous] = past_end;
     }
     previous[past_end] = this_previous;
@@ -237,6 +234,12 @@ void mapHistory::clear_singleton(step_t i) {
     next.at(i) = CLEARED;
     previous.at(i) = CLEARED;
   #else
+    if(previous[i] != PAST_FIRST) {
+      fuse_prev(next[i]);
+    } else {
+      step_t this_next = next[i];
+      previous[this_next] = PAST_FIRST;
+    }
     rep_eqclasses[i] = NO_REP;
     next[i] = CLEARED;
     prev[i] = CLEARED;
@@ -252,10 +255,11 @@ inline bool delayedEvalMap::is_singleton(eqclass_t eqclass) const {
     } else if(eqclass == INACTIVE_EQCLASS) {
       throw runtime_error("called is_singleton on INACTIVE_EQCLASS");
     }
-    return map_history.n_eqclasses[eqclass_last_updated[eqclass]] == 1;
-    // return (eqclass_buddy_above.at(eqclass) == NO_NEIGHBOUR) && (eqclass_buddy_below.at(eqclass) == NO_NEIGHBOUR);
+    // return map_history.n_eqclasses[eqclass_last_updated[eqclass]] == 1;
+    return (eqclass_buddy_above.at(eqclass) == NO_NEIGHBOUR) && (eqclass_buddy_below.at(eqclass) == NO_NEIGHBOUR);
+  #else
+    return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR) && (eqclass_buddy_below[eqclass] == NO_NEIGHBOUR);
   #endif
-  return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR) && (eqclass_buddy_below[eqclass] == NO_NEIGHBOUR);
 }
 
 inline bool delayedEvalMap::is_front(eqclass_t eqclass) const {
@@ -267,8 +271,9 @@ inline bool delayedEvalMap::is_front(eqclass_t eqclass) const {
     } else if(eqclass == INACTIVE_EQCLASS) {
       throw runtime_error("called is_front on INACTIVE_EQCLASS");
     }
+  #else
+    return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR);
   #endif
-  return (eqclass_buddy_above[eqclass] == NO_NEIGHBOUR);
 }
 
 void delayedEvalMap::push_back_at_current(eqclass_t eqclass) {
@@ -291,6 +296,7 @@ void delayedEvalMap::push_back_at_current(eqclass_t eqclass) {
       eqclass_buddy_above.at(eqclass) = NO_NEIGHBOUR;
       map_history.set_rep_eqclass(current_site, eqclass);
     }
+    ++map_history.n_eqclasses[current_site];
   #else
     if(map_history.rep_eqclass(current_site) == mapHistory::NO_REP) {
       eqclass_buddy_above[eqclass] = NO_NEIGHBOUR;
@@ -304,12 +310,11 @@ void delayedEvalMap::push_back_at_current(eqclass_t eqclass) {
       map_history.set_rep_eqclass(current_site, eqclass);
     }
   #endif
-  ++map_history.n_eqclasses[current_site];
 }
 
 void delayedEvalMap::delete_at_site(eqclass_t eqclass) {
-  size_t departing_site = eqclass_last_updated.at(eqclass);
   #ifdef DEBUG
+    size_t departing_site = eqclass_last_updated.at(eqclass);
     if(eqclass == NO_NEIGHBOUR) {
       throw runtime_error("called delete_at_site on NO_NEIGHBOUR");
     } else if(eqclass == mapHistory::NO_REP) {
@@ -351,19 +356,19 @@ void delayedEvalMap::delete_at_site(eqclass_t eqclass) {
       if(this_step == map_history.max_index()) {
         map_history.clear_end_singleton();
       } else {
-        map_history.clear_singleton(eqclass_last_updated.at(eqclass));
+        map_history.clear_singleton(eqclass_last_updated[eqclass]);
       }
     } else {
-      eqclass_t old_above = eqclass_buddy_above.at(eqclass);
-      eqclass_t old_below = eqclass_buddy_below.at(eqclass);
+      eqclass_t old_above = eqclass_buddy_above[eqclass];
+      eqclass_t old_below = eqclass_buddy_below[eqclass];
       if(old_above != NO_NEIGHBOUR) {
-        eqclass_buddy_below.at(old_above) = old_below;
+        eqclass_buddy_below[old_above] = old_below;
       } else {
         // safe to not check because the case that both above and below are NO_NEIGHBOUR is caught by is_singleton(eqclass)
-        map_history.set_rep_eqclass(eqclass_last_updated.at(eqclass), old_below);
+        map_history.set_rep_eqclass(eqclass_last_updated[eqclass], old_below);
       }
       if(old_below != NO_NEIGHBOUR) {
-        eqclass_buddy_above.at(old_below) = old_above;
+        eqclass_buddy_above[old_below] = old_above;
       }
     }
   #endif
@@ -463,7 +468,6 @@ void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
     }
   }
   if(current_site != least_up_to_date) {
-    // ONLY DIFFERENCES AFTER THIS POINT
     step_t last_i = current_site;
     
     map_history.suffix(current_site) = map_history[current_site];

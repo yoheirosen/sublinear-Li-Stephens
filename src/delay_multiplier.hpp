@@ -17,6 +17,7 @@ private:
 	vector<DPUpdateMap> elements;
   vector<step_t> previous;
   vector<step_t> next;
+  // scratch area for suffix
   vector<DPUpdateMap> suffixes;
   vector<eqclass_t> rep_eqclasses;
 public:
@@ -24,9 +25,13 @@ public:
     using std::runtime_error::runtime_error;
   };
   
+  const static step_t CLEARED;
+  const static step_t PAST_FIRST;
+  const static eqclass_t NO_REP;
+  const static step_t NOT_WRITEABLE;
+  
   mapHistory();
   mapHistory(const DPUpdateMap& map);
-  mapHistory(const mapHistory& other); 
   
   void reserve(size_t length);
   
@@ -53,14 +58,11 @@ public:
   void clear_singleton(step_t i);
   void clear_end_singleton();
   
-  const static step_t CLEARED;
-  const static step_t PAST_FIRST;
-  const static eqclass_t NO_REP;
-  
   bool step_cleared(step_t i) const;
   
-    //TODO revert:
+  #ifdef DEBUG
     vector<size_t> n_eqclasses;  
+  #endif
 };
 
 // Shorthand for statements of complexity:
