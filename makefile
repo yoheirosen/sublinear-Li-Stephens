@@ -45,6 +45,9 @@ interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE
 	
 serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/serializer $(LIBS)
+	
+profiler : $(OBJ_DIR)/profiler.o $(CORE_OBJ)
+	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/profiler $(LIBS)
 
 libs : $(LIB_DIR)/libsublinearLS.a $(CORE_OBJ)
 
@@ -114,6 +117,9 @@ $(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haploty
 
 $(OBJ_DIR)/serialize_index.o : $(SRC_DIR)/serialize_index.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
+	
+$(OBJ_DIR)/profiler.o : $(SRC_DIR)/test/profiler.cpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@	
 
 $(LIBHTS) :
 	cd deps/htslib && make

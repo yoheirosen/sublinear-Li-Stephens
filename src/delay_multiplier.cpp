@@ -26,7 +26,9 @@ mapHistory::mapHistory(const DPUpdateMap& map) {
   next = {1, 2};
   suffixes = {DPUpdateMap::IDENTITY};
   rep_eqclasses = {0};
-  n_eqclasses = {1};
+  #ifdef DEBUG
+    n_eqclasses = {1};
+  #endif
 }
 
 void mapHistory::reserve(size_t length) {
@@ -47,7 +49,9 @@ void mapHistory::push_back(const DPUpdateMap& map) {
   next.push_back(next.size() + 1);
   suffixes.push_back(DPUpdateMap::IDENTITY);
   rep_eqclasses.push_back(NO_REP);
-  n_eqclasses.push_back(0);
+  #ifdef DEBUG
+    n_eqclasses.push_back(0);
+  #endif
 }
 
 const DPUpdateMap& mapHistory::operator[](step_t i) const {
@@ -242,7 +246,7 @@ void mapHistory::clear_singleton(step_t i) {
     }
     rep_eqclasses[i] = NO_REP;
     next[i] = CLEARED;
-    prev[i] = CLEARED;
+    previous[i] = CLEARED;
   #endif
 }
 
@@ -511,7 +515,7 @@ void delayedEvalMap::update_maps(const vector<size_t>& eqclasses) {
         eqclass_last_updated.at(eqclass) = current_site;
       }
       #else
-      eqclass = eqclasses[i];
+      eqclass_t eqclass = eqclasses[i];
       if(eqclass_last_updated[eqclass] != current_site &&  map_history.next_step(eqclass_last_updated.at(eqclass)) != mapHistory::CLEARED) {
         // j is the eqclass's index in the suffix-vector
         size_t j = map_history.next_step(eqclass_last_updated[eqclass]);

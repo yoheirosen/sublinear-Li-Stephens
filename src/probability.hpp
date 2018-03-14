@@ -108,7 +108,29 @@ struct slowFwdSolver{
             const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
-  pair<vector<double>, vector<size_t> > sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
+  double calculate_probability_quadratic(const inputHaplotype* observed_haplotype);
+  double calculate_probability_linear(const inputHaplotype* observed_haplotype);
+  
+  struct sequence_statistic_array{
+    size_t max_u_value;
+    size_t max_u_active_value;
+    size_t max_active_rows;
+    size_t max_history_length;
+    size_t max_active_history_length;
+    size_t max_map_classes;
+    size_t max_active_map_classes;
+    size_t max_times_active;
+    double avg_u_value;
+    double avg_u_active_value;
+    double avg_active_rows;
+    double avg_history_length;
+    double avg_active_history_length;
+    double avg_map_classes;
+    double avg_active_map_classes;
+    double avg_times_active;
+  };
+  
+  sequence_statistic_array sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
 };
 
 double calculate_R(double oldR, const DPUpdateMap& map);
