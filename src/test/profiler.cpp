@@ -74,7 +74,7 @@ namespace profiler_tools{
     return true;
   }
   
-  void write_experiment(ostream& out, const vector<size_t>& sizes, const vector<size_t>& lengths, size_t replicates, double mutation_pen, double recombination_pen) {
+  void write_experiment(ostream& out, const vector<size_t>& sizes, const vector<size_t>& lengths, size_t replicates, double recombination_pen, double mutation_pen) {
     out << sizes.size() << "\t";
     out << lengths.size() << "\t";
     out << replicates << endl;
@@ -87,7 +87,7 @@ namespace profiler_tools{
     out << endl << mutation_pen << "\t" << recombination_pen;
   }
   
-  void read_experiment(istream& in, vector<size_t>& sizes, vector<size_t>& lengths, size_t& replicates, double& mutation_pen, double& recombination_pen) {
+  void read_experiment(istream& in, vector<size_t>& sizes, vector<size_t>& lengths, size_t& replicates, double& recombination_pen, double& mutation_pen) {
     size_t n_sizes;
     size_t n_lengths;
     in >> n_sizes;
@@ -326,6 +326,16 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   
+  ifstream expt_in;
+  expt_in.open(experiment_path, ios::in);
+  if(!expt_in.is_open()) {
+    cerr << "failed to open experimental plan" << endl;
+    return 1;
+  }
+  cerr << "loading experiment parameters from " << experiment_path << endl;
+  profiler_tools::read_experiment(expt_in, sizes, lengths, replicates, recombination_penalty, mutation_penalty);
+  expt_in.close();
+  
   ifstream slls_in;
   slls_in.open(slls_path, ios::in);
   if(!slls_in.is_open()) {
@@ -338,7 +348,6 @@ int main(int argc, char* argv[]) {
   haplotypeCohort* cohort = new haplotypeCohort(slls_in, reference);
   slls_in.close();
   size_t cohort_size = cohort->get_n_haplotypes();
-  size_t n_trials = atoi(argv[2]);
   
   ofstream file_output;
   file_output.open(out_path, ios::out | ios::trunc);
@@ -347,7 +356,7 @@ int main(int argc, char* argv[]) {
   // build penalty container
   penaltySet* penalties = new penaltySet(recombination_penalty, mutation_penalty, cohort_size);
     
-  for(size_t j = 0; j < n_trials; j++) {
+  for(size_t j = 0; j < replicates; j++) {
     for(size_t n_bp_it = 0; n_bp_it < lengths.size(); n_bp_it++) {
       for(size_t k_it = 0; k_it < sizes.size(); ) {
         size_t k = sizes[k_it];
@@ -356,68 +365,70 @@ int main(int argc, char* argv[]) {
         size_t interval_end = interval_start + n_bp;
         size_t site_start = reference->find_site_above(interval_start);
         size_t site_end = reference->find_site_below(interval_end);
-        haplotypeCohort* new_cohort = cohort->subset(site_start, site_end, k);
-        siteIndex* new_reference = cohort->get_reference();
-        
-        if(new_reference->number_of_sites() > 1) {
-        	inputHaplotype* query_ih = profiler_tools::random_haplo(new_cohort, new_reference, haplotype_generator_generations, penalties);
+        if(site_start < site_end) {
+          haplotypeCohort* new_cohort = cohort->subset(site_start, site_end, k);
+          siteIndex* new_reference = new_cohort->get_reference();
           
-          if(query_ih->number_of_sites() > 1) {
-            cerr << "iteration "<< k_it << " of " << sizes.size() << " size, " << n_bp_it << " of " << lengths.size() << " length, " << j << " of " << replicates << " replicates " << endl;
-            ++k_it;
-            size_t start_site = query_ih->get_start_site();
-            size_t end_site = start_site + query_ih->number_of_sites() - 1;    
+          if(new_reference->number_of_sites() > 1) {
+          	inputHaplotype* query_ih = profiler_tools::random_haplo(new_cohort, new_reference, haplotype_generator_generations, penalties);
             
-            double time_used_fast = 0;
-          	double time_used_quad = 0;
-          	double time_used_linear = 0;
-                      	
-          	for(size_t i = 0; i < replicates_per_datapoint; i++) {
-              fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, penalties, new_cohort);
-            	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
-            	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
+            if(query_ih->number_of_sites() > 1) {
+              cerr << "iteration "<< k_it << " of " << sizes.size() << " size, " << n_bp_it << " of " << lengths.size() << " length, " << j << " of " << replicates << " replicates " << endl;
+              ++k_it;
+              size_t start_site = query_ih->get_start_site();
+              size_t end_site = start_site + query_ih->number_of_sites() - 1;    
+              
+              double time_used_fast = 0;
+            	double time_used_quad = 0;
+            	double time_used_linear = 0;
+                        	
+            	for(size_t i = 0; i < replicates_per_datapoint; i++) {
+                fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, penalties, new_cohort);
+              	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
+              	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
 
-            	struct timeval tv1, tv2, tv3, tv4;
-            	gettimeofday(&tv1, NULL);
-            	double result = haplotype_matrix->calculate_probability(query_ih);
-              gettimeofday(&tv2, NULL);
-              time_used_fast += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
-
-              double result_slowq;
-              if(k * k * new_reference->number_of_sites() > QUADRATIC_MAX_NK2) {
-                time_used_quad = 0;
-              } else {
+              	struct timeval tv1, tv2, tv3, tv4;
+              	gettimeofday(&tv1, NULL);
+              	double result = haplotype_matrix->calculate_probability(query_ih);
                 gettimeofday(&tv2, NULL);
-                result_slowq = quadratic_fwd->calculate_probability_quadratic(query_ih);
-                gettimeofday(&tv3, NULL);
-          	    time_used_quad += (double) (tv3.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv3.tv_sec - tv2.tv_sec);
+                time_used_fast += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+
+                double result_slowq;
+                if(k * k * new_reference->number_of_sites() > QUADRATIC_MAX_NK2) {
+                  time_used_quad = 0;
+                } else {
+                  gettimeofday(&tv2, NULL);
+                  result_slowq = quadratic_fwd->calculate_probability_quadratic(query_ih);
+                  gettimeofday(&tv3, NULL);
+            	    time_used_quad += (double) (tv3.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv3.tv_sec - tv2.tv_sec);
+                }
+                
+                double result_slowl;
+                if(cohort_size > LINEAR_MAX_SAMPLES) {
+                  time_used_linear = 0;
+                } else {
+                  gettimeofday(&tv3, NULL);
+                	result_slowl = linear_fwd->calculate_probability_linear(query_ih);
+                  gettimeofday(&tv4, NULL);
+                  time_used_linear += (double) (tv4.tv_usec - tv3.tv_usec) / 1000000 + (double) (tv4.tv_sec - tv3.tv_sec);
+                }
+                
+                cerr << result << " ?= " << result_slowq << " ?= " << result_slowl << endl;
+                
+                delete haplotype_matrix;
+              	delete quadratic_fwd;
+              	delete linear_fwd;
               }
               
-              double result_slowl;
-              if(cohort_size > LINEAR_MAX_SAMPLES) {
-                time_used_linear = 0;
-              } else {
-                gettimeofday(&tv3, NULL);
-              	result_slowl = linear_fwd->calculate_probability_linear(query_ih);
-                gettimeofday(&tv4, NULL);
-                time_used_linear += (double) (tv4.tv_usec - tv3.tv_usec) / 1000000 + (double) (tv4.tv_sec - tv3.tv_sec);
-              }
+              size_t sum_of_information_content = new_cohort->sum_information_content(query_ih->get_alleles(), query_ih->get_start_site());
               
-              cerr << result << " ?= " << result_slowq << " ?= " << result_slowl << endl;
-              
-              delete haplotype_matrix;
-            	delete quadratic_fwd;
-            	delete linear_fwd;
+              output << "time fast\t" << time_used_fast/replicates_per_datapoint << "\ttime linear\t" << time_used_linear/replicates_per_datapoint << "\ttime quadratic\t" << time_used_quad/replicates_per_datapoint << "\tsum of information_content\t" << sum_of_information_content << "\tsites in haplotype\t" << end_site - start_site << "\tcohort size\t" << k << "\tregion length in bp\t" << n_bp << endl;
             }
-            
-            size_t sum_of_information_content = new_cohort->sum_information_content(query_ih->get_alleles(), query_ih->get_start_site());
-            
-            output << "time fast\t" << time_used_fast/replicates_per_datapoint << "\ttime linear\t" << time_used_linear/replicates_per_datapoint << "\ttime quadratic\t" << time_used_quad/replicates_per_datapoint << "\tsum of information_content\t" << sum_of_information_content << "\tsites in haplotype\t" << end_site - start_site << "\tcohort size\t" << k << "\tregion length in bp\t" << n_bp << endl;
+            delete query_ih;
           }
-          delete query_ih;
+          delete new_cohort;
+          delete new_reference;
         }
-        delete new_cohort;
-        delete new_reference;
       }
     }
   }

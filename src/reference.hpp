@@ -149,6 +149,9 @@ public:
   void populate_allele_counts();
   rowSet build_active_rowSet(site_idx_t site, alleleValue a) const;
   
+  void uncompress();
+  void compress();
+  
 //-- basic attributes ----------------------------------------------------------
 
   siteIndex* get_reference() const;  
@@ -210,7 +213,6 @@ public:
 //-- cohort editing ------------------------------------------------------------
   haplotypeCohort* subset(size_t start_site, size_t end_site, const vector<size_t>& ids_to_keep) const;
   haplotypeCohort* subset(size_t start_site, size_t end_site, size_t n_to_keep) const;
-  haplotypeCohort* remove_rare_sites(double max_rarity) const;
   
   void remove_homogeneous_sites();
   
