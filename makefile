@@ -25,7 +25,7 @@ CORE_OBJ := $(OBJ_DIR)/math.o $(OBJ_DIR)/reference.o $(OBJ_DIR)/probability.o $(
 
 TREE_OBJ := $(OBJ_DIR)/haplotype_state_node.o $(OBJ_DIR)/haplotype_state_tree.o $(OBJ_DIR)/haplotype_manager.o $(OBJ_DIR)/set_of_extensions.o $(OBJ_DIR)/reference_sequence.o
 
-all : build_dirs speed_tree tests tree_tests interface libs serializer
+all : build_dirs tests interface libs serializer profiler
 
 .PHONY: build_dirs libs clean 
 
@@ -55,6 +55,9 @@ interface : $(OBJ_DIR)/linhapexample.o $(OBJ_DIR)/interface.o $(CORE_OBJ) $(TREE
 	
 serializer : $(OBJ_DIR)/serialize_index.o $(CORE_OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/serializer $(LIBS)
+
+profiler : $(OBJ_DIR)/profiler.o $(CORE_OBJ)
+	$(CXX) $(CXXFLAGS) $^ -o $(BIN_DIR)/profiler $(LIBS)
 
 $(LIB_DIR)/libsublinearLS.a : $(CORE_OBJ) $(TREE_OBJ)
 	ar rc $@ $^
@@ -119,6 +122,9 @@ $(TEST_OBJ_DIR)/tree_tests.o : $(TEST_SRC_DIR)/tree_tests.cpp $(SRC_DIR)/haploty
 
 $(OBJ_DIR)/serialize_index.o : $(SRC_DIR)/serialize_index.cpp $(SRC_DIR)/reference.hpp $(SRC_DIR)/allele.hpp $(SRC_DIR)/row_set.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@
+
+$(OBJ_DIR)/profiler.o : $(SRC_DIR)/test/profiler.cpp $(PROBABILITY_DEPS)
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) $(LIBS) -c $< -o $@	
 
 $(LIBHTS) :
 	cd deps/htslib && make

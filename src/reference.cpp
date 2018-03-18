@@ -942,3 +942,41 @@ haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) :
   }
   finalized = true;
 }
+
+void haplotypeCohort::uncompress() {
+  size_t n_sites = get_n_sites();
+  if(alleles_by_haplotype_and_site.size() == 0) {
+    vector<alleleValue> prototype = vector<alleleValue>(n_sites, unassigned);
+    for(size_t i = 0; i < n_sites; i++) {
+      for(size_t a = 0; a < 5; a++) {
+        if(!match_is_rare(i, (alleleValue)a)) {
+          prototype[i] = (alleleValue)a;
+        }
+      }
+    }
+    alleles_by_haplotype_and_site = vector<vector<alleleValue>>(number_of_haplotypes, prototype);
+    for(size_t i = 0; i < n_sites; i++) {
+      for(size_t a = 0; a < 5; a++) {
+        if((alleleValue)a != prototype[i]) {
+          alleleValue allele = (alleleValue)a;
+          for(size_t j_it = 0; j_it < haplotype_indices_by_site_and_allele[i][a].size(); j_it++) {
+            alleles_by_haplotype_and_site[haplotype_indices_by_site_and_allele[i][a][j_it]][i] = allele;
+          }
+        }
+      }
+    }
+  }
+}
+
+void haplotypeCohort::compress() {
+  alleles_by_haplotype_and_site.clear();
+  alleles_by_haplotype_and_site.shrink_to_fit();
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    for(size_t a = 0; a < 5; a++) {
+      if(!match_is_rare(i, (alleleValue)a)) {
+        haplotype_indices_by_site_and_allele[i][a].clear();
+        haplotype_indices_by_site_and_allele[i][a].shrink_to_fit();
+      }
+    }
+  }
+}

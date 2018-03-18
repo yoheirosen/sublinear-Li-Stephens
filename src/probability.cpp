@@ -325,6 +325,14 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   return S;
 }
 
+double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* observed_haplotype) {
+  return calculate_probability_quadratic(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+}
+
+double slowFwdSolver::calculate_probability_linear(const inputHaplotype* observed_haplotype) {
+  return calculate_probability_linear(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+}
+
 // pair<vector<double>, vector<size_t> > slowFwdSolver::sequence_statistics(const vector<alleleValue>& q, size_t start_site) {
 //   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
 //     alleleValue test = q.at(i - start_site);

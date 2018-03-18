@@ -104,10 +104,11 @@ struct slowFwdSolver{
   const haplotypeCohort* cohort;
   vector<double> R;
   double S;
-  slowFwdSolver(siteIndex* ref, const penaltySet* pen,
-            const haplotypeCohort* haplotypes);
+  slowFwdSolver(siteIndex* ref, const penaltySet* pen, const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
+  double calculate_probability_quadratic(const inputHaplotype* observed_haplotype);
+  double calculate_probability_linear(const inputHaplotype* observed_haplotype);
   pair<vector<double>, vector<size_t> > sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
 };
 

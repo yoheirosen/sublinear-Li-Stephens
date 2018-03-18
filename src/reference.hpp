@@ -181,6 +181,9 @@ public:
   vector<size_t> get_active_rows(site_idx_t site, alleleValue a) const;
   const rowSet& get_active_rowSet(site_idx_t site, alleleValue a) const;
 
+  void uncompress();
+  void compress();
+
 //-- downsampling --------------------------------------------------------------
 
   // Removes sites where the minor allele frequency is below [double frequency].
