@@ -10,9 +10,21 @@ using namespace std;
 // according to our model
 struct penaltySet{
   int H;
-  double log_H;
   double rho;
+  double rho_c;
   double mu;
+  double mu_c;
+  double log_k;
+  double log_k_1;
+  
+  double log_H;
+  double log_H_1;
+  
+  double pow_mu_c(size_t l) const;
+  double pow_rho_c(size_t l) const;
+  double pow_mu(size_t l) const;
+  double span_polynomial(size_t l) const;
+  
   double one_minus_mu;
   double one_minus_2mu;
   double rho_over_R_coeff;

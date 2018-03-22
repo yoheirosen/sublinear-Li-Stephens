@@ -1,6 +1,5 @@
 #include <cmath>
 #include "probability.hpp"
-#include <iostream>
 
 struct liStephensModel{
   liStephensModel(siteIndex* reference, haplotypeCohort* cohort, const penaltySet* penalties);
@@ -72,8 +71,7 @@ void fastFwdAlgState::extend_probability_at_site(const inputHaplotype* q, size_t
 
 void fastFwdAlgState::extend_probability_at_span_after(const inputHaplotype* q, 
             size_t j) {
-  extend_probability_at_span_after(q->get_site_index(j), 
-            q->get_n_novel_SNVs(j));
+  extend_probability_at_span_after_anonymous(q->get_span_after(j), q->get_n_novel_SNVs(j));
 }
 
 double fastFwdAlgState::calculate_probability(const inputHaplotype* q) {
@@ -247,11 +245,9 @@ void fastFwdAlgState::extend_probability_at_site(
   extend_probability_at_site(current_map, active_rows, match_is_rare, a);
 }
 
-void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l, 
-            size_t mismatch_count) {
+void fastFwdAlgState::extend_probability_at_span_after_anonymous(size_t l, size_t mismatch_count) {
   double m = penalties->span_mutation_penalty(l, mismatch_count);
-  map.stage_map_for_span(DPUpdateMap(m + penalties->composed_R_coefficient(l), 
-              penalties->span_coefficient(l) + S - penalties->composed_R_coefficient(l)));
+  map.stage_map_for_span(DPUpdateMap(m + penalties->composed_R_coefficient(l), S - penalties->log_H));
   S = m + S;
   last_span_extended = last_extended;
 }
@@ -274,11 +270,12 @@ double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>&
     if(reference->has_span_after(i - 1)) {
       size_t l = reference->span_length_after(i - 1);
       double coefficient = penalties->span_mutation_penalty(l, 0) + penalties->composed_R_coefficient(l);
-      double constant = penalties->span_coefficient(l) - penalties->composed_R_coefficient(l);
+      double constant = penalties->span_coefficient(l) + S - penalties->composed_R_coefficient(l);
       for(size_t j = 0; j < R.size(); j++) {
         R[j] = coefficient + logsum(R[j], constant);
       }
     }
+    S = log_big_sum(R);
     for(size_t j = 0; j < R.size(); j++) {
       vector<double> temp = last_R;
       for(size_t k = 0; k < temp.size(); k++) {
@@ -309,11 +306,12 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
     if(reference->has_span_after(i - 1)) {
       size_t l = reference->span_length_after(i - 1);
       double coefficient = penalties->span_mutation_penalty(l, 0) + penalties->composed_R_coefficient(l);
-      double constant = penalties->span_coefficient(l) - penalties->composed_R_coefficient(l);
+      double constant = penalties->span_coefficient(l) + S - penalties->composed_R_coefficient(l);
       for(size_t j = 0; j < R.size(); j++) {
         R[j] = coefficient + logsum(R[j], constant);
       }
     }
+    S = log_big_sum(R);
     for(size_t j = 0; j < R.size(); j++) {
       R[j] = logsum(S + penalties->rho, last_R[j] + penalties->R_coefficient); 
       bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
@@ -325,12 +323,99 @@ double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q,
   return S;
 }
 
-double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* observed_haplotype) {
-  return calculate_probability_quadratic(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* q) {
+  vector<alleleValue> alleles = q->get_alleles();
+  size_t start_site = q->get_start_site();
+  S = q->has_left_tail() ? penalties->span_mutation_penalty(q->get_left_tail(), 0) : 0;
+  R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H + S);
+  for(size_t j = 0; j < R.size(); j++) {
+    bool matches = (cohort->allele_at(start_site, j) == alleles[0]);
+    double emission = matches ? penalties->one_minus_mu : penalties->mu;
+    R[j] += emission;
+  }
+  S = log_big_sum(R);
+
+  vector<double> last_R;
+  double same_transition = log1p(-exp(penalties->rho) * (penalties->H - 1));
+  for(size_t i = 0; i < q->number_of_sites(); i++) {
+    // do span stuff
+    if(q->has_span_after(i - 1)) {
+      size_t l = q->get_span_after(i - 1);
+      double coefficient = penalties->pow_rho_c(l);
+      double constant = penalties->span_polynomial(l) + S - penalties->log_H;
+      for(size_t j = 0; j < R.size(); j++) {
+        R[j] = penalties->span_mutation_penalty(l, 0) + logsum(coefficient + R[j], constant);
+      }
+    }
+    S = log_big_sum(R);
+    last_R = R;
+    for(size_t j = 0; j < R.size(); j++) {
+      vector<double> temp = last_R;
+      for(size_t k = 0; k < temp.size(); k++) {
+        temp[k] += j == k ? same_transition : penalties->rho;
+      }
+      R[j] = log_big_sum(temp);
+      bool matches = (cohort->allele_at(start_site + i, j) == alleles[i]);
+      double emission = matches ? penalties->one_minus_mu : penalties->mu;
+      R[j] += emission;
+    }
+    S = log_big_sum(R);
+  }
+  if(q->has_span_after(q->number_of_sites() - 1)) {
+    size_t l = q->get_span_after(q->number_of_sites() - 1);
+    double coefficient = penalties->pow_rho_c(l);
+    double constant = penalties->span_polynomial(l) + S - penalties->log_H;
+    for(size_t j = 0; j < R.size(); j++) {
+      R[j] = penalties->span_mutation_penalty(l, 0) + logsum(coefficient + R[j], constant);
+    }
+  }
+  
+  S = log_big_sum(R);
+  return S;
 }
 
-double slowFwdSolver::calculate_probability_linear(const inputHaplotype* observed_haplotype) {
-  return calculate_probability_linear(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+double slowFwdSolver::calculate_probability_linear(const inputHaplotype* q) {
+  vector<alleleValue> alleles = q->get_alleles();
+  size_t start_site = q->get_start_site();
+  S = q->has_left_tail() ? penalties->span_mutation_penalty(q->get_left_tail(), 0) : 0;
+  R = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H + S);
+  for(size_t j = 0; j < R.size(); j++) {
+    bool matches = (cohort->allele_at(start_site, j) == alleles[0]);
+    double emission = matches ? penalties->one_minus_mu : penalties->mu;
+    R[j] += emission;
+  }
+  S = log_big_sum(R);
+
+  for(size_t i = 0; i < q->number_of_sites(); i++) {
+    // do span stuff
+    if(q->has_span_after(i - 1)) {
+      size_t l = q->get_span_after(i - 1);
+      double coefficient = penalties->pow_rho_c(l);
+      double constant = penalties->span_polynomial(l) + S - penalties->log_H;
+      for(size_t j = 0; j < R.size(); j++) {
+        R[j] = penalties->span_mutation_penalty(l, 0) + logsum(coefficient + R[j], constant);
+      }
+    }
+    S = log_big_sum(R);
+    for(size_t j = 0; j < R.size(); j++) {
+      R[j] = logsum(S + penalties->rho, R[j] + penalties->R_coefficient); 
+      bool matches = (cohort->allele_at(start_site + i, j) == alleles[i]);
+      double emission = matches ? penalties->one_minus_mu : penalties->mu;
+      R[j] += emission;
+    }
+    S = log_big_sum(R);
+  }
+  if(q->has_span_after(q->number_of_sites() - 1)) {
+    size_t l = q->get_span_after(q->number_of_sites() - 1);
+    double coefficient = penalties->pow_rho_c(l);
+    double constant = penalties->span_polynomial(l) + S - penalties->log_H;
+    for(size_t j = 0; j < R.size(); j++) {
+      R[j] = penalties->span_mutation_penalty(l, 0) + logsum(coefficient + R[j], constant);
+    }
+  }  
+  
+  S = log_big_sum(R);
+  return S;
 }
 
 // pair<vector<double>, vector<size_t> > slowFwdSolver::sequence_statistics(const vector<alleleValue>& q, size_t start_site) {

@@ -5,16 +5,40 @@ penaltySet::~penaltySet() {
   
 }
 
-penaltySet::penaltySet(double rho_in, double mu, int H) : H(H), 
-          mu(mu) {
+penaltySet::penaltySet(double rho_in, double mu, int H) :
+          H(H), mu(mu), rho(rho - log(H - 1)) {
+  // basics
   rho = rho_in - log(H - 1);
   log_H = log(H);
+  log_H_1 = log(H - 1);
+  log_k = log(H);
+  log_k_1 = log(H - 1);
+  
+  mu_c = log1p(-4*exp(mu));
+  rho_c = log1p(-H*exp(rho));
+  
   one_minus_mu = log1p(-4*exp(mu));
   one_minus_2mu = log1p(-5*exp(mu));
   R_coefficient = log1p(-H*exp(rho));
   rho_over_R_coeff = rho - R_coefficient;
   one_minus_mu_times_R_coeff = one_minus_mu + R_coefficient;
   mu_times_R_coeff = mu + R_coefficient;
+}
+
+double penaltySet::pow_rho_c(size_t l) const {
+  return l * rho_c;
+}
+
+double penaltySet::pow_mu_c(size_t l) const {
+  return l * mu_c;
+}
+
+double penaltySet::pow_mu(size_t l) const {
+  return l * mu;
+}
+
+double penaltySet::span_polynomial(size_t l) const {
+  return logdiff(0, pow_rho_c(l)) - log_k;
 }
 
 DPUpdateMap penaltySet::get_match_map(double last_sum) const {

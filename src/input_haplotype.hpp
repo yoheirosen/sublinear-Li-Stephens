@@ -77,6 +77,8 @@ public:
   bool is_valid() const;
   size_t number_of_sites() const;
   void validate() const;
+  
+  size_t get_length() const;
 };
 
 #endif

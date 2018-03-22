@@ -181,11 +181,19 @@ bool inputHaplotype::has_sites() const {
 }
 
 alleleValue inputHaplotype::get_allele(size_t j) const {
-  return alleles.at(j);
+  #ifdef DEBUG
+    return alleles.at(j);
+  #else
+    return alleles[j];
+  #endif
 }
 
 size_t inputHaplotype::get_n_novel_SNVs(int j) const {
-  return novel_SNVs.at(j + 1);
+  #ifdef DEBUG
+    return novel_SNVs.at(j + 1);
+  #else
+    return novel_SNVs[j + 1];
+  #endif
 }
 
 size_t inputHaplotype::get_site_index(size_t j) const {
@@ -230,6 +238,10 @@ const vector<alleleValue>& inputHaplotype::get_alleles() const {
 
 size_t inputHaplotype::get_start_site() const {
   return start_site;
+}
+
+size_t inputHaplotype::get_length() const {
+  return absolute_end_pos - absolute_start_pos + 1;
 }
 
 bool inputHaplotype::is_valid() const {
