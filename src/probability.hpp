@@ -110,6 +110,10 @@ struct slowFwdSolver{
   double calculate_probability_quadratic(const inputHaplotype* observed_haplotype);
   double calculate_probability_linear(const inputHaplotype* observed_haplotype);
   pair<vector<double>, vector<size_t> > sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
+  
+  void initialize_linear(const inputHaplotype* q);
+  void extend_site_linear(const inputHaplotype* q, size_t site);
+  void extend_span_linear(const inputHaplotype* q, size_t site);
 };
 
 double calculate_R(double oldR, const DPUpdateMap& map);
