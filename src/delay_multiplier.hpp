@@ -12,14 +12,16 @@ typedef size_t eqclass_t;
 typedef size_t row_t;
 typedef size_t step_t;
 
+// TODO swap DPUpdateMap for pair of arrays
 struct mapHistory{
 private:
-	vector<DPUpdateMap> elements;
+	vector<DPUpdateMap> maps;
   vector<step_t> previous;
   vector<step_t> next;
   // scratch area for suffix
   vector<DPUpdateMap> suffixes;
   vector<eqclass_t> rep_eqclasses;
+  step_t leftmost;
 public:
   class erased_error : public std::runtime_error {
     using std::runtime_error::runtime_error;
@@ -29,39 +31,46 @@ public:
   const static step_t PAST_FIRST;
   const static eqclass_t NO_REP;
   const static step_t NOT_WRITEABLE;
+  const static size_t NUMERICAL_UPPER_BOUND;
   
   mapHistory();
+  // argument sets initial map
   mapHistory(const DPUpdateMap& map);
-  
   void reserve(size_t length);
   
-  step_t max_index() const;
+	size_t size() const;
+  step_t rightmost_step() const;
+  step_t leftmost_step() const;
+  step_t past_end_step() const;
   
-	void push_back(const DPUpdateMap& map);
+  // extend the mapHistory auxiliary vectors (previous, next) without constructing maps
+  void increment_step();
+  // construct maps. to be called after increment_step()
+  void assign_rep_eqclass_to_new_step(eqclass_t eqclass);
+  void assign_map_to_new_step(const DPUpdateMap& map);
+  void postcompose_rightmost_map(const DPUpdateMap& map);
 	
   const DPUpdateMap& operator[](step_t i) const;
-	DPUpdateMap& operator[](step_t i);
 	const DPUpdateMap& back() const;
-  DPUpdateMap& back();
-  const DPUpdateMap& suffix(step_t i) const;
   DPUpdateMap& suffix(step_t i);
   step_t previous_step(step_t i) const;
   step_t next_step(step_t i) const;
+  eqclass_t rep_eqclass(step_t i) const;
   
-	size_t size() const;
-  const vector<DPUpdateMap>& get_elements() const;
-  
-  void fuse_prev(step_t i);
+  // bool step_cleared(step_t i) const;
   
   void set_rep_eqclass(step_t i, eqclass_t eqclass);
-  eqclass_t rep_eqclass(step_t i) const;
-  void clear_singleton(step_t i);
-  void clear_end_singleton();
+  void clear_rep_eqclass(step_t i);
   
-  bool step_cleared(step_t i) const;
+  void set_new_leftmost(step_t i);
+  void omit_step(step_t i);
   
   #ifdef DEBUG
-    vector<size_t> n_eqclasses;  
+    const vector<DPUpdateMap>& get_elements() const;
+    vector<size_t> n_eqclasses;
+    void dump_state(step_t marker) const;
+    bool validate_step(step_t i) const;
+    void print_index(size_t i) const;
   #endif
 };
 
@@ -81,102 +90,96 @@ public:
 // O(|H| + n) from O(|H|). However, the delayedEvalMap struct need not be
 // stored and may be replaced with O(|H|) information as long as we call
 // hard_update_all() first at at cost of O(|eqclasses| + n) time
-//
-// TODO this is currently O(n) to copy. Speed it up. Though for single query 
-// case doesn't matter if H < n(H^(2/3)). Certainly can assume that H < MAC
+
 struct delayedEvalMap{
 private:  
-  step_t current_site = 0;
   step_t current_step = 0;
+  
+  // TODO implement
+  vector<char> reused_active;
+  vector<eqclass_t> reused_active_eqclasses;
+  size_t n_active_eqclasses;
+  
   mapHistory map_history;
 
   vector<eqclass_t> row_to_eqclass;                         // size = # haplotypes
 
   eqclass_t newest_eqclass = 0;
   vector<DPUpdateMap> eqclass_to_map;                    // size = # eqclasses
+  // TODO interleave
   vector<size_t> eqclass_size;                           // size = # eqclasses
-  vector<step_t> eqclass_last_updated;                // size = # eqclasses
+  vector<step_t> eqclass_last_updated;                   // size = # eqclasses
   // stores which map eqclasses have been emptied so that new map
   // eqclasses can be added in their place
   vector<eqclass_t> empty_eqclass_indices;                  // size = # eqclasses
-	
-	// Assignes a row to the eqclass containing the last DPUpdateMap added
-	
-	// un-associates row from eqclass and assigns an out-of-bounds eqclass index
-  // and decrements eqclass
-  // decrements eqclass row-count, destroys eqclass if row-count hits 0
-  void decrement_eqclass(eqclass_t eqclass);
-  // clears eqclass and returns it to the list of empty eqclasses
-  void delete_eqclass(eqclass_t eqclass);
   
-  const static eqclass_t NO_NEIGHBOUR;
   const static eqclass_t INACTIVE_EQCLASS;
+  const static size_t NUMERICAL_UPPER_BOUND;
+  const static eqclass_t SINK_CLASS;
   
+  // TODO interleave
   vector<eqclass_t> eqclass_buddy_above;
   vector<eqclass_t> eqclass_buddy_below;
   
-  inline bool is_singleton(eqclass_t eqclass) const;
-  inline bool is_front(eqclass_t eqclass) const;
-  void push_back_at_current(eqclass_t eqclass);
-  void delete_at_site(eqclass_t eqclass);
+  bool step_has_singleton_eqclass(step_t i) const;
+  bool eqclass_is_alone_at_step(eqclass_t eqclass) const;
+#ifdef DEBUG
+  bool validate_eqclass(eqclass_t eqclass) const;
+  size_t count_eqclasses_at_step(step_t i) const;
+  bool check_steps_valid(vector<step_t> steps) const;
+  bool check_steps_valid() const;
+#endif
+
+  void push_back_at_nonempty_step(step_t i, eqclass_t eqclass);
+
+  void delete_singleton_eqclass_from_step(eqclass_t eqclass, step_t i);
+  void delete_non_singleton_eqclass_from_step(eqclass_t eqclass, step_t i);
+  void delete_eqclass_from_step(eqclass_t eqclass);
+
+  void move_singleton_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
+  void move_non_singleton_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
+  void move_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
+  // TODO if we don't have "next" vector... does it matter if we have a left-side guard?
+  void move_leftmost_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
+
+  void add_empty_eqclass_to_empty_step(const DPUpdateMap& map);
+
+  void move_row_to_newest_eqclass(row_t row);
+  void move_row_to_eqclass(row_t row, eqclass_t eqclass);
+  void decrement_eqclass(eqclass_t eqclass);
+  
+  // TODO efficient handling of small rowSets
+  vector<eqclass_t> rows_to_eqclasses(const rowSet& rows) const;
+
+  void update_eqclass(eqclass_t eqclass);
+  void update_eqclasses(const vector<eqclass_t>& eqclasses);
+
 public:
   delayedEvalMap();
   delayedEvalMap(size_t rows);
-  delayedEvalMap(const delayedEvalMap& other);
   
   void reserve_length(size_t length);
-	
-  void update_eqclass(eqclass_t eqclass);
   
-	void assign_row_to_newest_eqclass(row_t row);
-	void remove_row_from_eqclass(row_t row);
-	
+  void extend_by_new_step(const DPUpdateMap& map);
+  void extend_value_only(const DPUpdateMap& map);
+  
   double evaluate(row_t row, double value) const;
-
-  vector<size_t> rows_to_eqclasses(const rowSet& rows) const;
-    
-	void stage_map_for_site(const DPUpdateMap& site_map);
-  void stage_map_for_span(const DPUpdateMap& span_map);
-
-  // takes in a set of eqclass indices and extends their eqclass_to_map
-  // time complexity is O(|indices| + n)
-  void update_maps(const vector<eqclass_t>& eqclasses);
-	
-  void update_active_rows(const rowSet& active_rows);
+  void evaluate(const rowSet& active_rows, const vector<double>& values) const;
+  void update(const rowSet& active_rows);
   
-  // Updates all maps to current position in preparation for taking a
-  // "snapshot" of the current state of the DP.
-  // This has a cost of O(|eqclasses| + n) time but allows 
-  // storage of the DP state in O(|population|) rather than 
-  // O(|population| + |sites|) space
+  void update_evaluate_and_move_rows(const rowSet& active_rows, vector<double>& values, double minority_correction);
+
   void hard_update_all();  
-  // resets all maps to identity, lying in a single eqclass
-  void hard_clear_all();
+  void move_all_rows_to_newest_eqclass();
 
-	void reset_rows(const rowSet& rows);
-
-  // Adds a new eqclass containing the given DPUpdateMap
-  void add_eqclass(const DPUpdateMap& map);
-  void add_identity_eqclass();
-	
-  // get a vector of indices-among-eqclasses of maps assigned to rows
-  const vector<size_t>& 			get_map_indices() const;
-  const DPUpdateMap& 					get_map(row_t row) const;
-	const vector<DPUpdateMap>& 	get_map_history() const;
-  vector<DPUpdateMap>& 				get_maps();
-  const vector<DPUpdateMap>& 	get_maps() const;
-	double                      get_coefficient(row_t row) const;  
-	double                      get_constant(row_t row) const;
-    
-  size_t number_of_eqclasses() const;
-	size_t get_current_site() const;
+  const DPUpdateMap& get_map(row_t row) const;
   
-  size_t row_updated_to(row_t row) const;
-	size_t last_update(row_t row) const;
-  size_t get_eqclass(row_t row) const;
-  
-  void remove_from_site(eqclass_t eqclass);
-  void add_to_current_site(eqclass_t eqclass);
+  #ifdef DEBUG
+    void print_eqclass(eqclass_t i) const;
+    void dump_vectors() const;
+    bool ensure_unique(eqclass_t eqclass, step_t allowed_step) const;
+    bool ensure_deleted(eqclass_t eqclass) const;
+  #endif
 };
 
 #endif

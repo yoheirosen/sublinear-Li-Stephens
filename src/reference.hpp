@@ -88,6 +88,7 @@ public:
   
   //-- serialization -----------------------------------------------------------
   void serialize_human(std::ostream& out) const;
+  void serialize(std::ostream& out) const;
 };
 
 //------------------------------------------------------------------------------
@@ -218,6 +219,7 @@ public:
   
 //-- serialization -------------------------------------------------------------
   void serialize_human(std::ostream& out) const;
+  void serialize(std::ostream& out) const;
 };
 
 haplotypeCohort* build_cohort(const string& vcf_path);
@@ -226,6 +228,13 @@ namespace haploRandom {
   vector<size_t> n_unique_uints(size_t N, size_t supremum);
   vector<size_t> n_unique_uints(size_t N, size_t supremum, const vector<size_t>* blacklist);
   alleleValue mutate(alleleValue a, double log_mutation_probability);
+}
+
+namespace binary_serialize {
+  void uint64_t_to_char8(uint64_t input, unsigned char* const output);
+  void char8_to_uint64_t(unsigned char* const input, uint64_t& output);
+  void write_uint64_t(uint64_t input, std::ostream& output);
+  uint64_t read_uint64_t(std::istream& input);
 }
 
 #endif

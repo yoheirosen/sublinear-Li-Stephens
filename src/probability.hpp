@@ -10,130 +10,107 @@
 
 using namespace std;
 
-// A fastFwdAlgState is the matrix which iteratively calculates haplotype
-// likelihood. It takes in a haplotypeCohort and a siteIndex, an
+struct liStephensModel{
+  liStephensModel(siteIndex* reference, haplotypeCohort* cohort, const penaltySet* penalties);
+  siteIndex* reference;
+  haplotypeCohort* cohort;
+  const penaltySet* penalties;
+};
+
+// A fastFwdAlgState contains the DP matrix for our forward algorithm analogue.
+// It takes in a haplotypeCohort and a siteIndex, an
 // inputHaplotype built against the siteIndex, and a penaltySet
 // of mutation and recombination penalties. It calculates and returns the
 // likelihood of the inputHaplotype relative to the haplotypeCohort when
 // calculate_probability is called
 struct fastFwdAlgState{
 private:
+//-- underlying structures -----------------------------------------------------
   
-//-- support structures --------------------------------------------------------
-  
-  siteIndex* reference;
+  const siteIndex* reference;
   const haplotypeCohort* cohort;
   const penaltySet* penalties;
   
-//-- blockwise lazy eval "backend" ---------------------------------------------
+//-- lazy evaluation "backend" -------------------------------------------------
   
   delayedEvalMap map;
   
 //-- position markers ----------------------------------------------------------
 
   // trackers for the last indices extended
-  // -1 : nothing extended; i : index i last extended
-  int last_extended = -1;
-  // -2 : nothing extended; -1 : before-first-site span extended; i : span after
-  // index i extended
-  int last_span_extended = -2;
-  alleleValue last_allele;
-  void record_last_extended(alleleValue a);
+  typedef int64_t dp_column_t;
+  const static dp_column_t SITE_UNEXTENDED;
+  const static dp_column_t INITIAL_SPAN;
+  const static dp_column_t SPAN_UNEXTENDED;
   
+  dp_column_t last_extended;
+  dp_column_t last_span_extended;
+  alleleValue last_allele;
+  
+  double sum;
+  vector<double> rows;
+  
+  inline void record_last_extended(alleleValue a);
+
+#ifdef DEBUG
 public:
+#endif
+  inline bool last_extended_is_span() const;
+  inline size_t get_last_site() const;
+  
+  void initialize_probability(const inputHaplotype* observed);
+  void initialize_probability_at_span(size_t length);
+  void initialize_probability_at_site(size_t site_index, alleleValue a);
+  
+  void update_subset_of_rows(const rowSet& indices, bool active_is_match);
+  void update_sum(const rowSet& indices, bool active_is_match);
+  
+  void extend_probability_at_site(const DPUpdateMap& current_map, 
+                                  const rowSet& active_row_indices, 
+                                  bool match_is_rare, 
+                                  alleleValue a);
+  void extend_probability_at_site(size_t i, alleleValue a);
+  void extend_probability_at_site(alleleValue a);
+  
+  void extend_probability_at_span_after_abstract(size_t l);
+  void extend_probability_at_span();
+  
+#ifdef DEBUG  
+  double get_sum() const;
+  double get_row() const;
+#endif
+  void take_snapshot();
+  
+#ifndef DEBUG
+public:
+#endif
   fastFwdAlgState(siteIndex* ref, const penaltySet* pen,
-            const haplotypeCohort* haplotypes);
+    const haplotypeCohort* haplotypes);
   fastFwdAlgState(const fastFwdAlgState& other, bool copy_map);
   ~fastFwdAlgState();
-  
-  double S;
-  vector<double> R;
-  
-  delayedEvalMap& get_maps();
 
-//-- probability queries -------------------------------------------------------
-  
-  double prefix_likelihood() const;
-  double partial_likelihood_by_row(size_t row) const;
-  double calculate_probability(const inputHaplotype* q);
-
-//-- position-initial state calculators ----------------------------------------
-
-  void initialize_probability(const inputHaplotype* q);
-  void initialize_probability(size_t site_index, alleleValue a,
-    size_t left_tail_length = 0, size_t mismatch_count = 0);
-  void initialize_probability_at_span(size_t length, size_t mismatch_count);
-  void initialize_probability_at_site(size_t site_index, alleleValue a);
-
-//-- non-initial state calculators ---------------------------------------------
-  
-  void extend_probability_at_site(const inputHaplotype* q, size_t j);
-  void extend_probability_at_site(const DPUpdateMap& current_map, 
-              const rowSet& active_rows, bool match_is_rare, 
-              alleleValue a);
-  void extend_probability_at_site(const rowSet& active_rows, 
-              bool match_is_rare, alleleValue a);
-  void extend_probability_at_site(size_t site_index, alleleValue a);
-  void extend_probability_at_span_after_anonymous(size_t l,
-              size_t mismatch_count);
-  void extend_probability_at_span_after(const inputHaplotype* q, size_t j);
-  void extend_probability_at_span_after(size_t site_index, 
-              size_t mismatch_count);            
-
-  bool last_extended_is_span() const;
-  size_t get_last_site() const;
-
-//-- arithmetic shorthand ------------------------------------------------------
-  
-  void update_subset_of_Rs(const rowSet& indices, bool active_is_match);
-  void fast_update_S(const rowSet& indices, bool active_is_match);
-  
-//-- functions to force lazy-evaluation map to update --------------------------
-  
-  // Applies the delayed-arithmetic maps to all R-values 
-  // This also calls hard_clear_all on the delayed-arithmetic map, which
-  // resets all linear maps contained to the identity map; this means that
-  // accidentally calling take_snapshot() twice has no effect
-  void take_snapshot();
-  double get_single_element_score(size_t hap_idx); 
+  double calculate_probability(const inputHaplotype* observed);
 };
 
 struct slowFwdSolver{
   siteIndex* reference;
   const penaltySet* penalties;
   const haplotypeCohort* cohort;
-  vector<double> R;
-  double S;
-  slowFwdSolver(siteIndex* ref, const penaltySet* pen,
-            const haplotypeCohort* haplotypes);
+  vector<double> rows;
+  double sum;
+  slowFwdSolver(siteIndex* ref, const penaltySet* pen, const haplotypeCohort* haplotypes);
   double calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_linear(const vector<alleleValue>& q, size_t start_site);
   double calculate_probability_quadratic(const inputHaplotype* observed_haplotype);
   double calculate_probability_linear(const inputHaplotype* observed_haplotype);
+  pair<vector<double>, vector<size_t> > sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
   
-  struct sequence_statistic_array{
-    size_t max_u_value;
-    size_t max_u_active_value;
-    size_t max_active_rows;
-    size_t max_history_length;
-    size_t max_active_history_length;
-    size_t max_map_classes;
-    size_t max_active_map_classes;
-    size_t max_times_active;
-    double avg_u_value;
-    double avg_u_active_value;
-    double avg_active_rows;
-    double avg_history_length;
-    double avg_active_history_length;
-    double avg_map_classes;
-    double avg_active_map_classes;
-    double avg_times_active;
-  };
-  
-  sequence_statistic_array sequence_statistics(const vector<alleleValue>& q, size_t start_site = 0);
+  void initialize_linear(const inputHaplotype* q);
+  void extend_site_linear(const inputHaplotype* q, size_t site);
+  void extend_span_linear(const inputHaplotype* q, size_t site);
 };
 
-double calculate_R(double oldR, const DPUpdateMap& map);
-double calculate_R(double oldR, double coefficient, double constant);
+double calculate_row(double old_row, const DPUpdateMap& map);
+double calculate_row(double old_row, double coefficient, double constant);
 
 #endif

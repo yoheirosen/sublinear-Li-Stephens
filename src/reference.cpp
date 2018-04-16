@@ -842,6 +842,46 @@ void siteIndex::serialize_human(std::ostream& indexout) const {
   indexout << endl;
 }
 
+namespace binary_serialize {
+
+// template<int N>
+// inline void uint64_t_to_charN<N>(uint64_t input, unsigned char* const output) {
+//   for(int i = 0; i < N; i++) {
+//     output[i] = input >> (8 * i - 1);
+//   }
+// }
+
+void write_uint64_t(uint64_t input, std::ostream& output) {
+  output.write((char*)input, 8);
+}
+
+// template<int N>
+// inline uint64_t charN_to_uint64_t<N>(unsigned char* const input) {
+//   uint64_t output;
+//   // force unrolling?
+//   for(int i = 0; i < N; i++) {
+//     output = (output << 8) | input[i];
+//   }
+//   return output;
+// }
+
+uint64_t read_uint64_t(std::istream& input) {
+  uint64_t to_return;
+  input.read((char*)&to_return, 8);
+  return to_return;
+}
+
+} // namespace binary_serialize
+
+void siteIndex::serialize(std::ostream& indexout) const {
+  binary_serialize::write_uint64_t(global_offset, indexout);
+  binary_serialize::write_uint64_t(length, indexout);
+  binary_serialize::write_uint64_t(site_index_to_position.size(), indexout);
+  for(size_t i = 0; i < site_index_to_position.size(); i++) {
+    binary_serialize::write_uint64_t(site_index_to_position[i], indexout);
+  }
+}
+
 void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
   reference->serialize_human(cohortout);
   cohortout << number_of_haplotypes << endl;
@@ -858,6 +898,40 @@ void haplotypeCohort::serialize_human(std::ostream& cohortout) const {
     cohortout << endl; 
   }
 }
+
+void haplotypeCohort::serialize(std::ostream& cohortout) const {
+  reference->serialize(cohortout);
+  binary_serialize::write_uint64_t(number_of_haplotypes, cohortout);
+  for(size_t i = 0; i < get_n_sites(); i++) {
+    for(size_t a = 0; a < 5; a++) {
+      binary_serialize::write_uint64_t(allele_counts_by_site_index[i][a], cohortout);
+    }
+    for(size_t a = 0; a < 5; a++) {
+      for(size_t j = 0; j < haplotype_indices_by_site_and_allele[i][a].size(); j++) {
+        binary_serialize::write_uint64_t(haplotype_indices_by_site_and_allele[i][a][j], cohortout);
+      }
+    }
+  }
+}
+
+// siteIndex::siteIndex(std::istream& indexin) {
+//   global_offset = binary_serialize::read_uint64_t(indexin);
+//   length = binary_serialize::read_uint64_t(indexin);
+//   size_t n_sites = binary_serialize::read_uint64_t(indexin);
+//   site_index_to_position = vector<size_t>(n_sites);
+//   span_lengths = vector<size_t>(n_sites);
+//   for(size_t i = 0; i < n_sites; i++) {
+//     site_index_to_position[i] = binary_serialize::read_uint64_t(indexin);;
+//   }
+//   leading_span_length = site_index_to_position[0] - global_offset;
+//   for(size_t i = 1; i < n_sites - 1; i++) {
+//     span_lengths[i - 1] = site_index_to_position[i] - site_index_to_position[i - 1] - 1;
+//   }
+//   span_lengths[n_sites - 1] = global_offset + length - site_index_to_position[n_sites - 1] - 1;
+//   for(size_t i = 0; i < n_sites; i++) {
+//     position_to_site_index.emplace(site_index_to_position[i], i);
+//   }
+// }
 
 siteIndex::siteIndex(std::istream& indexin) {
   indexin >> global_offset;
@@ -878,6 +952,35 @@ siteIndex::siteIndex(std::istream& indexin) {
     position_to_site_index.emplace(site_index_to_position[i], i);
   }
 }
+
+// haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) : reference(reference) {
+//   number_of_haplotypes = binary_serialize::read_uint64_t(cohortin);
+//   haplotype_indices_by_site_and_allele = vector<vector<vector<haplo_id_t> > >(reference->number_of_sites(),
+//                                                 vector<vector<haplo_id_t> >(5));
+//   active_rowSets_by_site_and_allele = vector<vector<rowSet> >(reference->number_of_sites(),
+//                                              vector<rowSet>(5));
+//   allele_counts_by_site_index = vector<vector<size_t> >(reference->number_of_sites(),
+//                                        vector<size_t>(5));
+//   for(size_t i = 0; i < reference->number_of_sites(); i++) {
+//     for(size_t a = 0; a < 5; a++) {
+//       allele_counts_by_site_index[i][a] = binary_serialize::read_uint64_t(cohortin);
+//       if(allele_counts_by_site_index[i][a] <= number_of_haplotypes / 2) {
+//         haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(allele_counts_by_site_index[i][a]);
+//       } else {
+//         haplotype_indices_by_site_and_allele[i][a] = vector<haplo_id_t>(0);
+//       }
+//     }
+//     for(size_t a = 0; a < 5; a++) {
+//       for(size_t j = 0; j < haplotype_indices_by_site_and_allele[i][a].size(); j++) {
+//         haplotype_indices_by_site_and_allele[i][a][j] = binary_serialize::read_uint64_t(cohortin);
+//       }
+//     }
+//     for(size_t a = 0; a < 5; a++) {
+//       active_rowSets_by_site_and_allele[i][a] = build_active_rowSet(i, (alleleValue)a);
+//     }
+//   }
+//   finalized = true;
+// }
 
 haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) : reference(reference) {
   cohortin >> number_of_haplotypes;
@@ -910,7 +1013,7 @@ haplotypeCohort::haplotypeCohort(std::istream& cohortin, siteIndex* reference) :
 
 void haplotypeCohort::uncompress() {
   size_t n_sites = get_n_sites();
-  if(alleles_by_haplotype_and_site.size() != 0) {
+  if(alleles_by_haplotype_and_site.size() == 0) {
     vector<alleleValue> prototype = vector<alleleValue>(n_sites, unassigned);
     for(size_t i = 0; i < n_sites; i++) {
       for(size_t a = 0; a < 5; a++) {

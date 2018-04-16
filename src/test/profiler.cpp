@@ -336,6 +336,24 @@ int main(int argc, char* argv[]) {
   profiler_tools::read_experiment(expt_in, sizes, lengths, replicates, recombination_penalty, mutation_penalty);
   expt_in.close();
   
+  if(sizes.size() == 0) {
+    cerr << "cannot run an experiment with 0 haplotype cohort subset sizes" << endl;
+    return 1;
+  }
+  if(lengths.size() == 0) {
+    cerr << "cannot run an experiment with 0 haplotype lengths" << endl;
+    return 1;
+  }
+  if(replicates == 0) {
+    cerr << "cannot run an experiment with 0 replicates" << endl;
+    return 1;
+  }
+  
+  cerr << sizes.size() << " haplotype cohort subset sizes, ranging from " << sizes[0] << " to " << sizes[sizes.size() - 1] << endl;
+  cerr << lengths.size() << " haplotype lengths, ranging from " << lengths[0] << " to " << lengths[lengths.size() - 1] << endl;
+  cerr << replicates << " replicates" << endl;
+  cerr << "recombination penalty of e^" << recombination_penalty << "; mutation penalty of e^" << mutation_penalty << endl; 
+  
   ifstream slls_in;
   slls_in.open(slls_path, ios::in);
   if(!slls_in.is_open()) {
@@ -343,10 +361,25 @@ int main(int argc, char* argv[]) {
     return 1;
   }  
   cerr << "loading reference from slls index " << slls_path << endl;
+  struct timeval loadtv1, loadtv2;
+  gettimeofday(&loadtv1, NULL);
   siteIndex* reference = new siteIndex(slls_in);
-  cerr << "loading haplotype cohort from slls index" << endl;
+  gettimeofday(&loadtv2, NULL);
+  double time_used_load = (double) (loadtv2.tv_usec - loadtv1.tv_usec) / 1000000 + (double) (loadtv2.tv_sec - loadtv1.tv_sec);
+  cerr << "loaded in " << time_used_load << " seconds" << endl;
+  cerr << "loading haplotype cohort" << endl;
+  gettimeofday(&loadtv1, NULL);
   haplotypeCohort* cohort = new haplotypeCohort(slls_in, reference);
+  gettimeofday(&loadtv2, NULL);
+  time_used_load = (double) (loadtv2.tv_usec - loadtv1.tv_usec) / 1000000 + (double) (loadtv2.tv_sec - loadtv1.tv_sec);
+  cerr << "loaded in " << time_used_load << " seconds" << endl;
   slls_in.close();
+  gettimeofday(&loadtv1, NULL);
+  cohort->uncompress();
+  gettimeofday(&loadtv2, NULL);
+  time_used_load = (double) (loadtv2.tv_usec - loadtv1.tv_usec) / 1000000 + (double) (loadtv2.tv_sec - loadtv1.tv_sec);
+  cerr << "uncompressed in " << time_used_load << " seconds" << endl;
+  
   size_t cohort_size = cohort->get_n_haplotypes();
   
   ofstream file_output;
@@ -368,12 +401,13 @@ int main(int argc, char* argv[]) {
         if(site_start < site_end) {
           haplotypeCohort* new_cohort = cohort->subset(site_start, site_end, k);
           siteIndex* new_reference = new_cohort->get_reference();
+          penaltySet* new_penalties = new penaltySet(recombination_penalty, mutation_penalty, new_cohort->get_n_haplotypes());
           
           if(new_reference->number_of_sites() > 1) {
           	inputHaplotype* query_ih = profiler_tools::random_haplo(new_cohort, new_reference, haplotype_generator_generations, penalties);
             
             if(query_ih->number_of_sites() > 1) {
-              cerr << "iteration "<< k_it << " of " << sizes.size() << " size, " << n_bp_it << " of " << lengths.size() << " length, " << j << " of " << replicates << " replicates " << endl;
+              cerr << "iteration "<< k_it + 1 << " of " << sizes.size() << " size, " << n_bp_it + 1 << " of " << lengths.size() << " length, " << j + 1 << " of " << replicates << " replicates " << endl;
               ++k_it;
               size_t start_site = query_ih->get_start_site();
               size_t end_site = start_site + query_ih->number_of_sites() - 1;    
@@ -383,9 +417,9 @@ int main(int argc, char* argv[]) {
             	double time_used_linear = 0;
                         	
             	for(size_t i = 0; i < replicates_per_datapoint; i++) {
-                fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, penalties, new_cohort);
-              	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
-              	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, penalties, new_cohort);
+                fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, new_penalties, new_cohort);
+              	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
+              	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
 
               	struct timeval tv1, tv2, tv3, tv4;
               	gettimeofday(&tv1, NULL);
@@ -428,6 +462,7 @@ int main(int argc, char* argv[]) {
           }
           delete new_cohort;
           delete new_reference;
+          delete new_penalties;
         }
       }
     }
