@@ -535,8 +535,10 @@ void delayedEvalMap::add_empty_eqclass_to_empty_step(const DPUpdateMap& map) {
     eqclass_buddy_below.push_back(SINK_CLASS);
   } else {
     newest_eqclass = empty_eqclass_indices.back();
+#ifdef DEBUG
     assert(ensure_deleted(newest_eqclass));
     assert(ensure_unique(newest_eqclass, current_step));
+#endif
     empty_eqclass_indices.pop_back();
     eqclass_to_map[newest_eqclass] = map;
     eqclass_size[newest_eqclass] = 0;
@@ -638,7 +640,9 @@ void delayedEvalMap::update_evaluate_and_move_rows(const rowSet& active_rows, ve
 }
 
 void delayedEvalMap::update_eqclasses(const vector<eqclass_t>& eqclasses) {
+#ifdef DEBUG
   assert(check_steps_valid());
+#endif
   step_t oldest_step = current_step;
   for(eqclass_t i = 0; i < eqclasses.size(); i++) {
 #ifdef DEBUG

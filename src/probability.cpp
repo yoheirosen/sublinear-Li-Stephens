@@ -203,293 +203,135 @@ void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_majo
 slowFwdSolver::slowFwdSolver(siteIndex* ref, const penaltySet* pen, const haplotypeCohort* haplotypes) :
             reference(ref), penalties(pen), cohort(haplotypes) {
 }
-            
-double slowFwdSolver::calculate_probability_quadratic(const vector<alleleValue>& q, size_t start_site = 0) {
-  rows = vector<double>(cohort->get_n_haplotypes(), -penalties->log_k);
+
+double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* q) {
+  const vector<alleleValue>& alleles = q->get_alleles();
+  size_t start_site = q->get_start_site();
+  sum = q->has_left_tail() ? penalties->span_mutation_penalty(q->get_left_tail()) : 0;
+  double initial_value = -penalties->log_k + sum;
+  rows = vector<double>(cohort->get_n_haplotypes(), initial_value);
   for(size_t j = 0; j < rows.size(); j++) {
-    bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
+    bool matches = (cohort->allele_at(start_site, j) == alleles[0]);
     double emission = matches ? penalties->one_minus_mu : penalties->mu;
     rows[j] += emission;
   }
+  sum = log_big_sum(rows);
+
   vector<double> last_rows;
   double same_transition = log1p(-exp(penalties->rho) * (penalties->k - 1));
-  for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
-    last_rows = rows;
-    if(reference->has_span_after(i - 1)) {
-      size_t l = reference->span_length_after(i - 1);
-      double coefficient = penalties->span_mutation_penalty(l) + penalties->composed_row_coefficient(l);
-      double constant = penalties->span_coefficient(l) - penalties->composed_row_coefficient(l);
+  for(size_t i = 0; i < q->number_of_sites(); i++) {
+    // do span stuff
+    if(q->has_span_after(i - 1)) {
+      size_t l = q->get_span_after(i - 1);
+      double coefficient = penalties->pow_rho_c(l);
+      double constant = penalties->span_polynomial(l) + sum;
       for(size_t j = 0; j < rows.size(); j++) {
-        rows[j] = coefficient + logsum(rows[j], constant);
+        rows[j] = penalties->span_mutation_penalty(l) + logsum(coefficient + rows[j], constant);
       }
     }
+    sum = log_big_sum(rows);
+    last_rows = rows;
     for(size_t j = 0; j < rows.size(); j++) {
       vector<double> temp = last_rows;
       for(size_t k = 0; k < temp.size(); k++) {
         temp[k] += j == k ? same_transition : penalties->rho;
       }
       rows[j] = log_big_sum(temp);
-      bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
+      bool matches = (cohort->allele_at(start_site + i, j) == alleles[i]);
       double emission = matches ? penalties->one_minus_mu : penalties->mu;
       rows[j] += emission;
     }
+    sum = log_big_sum(rows);
   }
+  if(q->has_span_after(q->number_of_sites() - 1)) {
+    size_t l = q->get_span_after(q->number_of_sites() - 1);
+    double coefficient = penalties->pow_rho_c(l);
+    double constant = penalties->span_polynomial(l) + sum;
+    for(size_t j = 0; j < rows.size(); j++) {
+      rows[j] = penalties->span_mutation_penalty(l) + logsum(coefficient + rows[j], constant);
+    }
+  }
+  
   sum = log_big_sum(rows);
   return sum;
 }
 
-double slowFwdSolver::calculate_probability_linear(const vector<alleleValue>& q, size_t start_site = 0) {
-  rows = vector<double>(cohort->get_n_haplotypes(), -penalties->log_k);
+double slowFwdSolver::calculate_probability_linear(const inputHaplotype* q) {
+  initialize_linear(q);
+  for(size_t i = 0; i < q->number_of_sites(); i++) {
+    if(q->has_span_after(i - 1)) {
+      extend_span_linear(q, i - 1);
+    }
+    extend_site_linear(q, i);
+  }
+  if(q->has_span_after(q->number_of_sites() - 1)) {
+    extend_span_linear(q, q->number_of_sites() - 1);
+  }
+  return sum;
+}
+
+
+void slowFwdSolver::initialize_linear(const inputHaplotype* q) {
+  size_t start_site = q->get_start_site();
+  sum = q->has_left_tail() ? penalties->span_mutation_penalty(q->get_left_tail()) : 0;
+  rows = vector<double>(cohort->get_n_haplotypes(), -penalties->log_k + sum);
   for(size_t j = 0; j < rows.size(); j++) {
-    bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
+    bool matches = (cohort->allele_at(start_site, j) == q->get_allele(0));
     double emission = matches ? penalties->one_minus_mu : penalties->mu;
     rows[j] += emission;
   }
-  vector<double> last_rows;
-  for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
-    last_rows = rows;
-    sum = log_big_sum(last_rows);
-    // do span stuff
-    if(reference->has_span_after(i - 1)) {
-      size_t l = reference->span_length_after(i - 1);
-      double coefficient = penalties->span_mutation_penalty(l) + penalties->composed_row_coefficient(l);
-      double constant = penalties->span_coefficient(l) + sum - penalties->composed_row_coefficient(l);
-      for(size_t j = 0; j < rows.size(); j++) {
-        rows[j] = coefficient + logsum(rows[j], constant);
-      }
+  sum = log_big_sum(rows);
+}
+
+void slowFwdSolver::extend_site_linear(const inputHaplotype* q, size_t site) {
+  size_t start_site = q->get_start_site();
+  for(size_t j = 0; j < rows.size(); j++) {
+    rows[j] = logsum(sum + penalties->rho, rows[j] + penalties->row_coefficient); 
+    bool matches = (cohort->allele_at(start_site + site, j) == q->get_allele(site));
+    double emission = matches ? penalties->one_minus_mu : penalties->mu;
+    rows[j] += emission;
+  }
+  // sum = log_big_sum(rows);
+  if(!cohort->match_is_rare(start_site + site, q->get_allele(site))) {
+    if(cohort->number_not_matching(start_site + site, q->get_allele(site)) != 0) {
+      const rowSet& indices = cohort->get_active_rowSet(start_site + site, q->get_allele(site));
+      rowSet::const_iterator it = indices.begin();
+      rowSet::const_iterator rows_end = indices.end();
+      // vector<double> to_correct;
+      // for(it; it != rows_end; ++it) {
+      //   size_t row = *it;
+      //   to_correct.push_back(rows[row]);
+      // }
+      sum = logdiff(penalties->one_minus_mu + sum, penalties->one_minus_2mu - penalties->mu + log_big_sum(it, rows_end, rows));
+    } else {
+      sum += penalties->one_minus_mu;
     }
-    for(size_t j = 0; j < rows.size(); j++) {
-      rows[j] = logsum(sum + penalties->rho, last_rows[j] + penalties->row_coefficient); 
-      bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
-      double emission = matches ? penalties->one_minus_mu : penalties->mu;
-      rows[j] += emission;
+  } else {
+    if(cohort->number_matching(start_site + site, q->get_allele(site)) != 0) {
+      const rowSet& indices = cohort->get_active_rowSet(start_site + site, q->get_allele(site));
+      rowSet::const_iterator it = indices.begin();
+      rowSet::const_iterator rows_end = indices.end();
+      // vector<double> to_correct;
+      // for(it; it != rows_end; ++it) {
+      //   size_t row = *it;
+      //   to_correct.push_back(rows[row]);
+      // }
+      sum = logsum(penalties->mu + sum, penalties->one_minus_2mu - penalties->one_minus_mu + log_big_sum(it, rows_end, rows));
+    } else {
+      sum += penalties->mu;
     }
   }
-  sum = log_big_sum(rows);
-  return sum;
 }
 
-double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* observed_haplotype) {
-  return calculate_probability_quadratic(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
+void slowFwdSolver::extend_span_linear(const inputHaplotype* q, size_t site) {
+  if(q->has_span_after(site)) {
+    size_t l = q->get_span_after(site);
+    double coefficient = penalties->pow_rho_c(l);
+    double constant = penalties->span_polynomial(l) + sum;
+    for(size_t j = 0; j < rows.size(); j++) {
+      rows[j] = penalties->span_mutation_penalty(l) + logsum(coefficient + rows[j], constant);
+    }
+    sum += penalties->span_mutation_penalty(l);
+    // sum = log_big_sum(rows);
+  }
 }
-
-double slowFwdSolver::calculate_probability_linear(const inputHaplotype* observed_haplotype) {
-  return calculate_probability_linear(observed_haplotype->get_alleles(), observed_haplotype->get_start_site());
-}
-
-// slowFwdSolver::sequence_statistic_array slowFwdSolver::sequence_statistics(const vector<alleleValue>& q, size_t start_site) {
-//   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
-//     alleleValue test = q.at(i - start_site);
-//     if(test > 5) {
-//       cout << i << " " << i - start_site << " " << test << " " << sizeof(alleleValue) << endl;
-//       throw runtime_error("invalid allele in observed haplotype");
-//     }
-//   }
-//   
-//   vector<size_t> unique_values(q.size(), 1);
-//   vector<size_t> unique_active_values(q.size(), 0);
-//   vector<size_t> active_row_indices(q.size(), 0);
-//   vector<size_t> history_length(q.size(), 0);
-//   vector<size_t> active_history_length(q.size(), 0);
-//   vector<size_t> map_classes(q.size(), 0);
-//   vector<size_t> active_map_classes(q.size(), 0);
-//   
-//   vector<size_t> times_active(cohort->get_n_haplotypes(), 
-//   0);
-//   vector<size_t> last_updated(cohort->get_n_haplotypes(), start_site);
-//   rows = vector<double>(cohort->get_n_haplotypes(), -penalties->log_H);
-//   for(size_t j = 0; j < rows.size(); j++) {
-//     bool matches = (cohort->allele_at(0, j) == q[0 - start_site]);
-//     double emission = matches ? penalties->one_minus_mu : penalties->mu;
-//     rows[j] += emission;
-//   }
-//   vector<double> last_rows;
-//   for(size_t i = start_site + 1; i < start_site + q.size(); i++) {
-//     last_rows = rows;
-//     sum = log_big_sum(last_rows);
-//     // do span stuff
-//     if(reference->has_span_after(i - 1)) {
-//       size_t l = reference->span_length_after(i - 1);
-//       double coefficient = penalties->span_mutation_penalty(l, 0) + penalties->composed_row_coefficient(l);
-//       double constant = penalties->span_coefficient(l) - penalties->composed_row_coefficient(l);
-//       for(size_t j = 0; j < rows.size(); j++) {
-//         rows[j] = coefficient + logsum(rows[j], constant);
-//       }
-//     }
-//     for(size_t j = 0; j < rows.size(); j++) {
-//       rows[j] = logsum(sum + penalties->rho, last_rows[j] + penalties->row_coefficient); 
-//       bool matches = (cohort->allele_at(i, j) == q[i - start_site]);
-//       double emission = matches ? penalties->one_minus_mu : penalties->mu;
-//       rows[j] += emission;
-//     }
-//     sum = log_big_sum(rows);
-//     // DATA gathering  
-// 
-//     double eps = 0.000000001;
-//     // VALUES --------------------------------------------------------------
-//     for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
-//       bool found = false;
-//       for(size_t k = 0; k < j; k++) {
-//         if(fabs(rows.at(j) - rows.at(k)) < eps) {
-//           found = true;
-//           break;
-//         }
-//       }
-//       if(!found) {
-//         ++unique_values.at(i - start_site);
-//       }
-//     }
-//     vector<size_t> i_active_row_indices = cohort->get_active_row_indices(i, q.at(i - start_site));
-//     for(size_t j = 0; j < i_active_row_indices.size(); j++) {
-//       bool found = false;
-//       for(size_t k = 0; k < j; k++) {
-//         if(fabs(rows.at(i_active_row_indices.at(j)) - rows.at(i_active_row_indices.at(k))) < eps) {
-//           found = true;
-//           break;
-//         }
-//       }
-//       if(!found) {
-//         ++unique_active_values.at(i - start_site);
-//       }
-//     }
-//     
-//     // ACTIVE ROWS --------------------------------------------------------------
-//     active_row_indices.at(i - start_site) = i_active_row_indices.size();
-//     // HISTORY LENGTH -----------------------------------------------------------
-//     size_t oldest_active = i;
-//     size_t n_active_mapclasses = 0;
-//     size_t oldest = i;
-//     size_t n_mapclasses = 0;
-//     for(size_t j = 0; j < i_active_row_indices.size(); j++) {
-//       bool found = false;
-//       for(size_t k = 0; k < j; k++) {
-//         if(last_updated.at(i_active_row_indices.at(j)) == last_updated.at(i_active_row_indices.at(k))) {
-//           found = true;
-//           break;
-//         }
-//       }
-//       if(!found) {
-//         ++n_active_mapclasses;
-//       }
-//       if(last_updated.at(i_active_row_indices.at(j)) < oldest_active) {
-//         oldest_active = last_updated.at(i_active_row_indices.at(j));
-//       }
-//     }
-//     
-//     for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
-//       bool found = false;
-//       for(size_t k = 0; k < j; k++) {
-//         if(last_updated.at(j) == last_updated.at(k)) {
-//           found = true;
-//           break;
-//         }
-//       }
-//       if(!found) {
-//         ++n_mapclasses;
-//       }
-//       if(last_updated.at(j) < oldest) {
-//         oldest = last_updated.at(j);
-//       }
-//     }
-//     
-//     history_length.at(i - start_site) = i - oldest;
-//     active_history_length.at(i -start_site) = i - oldest_active;
-//     map_classes.at(i - start_site) = n_mapclasses;
-//     active_map_classes.at(i - start_site) = n_active_mapclasses;
-//     
-//     // Track activity
-//     for(size_t j = 0; j < i_active_row_indices.size(); j++) {
-//       last_updated.at(i_active_row_indices.at(j)) = i;
-//       ++times_active.at(i_active_row_indices.at(j));
-//     }
-//   }
-//   
-//   size_t max_u_value = 1;
-//   double avg_u_value = 0;
-//   size_t max_u_active_value = 1;
-//   double avg_u_active_value = 0;
-//   size_t max_active_row_indices = 0;
-//   double avg_active_row_indices = 0;
-//   size_t max_history_length = 0;
-//   double avg_history_length = 0;
-//   size_t max_active_history_length = 0;
-//   double avg_active_history_length = 0;
-//   size_t max_map_classes = 0;
-//   double avg_map_classes = 0;
-//   size_t max_active_map_classes = 0;
-//   double avg_active_map_classes = 0;
-//   size_t max_times_active = 0;
-//   double avg_times_active = 0;
-//     
-//   for(size_t i = 0; i < unique_values.size(); i++) {
-//     if(unique_values.at(i) > max_u_value) {
-//       max_u_value = unique_values.at(i);
-//     }
-//     if(unique_active_values.at(i) > max_u_active_value) {
-//       max_u_active_value = unique_active_values.at(i);
-//     }
-//     if(active_row_indices.at(i) > max_active_row_indices) {
-//       max_active_row_indices = active_row_indices.at(i);
-//     }
-//     if(history_length.at(i) > max_history_length) {
-//       max_history_length = history_length.at(i);
-//     }
-//     if(active_history_length.at(i) > max_active_history_length) {
-//       max_active_history_length = active_history_length.at(i);
-//     }
-//     if(active_map_classes.at(i) > max_active_map_classes) {
-//       max_active_map_classes = active_map_classes.at(i);
-//     }
-//     if(map_classes.at(i) > max_map_classes) {
-//       max_map_classes = map_classes.at(i);
-//     }
-//     
-//     avg_u_value += unique_values.at(i);
-//     avg_u_active_value += unique_active_values.at(i);
-//     avg_active_row_indices += active_row_indices.at(i);
-//     avg_history_length += history_length.at(i);
-//     avg_active_history_length += active_history_length.at(i);
-//     avg_active_map_classes += active_map_classes.at(i);
-//     avg_map_classes += map_classes.at(i);
-//   }
-//   for(size_t j = 0; j < times_active.size(); j++) {
-//     if(times_active.at(j) > max_times_active) {
-//       max_times_active = times_active.at(j);
-//     }
-//     avg_times_active += times_active.at(j);
-//   }
-//   
-//   size_t common_denom = unique_values.size() - 1;
-//   avg_u_value = avg_u_value/common_denom;
-//   avg_u_active_value = avg_u_active_value/common_denom;
-//   avg_active_row_indices = avg_active_row_indices/common_denom;
-//   avg_history_length = avg_history_length/common_denom;
-//   avg_active_history_length = avg_active_history_length/common_denom;
-//   avg_map_classes = avg_map_classes/common_denom;
-//   avg_active_map_classes = avg_active_map_classes/common_denom;
-//   avg_times_active = avg_times_active/times_active.size();
-//   
-//   vector<size_t> to_return_max = {
-//     max_u_value,
-//     max_u_active_value,
-//     max_active_row_indices,
-//     max_history_length,
-//     max_active_history_length,
-//     max_map_classes,
-//     max_active_map_classes,
-//     max_times_active
-//   };
-// 
-//   vector<double> to_return_avg = {
-//     avg_u_value,
-//     avg_u_active_value,
-//     avg_active_row_indices,
-//     avg_history_length,
-//     avg_active_history_length,
-//     avg_map_classes,
-//     avg_active_map_classes,
-//     avg_times_active
-//   };
-//   
-//   return make_pair(to_return_avg, to_return_max);
-// }
