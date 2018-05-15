@@ -62,7 +62,6 @@ public:
   void initialize_probability_at_span(size_t length);
   void initialize_probability_at_site(size_t site_index, alleleValue a);
   
-  void update_subset_of_rows(const rowSet& indices, bool active_is_match);
   void update_sum(const rowSet& indices, bool active_is_match);
   
   void extend_probability_at_site(const DPUpdateMap& current_map, 
@@ -90,6 +89,13 @@ public:
   ~fastFwdAlgState();
 
   double calculate_probability(const inputHaplotype* observed);
+  
+#ifdef TIME_PROBABILITY_INTERNALS
+  double* t_total;
+  double* t_readwrite;
+  double* t_delay;
+  void set_timers(double* t_total, double* t_readwrite, double* t_delay);
+#endif
 };
 
 struct slowFwdSolver{

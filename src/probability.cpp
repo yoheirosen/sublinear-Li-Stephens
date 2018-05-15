@@ -2,6 +2,10 @@
 #include "probability.hpp"
 #include <iostream>
 
+#ifdef TIME_PROBABILITY_INTERNALS
+#include <sys/time.h>
+#endif
+
 const fastFwdAlgState::dp_column_t fastFwdAlgState::SITE_UNEXTENDED = -1;
 const fastFwdAlgState::dp_column_t fastFwdAlgState::SPAN_UNEXTENDED = -2;
 const fastFwdAlgState::dp_column_t fastFwdAlgState::INITIAL_SPAN = -1;
@@ -32,6 +36,17 @@ fastFwdAlgState::~fastFwdAlgState() {
   
 }
 
+#ifdef TIME_PROBABILITY_INTERNALS
+void fastFwdAlgState::set_timers(double* total, double* readwrite, double* delay) {
+  t_total = total;
+  t_readwrite = readwrite;
+  t_delay = delay;
+  *t_total = 0;
+  *t_readwrite = 0;
+  *t_delay = 0;
+}
+#endif
+
 inline void fastFwdAlgState::record_last_extended(alleleValue a) {
   last_extended++;
   last_allele = a;
@@ -49,6 +64,7 @@ void fastFwdAlgState::initialize_probability(const inputHaplotype* q) {
   if(q->has_sites()) {
     if(q->has_left_tail()) {
       initialize_probability_at_span(q->get_left_tail());
+      extend_probability_at_site(q->get_site_index(0), q->get_allele(0));
     } else {
       initialize_probability_at_site(q->get_site_index(0), q->get_allele(0));
     }
@@ -58,16 +74,75 @@ void fastFwdAlgState::initialize_probability(const inputHaplotype* q) {
 }
 
 double fastFwdAlgState::calculate_probability(const inputHaplotype* observed) {
+#ifdef DEBUG
+  vector<vector<double> > fast_values(observed->number_of_sites(), vector<double>(cohort->get_n_haplotypes(), 1);
+#endif
+
+#ifdef TIME_PROBABILITY_INTERNALS
+  struct timeval timer1, timer2;
+  gettimeofday(&timer1, NULL);
+#endif
+  
   initialize_probability(observed);
+  
+#ifdef TIME_PROBABILITY_INTERNALS
+  gettimeofday(&timer2, NULL);
+  *t_total += (double) (timer2.tv_usec - timer1.tv_usec) / 1000000 + (double) (timer2.tv_sec - timer1.tv_sec);
+#endif
+
+#ifdef DEBUG
+  rowSet& indices = reference->get_active_rowSet()
+  rowSet::const_iterator rows_begin = indices.begin();
+  rowSet::const_iterator rows_end = indices.end();
+  for(rowSet::const_iterator it = rows_begin; it != rows_end; ++it) {
+    size_t row = *it;
+    fast_values[0][row] = rows[row];
+  }
+#endif
+
   if(observed->has_span_after(0)) {
     extend_probability_at_span_after_abstract(observed->get_span_after(0));
   }
+  
   for(size_t i = 1; i < observed->number_of_sites(); i++) {
     extend_probability_at_site(observed->get_site_index(i), observed->get_allele(i));
+    
+#ifdef TIME_PROBABILITY_INTERNALS
+    gettimeofday(&timer2, NULL);
+    *t_total += (double) (timer2.tv_usec - timer1.tv_usec) / 1000000 + (double) (timer2.tv_sec - timer1.tv_sec);
+#endif
+#ifdef DEBUG
+    for(rowSet::const_iterator it = rows_begin; it != rows_end; ++it) {
+      size_t row = *it;
+      fast_values[i][row] = rows[row];
+    }
+#endif
+#ifdef TIME_PROBABILITY_INTERNALS
+      gettimeofday(&timer1, NULL);
+#endif
+    
     if(observed->has_span_after(i)) {
       extend_probability_at_span_after_abstract(observed->get_span_after(i));
     }
   }
+
+#ifdef DEBUG
+  for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
+    for(size_t i = 0; i < observed->number_of_sites(); i++) {
+      cerr << "[";
+      if(fast_values[i][j] > 0) { cerr << "*"; } else { cerr << fast_values[i][j]; }
+      cerr << "]\t";
+    }
+    cerr << endl;
+  }
+#endif
+  
+#ifdef TIME_PROBABILITY_INTERNALS
+  gettimeofday(&timer2, NULL);
+  *t_total += (double) (timer2.tv_usec - timer1.tv_usec) / 1000000 + (double) (timer2.tv_sec - timer1.tv_sec);
+  *t_readwrite = *t_readwrite - *t_delay;
+#endif
+
   return sum;
 }
 
@@ -75,9 +150,7 @@ void fastFwdAlgState::initialize_probability_at_span(size_t length) {
   // There is a uniform 1/|k| probability of starting on any given haplotype.
   // All emission probabilities are the same. So all row-values are the same
   double common_initial_row = penalties->span_mutation_penalty(length) - penalties->log_k;
-  for(size_t i = 0; i < rows.size(); i++) {
-    rows[i] = common_initial_row;
-  }
+  std::fill(rows.begin(), rows.end(), common_initial_row);
   sum = penalties->span_mutation_penalty(length);  
   last_span_extended = -1;
 }
@@ -113,12 +186,6 @@ void fastFwdAlgState::initialize_probability_at_site(size_t site_index, alleleVa
                        log(cohort->number_not_matching(site_index, a)) + penalties->mu);
   }
   record_last_extended(a);
-}
-
-void fastFwdAlgState::update_subset_of_rows(const rowSet& indices,
-              bool active_is_match) {
-  double correction = penalties->minority_correction(active_is_match);
-  map.update_evaluate_and_move_rows(indices, rows, correction);
 }
 
 void fastFwdAlgState::update_sum(const rowSet& indices, bool active_is_match) {
@@ -161,16 +228,14 @@ double calculate_row(double old_row, const DPUpdateMap& map) {
   return map.of(old_row);
 }
 
-double calculate_row(double old_row, double coefficient, double constant) {
-  return calculate_row(old_row, DPUpdateMap(coefficient, constant));
-}
-
 void fastFwdAlgState::extend_probability_at_span_after_abstract(size_t l) {
   double m = penalties->span_mutation_penalty(l);
   double coefficient = penalties->pow_rho_c(l);
   double constant = penalties->span_polynomial(l) + sum;
+
   map.extend_value_only(DPUpdateMap(m + coefficient, constant - coefficient));
   sum += m;
+
   last_span_extended = last_extended;
 }
 
@@ -189,12 +254,26 @@ void fastFwdAlgState::extend_probability_at_site(const DPUpdateMap& current_majo
     map.extend_value_only(current_majority_map);
     return;
   }
-
+  
   map.extend_by_new_step(current_majority_map);
   // update rows by composing with everything *including this map*
   // don't update least recently updated
   // then use same loop to evaluate as well as move
+  
+#ifdef TIME_PROBABILITY_INTERNALS  
+  struct timeval timer1, timer2;
+  gettimeofday(&timer1, NULL);
+  map.update_evaluate_and_move_rows(active_row_indices, rows, penalties->minority_correction(match_is_rare), t_delay);
+#else 
+
   map.update_evaluate_and_move_rows(active_row_indices, rows, penalties->minority_correction(match_is_rare));
+
+#endif
+#ifdef TIME_PROBABILITY_INTERNALS  
+  gettimeofday(&timer2, NULL);
+  *t_readwrite += (double) (timer2.tv_usec - timer1.tv_usec) / 1000000 + (double) (timer2.tv_sec - timer1.tv_sec);
+#endif
+
   update_sum(active_row_indices, match_is_rare);
   record_last_extended(a);
   return;
@@ -219,7 +298,7 @@ double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* q) {
 
   vector<double> last_rows;
   double same_transition = log1p(-exp(penalties->rho) * (penalties->k - 1));
-  for(size_t i = 0; i < q->number_of_sites(); i++) {
+  for(size_t i = 1; i < q->number_of_sites(); i++) {
     // do span stuff
     if(q->has_span_after(i - 1)) {
       size_t l = q->get_span_after(i - 1);
@@ -258,18 +337,42 @@ double slowFwdSolver::calculate_probability_quadratic(const inputHaplotype* q) {
 
 double slowFwdSolver::calculate_probability_linear(const inputHaplotype* q) {
   initialize_linear(q);
-  for(size_t i = 0; i < q->number_of_sites(); i++) {
+  
+#ifdef DEBUG
+  vector<vector<double> > slow_values(q->number_of_sites(), vector<double>(cohort->get_n_haplotypes()));
+  for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
+    slow_values[0][j] = rows[j];
+  }
+#endif
+  
+  for(size_t i = 1; i < q->number_of_sites(); i++) {
     if(q->has_span_after(i - 1)) {
       extend_span_linear(q, i - 1);
     }
     extend_site_linear(q, i);
+    
+#ifdef DEBUG
+    for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
+      slow_values[i][j] = rows[j];
+    }
+#endif
+
   }
   if(q->has_span_after(q->number_of_sites() - 1)) {
     extend_span_linear(q, q->number_of_sites() - 1);
   }
+  
+#ifdef DEBUG
+  for(size_t j = 0; j < cohort->get_n_haplotypes(); j++) {
+    for(size_t i = 0; i < q->number_of_sites(); i++) {
+      cerr << "[" << slow_values[i][j] << "]\t";
+    }
+    cerr << endl;
+  }
+#endif
+
   return sum;
 }
-
 
 void slowFwdSolver::initialize_linear(const inputHaplotype* q) {
   size_t start_site = q->get_start_site();
@@ -326,6 +429,7 @@ void slowFwdSolver::extend_site_linear(const inputHaplotype* q, size_t site) {
 void slowFwdSolver::extend_span_linear(const inputHaplotype* q, size_t site) {
   if(q->has_span_after(site)) {
     size_t l = q->get_span_after(site);
+    double m = penalties->span_mutation_penalty(l);
     double coefficient = penalties->pow_rho_c(l);
     double constant = penalties->span_polynomial(l) + sum;
     for(size_t j = 0; j < rows.size(); j++) {

@@ -118,12 +118,47 @@ namespace profiler_tools{
       return new inputHaplotype(reference);
     }
   }
+  
+  void print_total_allele_spectrum(ostream& out, haplotypeCohort* cohort) {
+    for(size_t i = 0; i < cohort->get_n_sites(); i++) {
+      out << cohort->get_total_information(i) << "\t";
+    }
+    out << endl;
+  }
+  
+  void print_haplotype_allele_spectrum(ostream& out, haplotypeCohort* cohort, inputHaplotype* haplotype) {
+    for(size_t i = 0; i < haplotype->number_of_sites(); i++) {
+      size_t site_index = i + haplotype->get_start_site();
+      alleleValue a = haplotype->get_allele(i);
+      out << cohort->number_active(site_index, a) << "\t";
+    }
+  }
+  
+  void print_haplotype_allele_stats(ostream& out, haplotypeCohort* cohort, inputHaplotype* haplotype) {
+    size_t phi = 0;
+    size_t phi_2 = 0;
+    size_t k_phi = 0;
+    for(size_t i = 0; i < haplotype->number_of_sites(); i++) {
+      size_t site_index = i + haplotype->get_start_site();
+      alleleValue a = haplotype->get_allele(i);
+      size_t phi_i = cohort->number_active(site_index, a);
+      phi += phi_i;
+      phi_2 += phi_i * phi_i;
+      k_phi += phi_i * (cohort->get_n_haplotypes() - phi_i);
+    }
+    double phi_avg = (double)phi / haplotype->number_of_sites();
+    double phi_2_avg = (double)phi_2 / haplotype->number_of_sites();
+    double k_phi_avg = (double)k_phi / haplotype->number_of_sites();
+    out << cohort->get_n_haplotypes() << "\t" << phi_avg << "\t" << phi_2_avg << "\t" << k_phi_avg << endl;
+  }
 }
 
 int main(int argc, char* argv[]) {
 	// -- input handling -------------------------------------------------------------------------------------------------
   bool print_commands = false;
   bool write_experiment = false;
+  bool print_spectra = false;
+  bool print_speeds = false;
   
   string out_path;
   string slls_path;
@@ -139,7 +174,7 @@ int main(int argc, char* argv[]) {
   double recombination_penalty;
   
   size_t haplotype_generator_generations = 3;
-  size_t replicates_per_datapoint = 3;
+  size_t replicates_per_datapoint = 1;
   size_t LINEAR_MAX_SAMPLES = 10000;
   size_t QUADRATIC_MAX_NK2 = 10000000;
   
@@ -184,7 +219,11 @@ int main(int argc, char* argv[]) {
           size_t par_max_size = atol(argv[command_pos + 2]);
           size_t par_size_steps = atol(argv[command_pos + 3]);
           command_pos += 4;
-          sizes = profiler_tools::get_sizes(log_spacing, par_max_size, par_size_steps);
+          if(par_size_steps == 1) {
+            sizes = vector<size_t>(1, par_max_size);
+          } else {
+            sizes = profiler_tools::get_sizes(log_spacing, par_max_size, par_size_steps);
+          }
           sizes_built = true;
         }
       } else if(argv[command_pos] == string("lengths")) {
@@ -203,7 +242,11 @@ int main(int argc, char* argv[]) {
           size_t par_max_length = atol(argv[command_pos + 3]);
           size_t par_length_steps = atol(argv[command_pos + 4]);
           command_pos += 5;
-          lengths = profiler_tools::get_lengths(log_spacing, par_min_length, par_max_length, par_length_steps);
+          if(par_length_steps == 1) {
+            lengths = vector<size_t>(1, (size_t)((par_min_length + par_max_length)/2));
+          } else {
+            lengths = profiler_tools::get_lengths(log_spacing, par_min_length, par_max_length, par_length_steps);
+          }
           lengths_built = true;
         }
       } else if(argv[command_pos] == string("replicates")) {
@@ -270,17 +313,23 @@ int main(int argc, char* argv[]) {
       cerr << "\t if output-path is not defined, defaults to cout" << endl;
       return 1;
     }
+    print_speeds = true;
   } else if(argv[1] == string("deltas")) {
-    if(argc == 3) {
-      print_cout = true;
-    } else if(argc == 4) {
-      out_path = argv[3];
+    if(argc == 4 || argc == 5) {
+      slls_path = argv[2];
+      experiment_path = argv[3];
+      if(argc == 4) {
+        print_cout = true;
+      } else {
+        out_path = argv[4];
+      }
     } else {
       cerr << "-- command options are ------------------------------------" << endl;
       cerr << "profiler deltas [slls_path] [output-path]" << endl;
       cerr << "\t if output-path is not defined, defaults to cout" << endl;
       return 1;
     }
+    print_spectra = true;
   } else if(argv[1] == string("space")) {
     if(argc == 3) {
       print_cout = true;
@@ -408,55 +457,100 @@ int main(int argc, char* argv[]) {
             
             if(query_ih->number_of_sites() > 1) {
               cerr << "iteration "<< k_it + 1 << " of " << sizes.size() << " size, " << n_bp_it + 1 << " of " << lengths.size() << " length, " << j + 1 << " of " << replicates << " replicates " << endl;
-              ++k_it;
-              size_t start_site = query_ih->get_start_site();
-              size_t end_site = start_site + query_ih->number_of_sites() - 1;    
-              
-              double time_used_fast = 0;
-            	double time_used_quad = 0;
-            	double time_used_linear = 0;
-                        	
-            	for(size_t i = 0; i < replicates_per_datapoint; i++) {
-                fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, new_penalties, new_cohort);
-              	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
-              	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
 
-              	struct timeval tv1, tv2, tv3, tv4;
-              	gettimeofday(&tv1, NULL);
-              	double result = haplotype_matrix->calculate_probability(query_ih);
-                gettimeofday(&tv2, NULL);
-                time_used_fast += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
-
-                double result_slowq;
-                if(k * k * new_reference->number_of_sites() > QUADRATIC_MAX_NK2) {
-                  time_used_quad = 0;
-                } else {
-                  gettimeofday(&tv2, NULL);
-                  result_slowq = quadratic_fwd->calculate_probability_quadratic(query_ih);
-                  gettimeofday(&tv3, NULL);
-            	    time_used_quad += (double) (tv3.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv3.tv_sec - tv2.tv_sec);
+#ifdef DEBUG_DETAILED
+              size_t n_rare = 0;
+              size_t n_absent = 0;
+              for(size_t i = 0; i < query_ih->number_of_sites(); i++) {
+                if(new_cohort->match_is_rare(query_ih->get_site_index(i), query_ih->get_allele(i))) {
+                  ++n_rare;
                 }
-                
-                double result_slowl;
-                if(cohort_size > LINEAR_MAX_SAMPLES) {
-                  time_used_linear = 0;
-                } else {
-                  gettimeofday(&tv3, NULL);
-                	result_slowl = linear_fwd->calculate_probability_linear(query_ih);
-                  gettimeofday(&tv4, NULL);
-                  time_used_linear += (double) (tv4.tv_usec - tv3.tv_usec) / 1000000 + (double) (tv4.tv_sec - tv3.tv_sec);
+                if(new_cohort->number_matching(query_ih->get_site_index(i), query_ih->get_allele(i)) == 0) {
+                  ++n_absent;
                 }
-                
-                cerr << result << " ?= " << result_slowq << " ?= " << result_slowl << endl;
-                
-                delete haplotype_matrix;
-              	delete quadratic_fwd;
-              	delete linear_fwd;
               }
+            
+              cerr << "rare alleles: " << n_rare << "; absent alleles: " << n_absent << endl;
+              query_ih->print(cerr);
+              for(size_t i = 0; i < query_ih->number_of_sites(); i++) {
+                cerr << "[" << new_cohort->number_not_matching(query_ih->get_site_index(i), query_ih->get_allele(i)) << "]";
+              }
+              cerr << endl;
+#endif              
               
-              size_t sum_of_information_content = new_cohort->sum_information_content(query_ih->get_alleles(), query_ih->get_start_site());
+              ++k_it;
               
-              output << "time fast\t" << time_used_fast/replicates_per_datapoint << "\ttime linear\t" << time_used_linear/replicates_per_datapoint << "\ttime quadratic\t" << time_used_quad/replicates_per_datapoint << "\tsum of information_content\t" << sum_of_information_content << "\tsites in haplotype\t" << end_site - start_site << "\tcohort size\t" << k << "\tregion length in bp\t" << n_bp << endl;
+              if(print_spectra == true) {
+                // profiler_tools::print_haplotype_allele_spectrum(output, cohort, query_ih);
+                profiler_tools::print_haplotype_allele_stats(output, new_cohort, query_ih);
+              }
+              if(print_speeds == true) {                  
+                size_t start_site = query_ih->get_start_site();
+                size_t end_site = start_site + query_ih->number_of_sites() - 1;    
+                
+                double time_used_fast = 0;
+              	double time_used_quad = 0;
+              	double time_used_linear = 0;
+                        	
+#ifdef TIME_PROBABILITY_INTERNALS
+                double tot_readwrite = 0;
+                double tot_delay = 0;
+#endif
+                                                    
+              	for(size_t i = 0; i < replicates_per_datapoint; i++) {
+                  fastFwdAlgState* haplotype_matrix = new fastFwdAlgState(new_reference, new_penalties, new_cohort);
+                	slowFwdSolver* linear_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
+                	slowFwdSolver* quadratic_fwd = new slowFwdSolver(new_reference, new_penalties, new_cohort);
+                
+#ifdef TIME_PROBABILITY_INTERNALS
+                  double t_total, t_readwrite, t_delay;
+                  haplotype_matrix->set_timers(&t_total, &t_readwrite, &t_delay);  
+#endif
+                
+                	struct timeval tv1, tv2, tv3, tv4;
+                	gettimeofday(&tv1, NULL);
+                	double result = haplotype_matrix->calculate_probability(query_ih);
+                  gettimeofday(&tv2, NULL);
+                  time_used_fast += (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+
+                  double result_slowq;
+                  if(k * k * new_reference->number_of_sites() > QUADRATIC_MAX_NK2) {
+                    time_used_quad = 0;
+                  } else {
+                    gettimeofday(&tv2, NULL);
+                    result_slowq = quadratic_fwd->calculate_probability_quadratic(query_ih);
+                    gettimeofday(&tv3, NULL);
+              	    time_used_quad += (double) (tv3.tv_usec - tv2.tv_usec) / 1000000 + (double) (tv3.tv_sec - tv2.tv_sec);
+                  }
+                  
+                  double result_slowl;
+                  if(cohort_size > LINEAR_MAX_SAMPLES) {
+                    time_used_linear = 0;
+                  } else {
+                    gettimeofday(&tv3, NULL);
+                  	result_slowl = linear_fwd->calculate_probability_linear(query_ih);
+                    gettimeofday(&tv4, NULL);
+                    time_used_linear += (double) (tv4.tv_usec - tv3.tv_usec) / 1000000 + (double) (tv4.tv_sec - tv3.tv_sec);
+                  }
+
+#ifdef TIME_PROBABILITY_INTERNALS
+                  tot_readwrite += t_readwrite;
+                  tot_delay += t_delay;
+#endif
+                
+                  delete haplotype_matrix;
+                	delete quadratic_fwd;
+                	delete linear_fwd;
+                }
+              
+#ifdef TIME_PROBABILITY_INTERNALS
+                output << "t_fast_r/w \t" << tot_readwrite/replicates_per_datapoint << "\t t_fast_delay \t" << tot_delay/replicates_per_datapoint << "\t";
+#endif
+              
+                size_t sum_of_information_content = new_cohort->sum_information_content(query_ih->get_alleles(), query_ih->get_start_site());
+                
+                output << "t_fast\t" << time_used_fast/replicates_per_datapoint << "\tt_lin\t" << time_used_linear/replicates_per_datapoint << "\tt_quad\t" << time_used_quad/replicates_per_datapoint << "\tinfo_total\t" << sum_of_information_content << "\tsites n\t" << end_site - start_site << "\tcohort size k\t" << k << "\tbp\t" << n_bp << endl;
+              }
             }
             delete query_ih;
           }

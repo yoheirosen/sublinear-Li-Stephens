@@ -106,7 +106,7 @@ private:
 
   eqclass_t newest_eqclass = 0;
   vector<DPUpdateMap> eqclass_to_map;                    // size = # eqclasses
-  // TODO interleave
+// TODO interleave
   vector<size_t> eqclass_size;                           // size = # eqclasses
   vector<step_t> eqclass_last_updated;                   // size = # eqclasses
   // stores which map eqclasses have been emptied so that new map
@@ -117,7 +117,7 @@ private:
   const static size_t NUMERICAL_UPPER_BOUND;
   const static eqclass_t SINK_CLASS;
   
-  // TODO interleave
+// TODO interleave
   vector<eqclass_t> eqclass_buddy_above;
   vector<eqclass_t> eqclass_buddy_below;
   
@@ -139,7 +139,6 @@ private:
   void move_singleton_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
   void move_non_singleton_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
   void move_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
-  // TODO if we don't have "next" vector... does it matter if we have a left-side guard?
   void move_leftmost_eqclass_to_nonempty_step(eqclass_t eqclass, step_t old_i, step_t new_i);
 
   void add_empty_eqclass_to_empty_step(const DPUpdateMap& map);
@@ -147,9 +146,6 @@ private:
   void move_row_to_newest_eqclass(row_t row);
   void move_row_to_eqclass(row_t row, eqclass_t eqclass);
   void decrement_eqclass(eqclass_t eqclass);
-  
-  // TODO efficient handling of small rowSets
-  vector<eqclass_t> rows_to_eqclasses(const rowSet& rows) const;
 
   void update_eqclass(eqclass_t eqclass);
   void update_eqclasses(const vector<eqclass_t>& eqclasses);
@@ -167,19 +163,26 @@ public:
   void evaluate(const rowSet& active_rows, const vector<double>& values) const;
   void update(const rowSet& active_rows);
   
+#ifdef TIME_PROBABILITY_INTERNALS
+  void update_evaluate_and_move_rows(const rowSet& active_rows, vector<double>& values, double minority_correction, double* timer);
+#else 
   void update_evaluate_and_move_rows(const rowSet& active_rows, vector<double>& values, double minority_correction);
+#endif
 
   void hard_update_all();  
   void move_all_rows_to_newest_eqclass();
 
+  // TODO efficient handling of small rowSets
+  vector<eqclass_t> rows_to_eqclasses(const rowSet& rows) const;
+  
   const DPUpdateMap& get_map(row_t row) const;
   
-  #ifdef DEBUG
-    void print_eqclass(eqclass_t i) const;
-    void dump_vectors() const;
-    bool ensure_unique(eqclass_t eqclass, step_t allowed_step) const;
-    bool ensure_deleted(eqclass_t eqclass) const;
-  #endif
+#ifdef DEBUG
+  void print_eqclass(eqclass_t i) const;
+  void dump_vectors() const;
+  bool ensure_unique(eqclass_t eqclass, step_t allowed_step) const;
+  bool ensure_deleted(eqclass_t eqclass) const;
+#endif
 };
 
 #endif

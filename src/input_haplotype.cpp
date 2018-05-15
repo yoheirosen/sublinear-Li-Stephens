@@ -236,10 +236,6 @@ const vector<alleleValue>& inputHaplotype::get_alleles() const {
   return alleles;
 }
 
-size_t inputHaplotype::get_start_site() const {
-  return start_site;
-}
-
 bool inputHaplotype::is_valid() const {
   return !invalid;
 }
@@ -252,4 +248,12 @@ void inputHaplotype::validate() const {
       throw runtime_error("invalid allele in observed haplotype");
     }
   }
+}
+
+size_t inputHaplotype::get_start_site() const {
+  return start_site;
+}
+
+size_t inputHaplotype::get_length() const {
+  return absolute_end_pos - absolute_start_pos + 1;
 }

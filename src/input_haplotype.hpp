@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 #include "reference.hpp"
 
 using namespace std;
@@ -56,7 +57,14 @@ public:
             siteIndex* reference, size_t absolute_start_pos, 
             size_t length);
   ~inputHaplotype();
-              
+
+#ifdef DEBUG
+  void print(ostream& out) const;
+  size_t get_length() const;
+  bool is_valid() const;
+  void validate() const;
+#endif            
+  
   alleleValue get_allele(size_t j) const;
   const vector<alleleValue>& get_alleles() const;
   size_t get_start_site() const;
@@ -74,9 +82,7 @@ public:
   
   size_t get_site_index(size_t j) const;
   bool has_sites() const;
-  bool is_valid() const;
   size_t number_of_sites() const;
-  void validate() const;
 };
 
 #endif

@@ -2,9 +2,12 @@
 #include "delay_multiplier.hpp"
 #include "math.hpp"
 
-#include <iostream>
+#ifdef TIME_PROBABILITY_INTERNALS
+#include <sys/time.h>
+#endif
 
 #ifdef DEBUG
+#include <iostream>
 #include <cassert>
 #endif
 
@@ -258,14 +261,6 @@ void mapHistory::omit_step(step_t i) {
       cerr << "argument was NO_REP" << endl;
     }
     
-    // cerr << "n_eqclasses" << endl;
-    // for(size_t i = 0; i < n_eqclasses.size(); i++) {
-    //   if(i == marker) { cerr << "["; }
-    //   cerr << n_eqclasses[i];
-    //   if(i == marker) { cerr << "]"; }
-    //   cerr << "\t";
-    // }
-    // cerr << endl;
     cerr << "step: \t";
     for(size_t i = 0; i < rep_eqclasses.size(); i++) {
       cerr << i << "\t";
@@ -628,9 +623,27 @@ void delayedEvalMap::extend_value_only(const DPUpdateMap& map) {
   map_history.postcompose_rightmost_map(map);
 }
 
+#ifdef TIME_PROBABILITY_INTERNALS
+void delayedEvalMap::update_evaluate_and_move_rows(const rowSet& active_rows, vector<double>& values, double minority_correction, double* timer) {
+#else
+
 void delayedEvalMap::update_evaluate_and_move_rows(const rowSet& active_rows, vector<double>& values, double minority_correction) {
+
+#endif
   vector<eqclass_t> active_eqclasses = rows_to_eqclasses(active_rows);
+  
+#ifdef TIME_PROBABILITY_INTERNALS
+  struct timeval timer1, timer2;
+  gettimeofday(&timer1, NULL);
+#endif
+  
   update_eqclasses(active_eqclasses);
+  
+#ifdef TIME_PROBABILITY_INTERNALS
+  gettimeofday(&timer2, NULL);
+  *timer += (double) (timer2.tv_usec - timer1.tv_usec) / 1000000 + (double) (timer2.tv_sec - timer1.tv_sec);
+#endif
+    
   rowSet::const_iterator it = active_rows.begin();
   rowSet::const_iterator active_rows_end = active_rows.end();
   for(it; it != active_rows_end; ++it) {
@@ -673,7 +686,7 @@ void delayedEvalMap::update_eqclasses(const vector<eqclass_t>& eqclasses) {
   }
   
   last_i = current_step;
-    
+  
   for(step_t i = map_history.previous_step(current_step); i > oldest_step; ) {
     if(step_has_singleton_eqclass(i)) {
       eqclass_t i_rep_eqclass = map_history.rep_eqclass(i);
@@ -688,7 +701,7 @@ void delayedEvalMap::update_eqclasses(const vector<eqclass_t>& eqclasses) {
       last_i = i;
     }
     i = map_history.previous_step(last_i);
-  }
+  }  
 
 #ifdef DEBUG
   assert(check_steps_valid());
