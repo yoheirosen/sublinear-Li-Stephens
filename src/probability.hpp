@@ -43,7 +43,7 @@ private:
 public:
   fastFwdAlgState(siteIndex* ref, const penaltySet* pen,
             const haplotypeCohort* haplotypes);
-  fastFwdAlgState(const fastFwdAlgState& other, bool copy_map);
+  fastFwdAlgState(const fastFwdAlgState& other, bool copy_map = true);
   ~fastFwdAlgState();
   
   double S;
