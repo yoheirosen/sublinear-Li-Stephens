@@ -14,7 +14,7 @@ fastFwdAlgState::fastFwdAlgState(siteIndex* reference, const penaltySet* penalti
   R = vector<double>(cohort->get_n_haplotypes(), 0);
 }
 
-fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other, bool copy_map = true) {
+fastFwdAlgState::fastFwdAlgState(const fastFwdAlgState &other, bool copy_map) {
 	reference = other.reference;
 	cohort = other.cohort;
 	penalties = other.penalties;
