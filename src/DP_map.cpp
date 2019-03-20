@@ -22,7 +22,7 @@ double DPUpdateMap::of(double x) const {
   if(scalar) {
     return coefficient + x;
   } else {
-    return coefficient + logsum(x, constant);
+    return coefficient + logmath::logsum(x, constant);
   }
 }
 
@@ -51,7 +51,7 @@ void DPUpdateMap::compose_in_place(const DPUpdateMap& inner) {
     return;
   } else {
     coefficient = coefficient + inner.coefficient; 
-    constant = logsum(inner.constant, constant - inner.coefficient);
+    constant = logmath::logsum(inner.constant, constant - inner.coefficient);
     return;
   }
 }

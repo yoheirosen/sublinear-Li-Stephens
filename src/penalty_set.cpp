@@ -1,4 +1,5 @@
 #include <cmath>
+#include "math.hpp"
 #include "penalty_set.hpp"
 
 penaltySet::~penaltySet() {
@@ -36,7 +37,7 @@ double penaltySet::pow_mu(size_t l) const {
 }
 
 double penaltySet::span_polynomial(size_t l) const {
-  return logdiff(0, pow_rho_c(l)) - log_k;
+  return logmath::logdiff(0, pow_rho_c(l)) - log_k;
 }
 
 DPUpdateMap penaltySet::match_map(double last_sum) const {
@@ -68,11 +69,11 @@ void penaltySet::update_sum(double& sum, const vector<double>& summands,
   if(match_is_rare) {
     double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
     sum += mu;
-    sum = logsum(sum, correct_to_1_m_2mu + log_big_sum(summands));
+    sum = logmath::logsum(sum, correct_to_1_m_2mu + logmath::log_big_sum(summands));
   } else {
     double correct_to_1_m_2mu = one_minus_2mu - mu;
     sum += one_minus_mu;
-    sum = logdiff(sum, correct_to_1_m_2mu + log_big_sum(summands));
+    sum = logmath::logdiff(sum, correct_to_1_m_2mu + logmath::log_big_sum(summands));
   }
 }
 
@@ -80,11 +81,11 @@ void penaltySet::update_sum(double& sum, const vector<double>& summands, rowSet:
   if(match_is_rare) {
     double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
     sum += mu;
-    sum = logsum(sum, correct_to_1_m_2mu + log_big_sum(begin, end, summands));
+    sum = logmath::logsum(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
   } else {
     double correct_to_1_m_2mu = one_minus_2mu - mu;
     sum += one_minus_mu;
-    sum = logdiff(sum, correct_to_1_m_2mu + log_big_sum(begin, end, summands));
+    sum = logmath::logdiff(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
   }
 }
 

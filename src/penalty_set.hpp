@@ -1,7 +1,6 @@
 #ifndef PENALTY_SET_H
 #define PENALTY_SET_H
 
-#include "math.hpp"
 #include "DP_map.hpp"
 
 using namespace std;

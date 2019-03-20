@@ -1,7 +1,6 @@
 #ifndef LINEAR_HAPLO_PROBABILITY_H
 #define LINEAR_HAPLO_PROBABILITY_H
 
-#include "math.hpp"
 #include "reference.hpp"
 #include "input_haplotype.hpp"
 #include "DP_map.hpp"

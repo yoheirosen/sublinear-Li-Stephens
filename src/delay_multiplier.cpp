@@ -1,6 +1,5 @@
 #include "row_set.hpp"
 #include "delay_multiplier.hpp"
-#include "math.hpp"
 
 #ifdef TIME_PROBABILITY_INTERNALS
 #include <sys/time.h>
