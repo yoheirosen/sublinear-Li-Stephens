@@ -77,18 +77,6 @@ void penaltySet::update_sum(double& sum, const vector<double>& summands,
   }
 }
 
-void penaltySet::update_sum(double& sum, const vector<double>& summands, rowSet::const_iterator begin, rowSet::const_iterator end, bool match_is_rare) const {
-  if(match_is_rare) {
-    double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
-    sum += mu;
-    sum = logmath::logsum(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
-  } else {
-    double correct_to_1_m_2mu = one_minus_2mu - mu;
-    sum += one_minus_mu;
-    sum = logmath::logdiff(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
-  }
-}
-
 double penaltySet::composed_row_coefficient(size_t l) const {
   return row_coefficient * l;
 }

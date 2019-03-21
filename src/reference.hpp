@@ -14,7 +14,7 @@
 #include "allele.hpp"
 #include "row_set.hpp"
 
-using namespace std;
+using std::vector;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Index of site identifiers, positions, and the distances between them 
@@ -26,7 +26,7 @@ private:
   size_t length = 0;          // length of spanned region in bp
   
   //-- site position data ------------------------------------------------------
-  unordered_map<size_t, size_t> position_to_site_index;
+  std::unordered_map<size_t, size_t> position_to_site_index;
   vector<size_t> site_index_to_position;
   
   //-- distances between sites or boundaries -----------------------------------
@@ -36,7 +36,7 @@ private:
 
 public:
   siteIndex(size_t global_offset);
-  siteIndex(const vector<string>& haplotypes);
+  siteIndex(const vector<std::string>& haplotypes);
   siteIndex(const vector<size_t>& positions, size_t length);
   siteIndex(const vector<size_t>& positions, size_t length, size_t global_offset);
   siteIndex(std::istream& indexin);
@@ -132,7 +132,7 @@ public:
   haplotypeCohort(size_t cohort_size, siteIndex* reference);
   haplotypeCohort(const vector<vector<alleleValue> >& haplotypes,
                   siteIndex* reference);
-  haplotypeCohort(const vector<string>& haplotypes, 
+  haplotypeCohort(const vector<std::string>& haplotypes, 
                   siteIndex* reference);
   haplotypeCohort(std::istream& cohortin, siteIndex* reference);
   ~haplotypeCohort();
@@ -222,7 +222,7 @@ public:
   void serialize(std::ostream& out) const;
 };
 
-haplotypeCohort* build_cohort(const string& vcf_path);
+haplotypeCohort* build_cohort(const std::string& vcf_path);
 
 namespace haploRandom {
   vector<size_t> n_unique_uints(size_t N, size_t supremum);

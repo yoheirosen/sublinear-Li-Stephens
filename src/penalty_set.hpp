@@ -3,7 +3,7 @@
 
 #include "DP_map.hpp"
 
-using namespace std;
+using std::vector;
 
 // stores a shared set of penalty-derived coefficients for use in calculations
 // according to our model
@@ -40,13 +40,27 @@ struct penaltySet{
   DPUpdateMap non_match_map(double last_sum) const;
   DPUpdateMap current_map(double last_sum, bool match_is_rare) const;
   double minority_correction(bool match_is_rare) const;
+  template<class IteratorType>
+  void update_sum(double& sum, const vector<double>& summands, IteratorType begin, IteratorType end, bool match_is_rare) const;
   void update_sum(double& sum, const vector<double>& summands, bool match_is_rare) const;
-  void update_sum(double& sum, const vector<double>& summands, rowSet::const_iterator begin, rowSet::const_iterator end, bool match_is_rare) const;
   
   // double mu_val(alleleValue from, alleleValue to) const;
   // double mu_loss_val(alleleValue from) const;
   // double rho_val(size_t position) const;
   // double rho_loss_val(size_t position) const;
 };
+
+template<class IteratorType>
+void penaltySet::update_sum(double& sum, const vector<double>& summands, IteratorType begin, IteratorType end, bool match_is_rare) const {
+  if(match_is_rare) {
+    double correct_to_1_m_2mu = one_minus_2mu - one_minus_mu;
+    sum += mu;
+    sum = logmath::logsum(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
+  } else {
+    double correct_to_1_m_2mu = one_minus_2mu - mu;
+    sum += one_minus_mu;
+    sum = logmath::logdiff(sum, correct_to_1_m_2mu + logmath::log_big_sum(begin, end, summands));
+  }
+}
 
 #endif

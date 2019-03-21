@@ -6,7 +6,7 @@
 #include <iostream>
 #include "reference.hpp"
 
-using namespace std;
+using std::vector;
 
 struct inputHaplotype{
 private:

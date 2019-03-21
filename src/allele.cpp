@@ -1,6 +1,6 @@
 #include "allele.hpp"
 
-using namespace std;
+using std::vector;
 
 char allele::to_char(alleleValue a) {
   switch(a) {

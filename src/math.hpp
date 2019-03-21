@@ -6,12 +6,12 @@
 
 namespace logmath{
 
-double logdiff(double a, double b) {
+inline double logdiff(double a, double b) {
   if(b > a) { std::swap(a, b); }
   return a + log1p(-exp(b - a));
 }
 
-double logsum(double a, double b) {
+inline double logsum(double a, double b) {
   if(b > a) { std::swap(a, b); }
   return a + log1p(exp(b - a));
 }
@@ -42,7 +42,7 @@ double log_big_sum(const IteratorType& begin, const IteratorType& end,
   }
 }
 
-double log_big_sum(const std::vector<double>& R) {
+inline double log_big_sum(const std::vector<double>& R) {
   return log_big_sum(R.begin(), R.end(), R);
 }
 

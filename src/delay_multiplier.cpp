@@ -10,7 +10,7 @@
 #include <cassert>
 #endif
 
-using namespace std;
+using std::vector;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // -- mapHistory -------------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ step_t mapHistory::past_end_step() const {
 void mapHistory::increment_step() {
 #ifdef DEBUG
   if(maps.size() != previous.size() - 1) {
-    cerr << "aux vector size " << previous.size() << "; map vector size " << maps.size() << endl;
+    std::cerr << "aux vector size " << previous.size() << "; map vector size " << maps.size() << endl;
     throw std::runtime_error("mapHistory::increment_step() : step incremented out of order");
   }
 #endif
@@ -86,7 +86,7 @@ void mapHistory::assign_rep_eqclass_to_new_step(eqclass_t eqclass) {
 void mapHistory::assign_map_to_new_step(const DPUpdateMap& map) {
   #ifdef DEBUG
     if(maps.size() != previous.size() - 2) {
-      cerr << "aux vector size " << previous.size() << "; map vector size " << maps.size() << endl;
+      std::cerr << "aux vector size " << previous.size() << "; map vector size " << maps.size() << endl;
       throw std::runtime_error("mapHistory::assign_map_to_new_step(map) : step incremented out of order");
     }
   #endif
@@ -185,137 +185,137 @@ void mapHistory::omit_step(step_t i) {
 #ifdef DEBUG
   void mapHistory::print_index(size_t i) const {
     if(i == CLEARED) {
-      cerr << "CLRD";
+      std::cerr << "CLRD";
     } else if(i == PAST_FIRST) {
-      cerr << "PST1";
+      std::cerr << "PST1";
     } else if(i == NO_REP) {
-      cerr << "NREP";
+      std::cerr << "NREP";
     } else {
-      cerr << i;
+      std::cerr << i;
     }
   }
   
   void delayedEvalMap::print_eqclass(eqclass_t i) const {
     if(i == INACTIVE_EQCLASS) {
-      cerr << "INAC";
+      std::cerr << "INAC";
     } else if(i == SINK_CLASS) {
-      cerr << "SINK";
+      std::cerr << "SINK";
     } else {
-      cerr << i;
+      std::cerr << i;
     }
   }
   
   void delayedEvalMap::dump_vectors() const {
-    cerr << "current step \t" << current_step << endl << endl;
+    std::cerr << "current step \t" << current_step << endl << endl;
     
-    cerr << "total eqclasses \t" << eqclass_size.size() - 1 << endl;
+    std::cerr << "total eqclasses \t" << eqclass_size.size() - 1 << endl;
   
-    cerr << "eqc \t step \t above \t below" << endl;
+    std::cerr << "eqc \t step \t above \t below" << endl;
     for(size_t i = 1; i < eqclass_size.size(); i++) {
       if(eqclass_size[i] != 0) {
-        cerr << "e " << i << ":\t";
-        cerr <<  eqclass_last_updated[i] << "\t";
+        std::cerr << "e " << i << ":\t";
+        std::cerr <<  eqclass_last_updated[i] << "\t";
         print_eqclass(eqclass_buddy_above[i]);
-        cerr << "\t";
+        std::cerr << "\t";
         print_eqclass(eqclass_buddy_below[i]);
-        cerr << "\t";
+        std::cerr << "\t";
         if(eqclass_buddy_above[i] == SINK_CLASS && eqclass_buddy_below[i] == SINK_CLASS) {
-          cerr << "singleton";
+          std::cerr << "singleton";
         } else {
-          cerr << "nonsingleton";
+          std::cerr << "nonsingleton";
         }
-        if(i == newest_eqclass) { cerr << "\t newest eqclass"; }
-        cerr << endl;
+        if(i == newest_eqclass) { std::cerr << "\t newest eqclass"; }
+        std::cerr << endl;
       }
     }
     if(eqclass_size[newest_eqclass] == 0) {
-      cerr << "e " << newest_eqclass << ":\t" << eqclass_last_updated[newest_eqclass] << "\t";
+      std::cerr << "e " << newest_eqclass << ":\t" << eqclass_last_updated[newest_eqclass] << "\t";
       print_eqclass(eqclass_buddy_above[newest_eqclass]);
-      cerr << "\t";
+      std::cerr << "\t";
       print_eqclass(eqclass_buddy_below[newest_eqclass]);
-      cerr << "\t";
+      std::cerr << "\t";
       if(eqclass_buddy_above[newest_eqclass] == SINK_CLASS && eqclass_buddy_below[newest_eqclass] == SINK_CLASS) {
-        cerr << "singleton";
+        std::cerr << "singleton";
       } else {
-        cerr << "nonsingleton";
+        std::cerr << "nonsingleton";
       }
-      cerr << "\t newest eqclass, empty";
-      cerr << endl;
+      std::cerr << "\t newest eqclass, empty";
+      std::cerr << endl;
     }
-    cerr << endl << "empty eqclass indices \t";
+    std::cerr << endl << "empty eqclass indices \t";
     for(size_t i = 0; i < empty_eqclass_indices.size(); i++) {
-      cerr << empty_eqclass_indices[i] << "\t";
+      std::cerr << empty_eqclass_indices[i] << "\t";
     }
-    cerr << endl << endl;
+    std::cerr << endl << endl;
     map_history.dump_state(current_step);
   }
 
 
   void mapHistory::dump_state(step_t marker) const {
     if(marker == CLEARED) {
-      cerr << "argument was CLEARED" << endl;
+      std::cerr << "argument was CLEARED" << endl;
     } else if(marker == PAST_FIRST) {
-      cerr << "argument was PAST_FIRST" << endl;
+      std::cerr << "argument was PAST_FIRST" << endl;
     } else if(marker == NO_REP) {
-      cerr << "argument was NO_REP" << endl;
+      std::cerr << "argument was NO_REP" << endl;
     }
     
-    cerr << "step: \t";
+    std::cerr << "step: \t";
     for(size_t i = 0; i < rep_eqclasses.size(); i++) {
-      cerr << i << "\t";
+      std::cerr << i << "\t";
     }
-    cerr << "..." << endl;
+    std::cerr << "..." << endl;
 
-    cerr << "reps:" << "\t";
+    std::cerr << "reps:" << "\t";
     for(size_t i = 0; i < rep_eqclasses.size(); i++) {
-      if(i == marker) { cerr << "["; }
-      cerr << "e ";
+      if(i == marker) { std::cerr << "["; }
+      std::cerr << "e ";
       if(rep_eqclasses[i] == NO_REP) {
-        cerr << "NR";
+        std::cerr << "NR";
       } else {
-        cerr << rep_eqclasses[i];
+        std::cerr << rep_eqclasses[i];
       }
-      if(i == marker) { cerr << "]"; }
-      cerr << "\t";
+      if(i == marker) { std::cerr << "]"; }
+      std::cerr << "\t";
     }
-    cerr << endl;
-    cerr << "prev:" << "\t";
+    std::cerr << endl;
+    std::cerr << "prev:" << "\t";
     for(size_t i = 0; i < previous.size(); i++) {
-      if(i == marker) { cerr << "["; }
+      if(i == marker) { std::cerr << "["; }
       if(previous[i] == CLEARED) {
-        cerr << "CLRD";
+        std::cerr << "CLRD";
       } else if(previous[i] == PAST_FIRST) {
-        cerr << "PST1";
+        std::cerr << "PST1";
       } else {
-        cerr << previous[i];
+        std::cerr << previous[i];
       }
-      if(i == marker) { cerr << "]"; }
-      cerr << "\t";
+      if(i == marker) { std::cerr << "]"; }
+      std::cerr << "\t";
     }
-    cerr << endl;
-    cerr << "next:" << "\t";
+    std::cerr << endl;
+    std::cerr << "next:" << "\t";
     for(size_t i = 0; i < next.size(); i++) {
-      if(i == marker) { cerr << "["; }
+      if(i == marker) { std::cerr << "["; }
       if(next[i] == CLEARED) {
-        cerr << "CLRD";
+        std::cerr << "CLRD";
       } else {
-        cerr << next[i];
+        std::cerr << next[i];
       }
-      if(i == marker) { cerr << "]"; }
-      cerr << "\t";
+      if(i == marker) { std::cerr << "]"; }
+      std::cerr << "\t";
     }
-    cerr << endl;
+    std::cerr << endl;
   }
   
   bool mapHistory::validate_step(step_t i) const {
     if(i == CLEARED) {
-      cerr << "invalid function argument: CLEARED" << endl;
+      std::cerr << "invalid function argument: CLEARED" << endl;
     } else if(i == PAST_FIRST) {
-      cerr << "invalid function argument: PAST_FIRST" << endl;
+      std::cerr << "invalid function argument: PAST_FIRST" << endl;
     } else if(i == NO_REP) {
-      cerr << "invalid function argument: NO_REP" << endl;
+      std::cerr << "invalid function argument: NO_REP" << endl;
     } else if(i >= size()) {
-      cerr << "invalid function argument: out of bounds" << endl;
+      std::cerr << "invalid function argument: out of bounds" << endl;
     }
     if(i >= size()) {
       dump_state(i);
@@ -349,16 +349,16 @@ void mapHistory::omit_step(step_t i) {
   
   bool delayedEvalMap::validate_eqclass(eqclass_t eqclass) const {
     if(eqclass == SINK_CLASS) {
-      cerr << "invalid eqclass : SINK_CLASS" << endl;
+      std::cerr << "invalid eqclass : SINK_CLASS" << endl;
       return false;
     }
     if(eqclass >= eqclass_size.size()) {
-      cerr << "invalid eqclass : out of bounds" << endl;
+      std::cerr << "invalid eqclass : out of bounds" << endl;
       return false;
     }
     for(size_t j = 0; j < empty_eqclass_indices.size(); j++) {
       if(eqclass == empty_eqclass_indices[j]) {
-        cerr << "invalid eqclass : deleted " << endl;
+        std::cerr << "invalid eqclass : deleted " << endl;
         return false;
       }
     }
@@ -417,7 +417,7 @@ void mapHistory::omit_step(step_t i) {
     }
     for(size_t i = 0; i < steps.size(); i++) {
       if(eqclass_counts_by_step[steps[i]] == 0) {
-        cerr << "trying to update empty step" << endl;
+        std::cerr << "trying to update empty step" << endl;
         map_history.dump_state(steps[i]);
         return false;
       }

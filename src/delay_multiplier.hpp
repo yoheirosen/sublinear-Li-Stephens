@@ -6,7 +6,7 @@
 #include "DP_map.hpp"
 #include "row_set.hpp"
 
-using namespace std;
+using std::vector;
 
 typedef size_t eqclass_t;
 typedef size_t row_t;

@@ -5,7 +5,7 @@
 #include <vector>
 #include "allele.hpp"
 
-using namespace std;
+using std::vector;
 
 // A rowSet allows us to pass around discontinuous sets of row-indices without
 // having to copy subsets of vectors

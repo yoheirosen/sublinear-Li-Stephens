@@ -5,7 +5,7 @@
 #include <string>
 #include "reference.hpp"
 
-using namespace std;
+using std::vector;
 
 struct referenceSequence{
 private:

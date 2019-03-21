@@ -7,7 +7,7 @@
 #include "delay_multiplier.hpp"
 #include "penalty_set.hpp"
 
-using namespace std;
+using std::vector;
 
 struct liStephensModel{
   liStephensModel(siteIndex* reference, haplotypeCohort* cohort, const penaltySet* penalties);

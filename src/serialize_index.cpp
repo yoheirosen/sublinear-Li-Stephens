@@ -3,6 +3,8 @@
 #include <sys/time.h>
 #include "reference.hpp"
 
+using namespace std;
+
 int main(int argc, char* argv[]) {
   if(argc != 2) {
     cerr << "serializer takes one argument, which is the vcf file path" << endl;
