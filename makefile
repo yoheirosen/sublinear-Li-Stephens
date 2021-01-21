@@ -9,7 +9,7 @@ LIB_DIR:= $(CWD)/lib
 DEP_DIR:= $(CWD)/deps
 
 CXX:=g++
-CXXFLAGS:=-std=c++11 -g
+CXXFLAGS += -std=c++11 -g
 
 ifeq ($(INCLUDE_FLAGS),)
 	# Include flags may be set by library user
