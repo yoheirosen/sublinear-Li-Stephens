@@ -310,7 +310,7 @@ haplotypeCohort::haplotypeCohort(size_t cohort_size,
 
 void haplotypeCohort::assign_alleles_at_site(size_t i, 
             vector<alleleValue> alleles_at_site) {
-  for(size_t j; j < alleles_at_site.size(); j++) {
+  for(size_t j = 0; j < alleles_at_site.size(); j++) {
     alleles_by_haplotype_and_site[i][j] = alleles_at_site[j];
   }
 }
