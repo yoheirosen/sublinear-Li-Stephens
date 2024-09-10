@@ -5,6 +5,7 @@
 #include "delay_multiplier.hpp"
 #include "haplotype_state_node.hpp"
 #include <unordered_set>
+#include <cstdint>
 
 using namespace std;
 
