@@ -8,7 +8,6 @@ TEST_OBJ_DIR:=$(CWD)/obj/test
 LIB_DIR:= $(CWD)/lib
 DEP_DIR:= $(CWD)/deps
 
-CXX:=g++
 CXXFLAGS += -std=c++11 -g
 
 ifeq ($(INCLUDE_FLAGS),)
