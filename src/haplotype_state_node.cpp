@@ -93,6 +93,7 @@ size_t haplotypeStateNode::node_to_child_index(const haplotypeStateNode* c) cons
       return i;
     }
   }
+  return children.size();
 }
 
 const vector<haplotypeStateNode*>& haplotypeStateNode::get_unordered_children() const {
