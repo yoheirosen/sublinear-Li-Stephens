@@ -14,7 +14,7 @@ char allele::to_char(alleleValue a) {
       return 'G';
     case gap:
       return '-';
-    case unassigned:
+    default:
       return 'N';
   }
 }
